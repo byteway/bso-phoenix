@@ -147,6 +147,11 @@ class BSO_Phoenix_Trip_Service
     {
         global $wpdb;
 
+        $active_trip = $this->get_active_trip();
+        if (is_array($active_trip) && ! empty($active_trip['id'])) {
+            return (int) $active_trip['id'];
+        }
+
         $table = $wpdb->prefix . 'phoenix_trips';
         $now = current_time('mysql');
         $default_fuel_use_lph = $this->get_default_fuel_use_lph();

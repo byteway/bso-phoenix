@@ -24,13 +24,19 @@ class BSO_Phoenix_Ajax
         }
 
         $service = new BSO_Phoenix_Trip_Service();
+        $existing_active_trip = $service->get_active_trip();
         $trip_id = $service->start_trip($boat_id);
 
         if ($trip_id <= 0) {
             wp_send_json_error(array('message' => 'Kon route niet starten.'), 500);
         }
 
-        wp_send_json_success(array('trip_id' => $trip_id));
+        wp_send_json_success(
+            array(
+                'trip_id' => $trip_id,
+                'already_active' => is_array($existing_active_trip) && ! empty($existing_active_trip['id']),
+            )
+        );
     }
 
     public function trackpoint(): void
