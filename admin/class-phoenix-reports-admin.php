@@ -9,7 +9,23 @@ class BSO_Phoenix_Reports_Admin
     public function init(): void
     {
         add_action('admin_menu', array($this, 'register_submenu'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('admin_post_bso_phoenix_export_reports_csv', array($this, 'handle_export_reports_csv'));
+    }
+
+    public function enqueue_assets(string $hook_suffix): void
+    {
+        if ($hook_suffix !== 'phoenix_page_bso-phoenix-reports') {
+            return;
+        }
+
+        wp_enqueue_script(
+            'chartjs',
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js',
+            array(),
+            '4.4.3',
+            true
+        );
     }
 
     public function register_submenu(): void
@@ -51,6 +67,7 @@ class BSO_Phoenix_Reports_Admin
         $top_suppliers = $this->build_top_suppliers($costs);
         $monthly_cost_breakdown = $this->build_monthly_cost_breakdown($costs);
         $busiest_trip_days = $this->build_busiest_trip_days($trips);
+        $chart_data = $this->build_chart_data($report, $comparison, $monthly_totals);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Rapportages', 'bso-phoenix') . '</h1>';
@@ -86,6 +103,17 @@ class BSO_Phoenix_Reports_Admin
         $this->render_stat_card(__('Kosten totaal', 'bso-phoenix'), $settings_service->format_money($report['cost_total']));
         $this->render_stat_card(__('Logboekitems', 'bso-phoenix'), (string) $report['log_count']);
         $this->render_stat_card(__('Open taken', 'bso-phoenix'), (string) $report['todo_open_count']);
+        echo '</div>';
+
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start;margin:0 0 24px;">';
+        echo '<section style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;">';
+        echo '<h2 style="margin-top:0;">' . esc_html__('Maandtrends', 'bso-phoenix') . '</h2>';
+        echo '<canvas id="phoenixMonthlyTrendChart" height="180"></canvas>';
+        echo '</section>';
+        echo '<section style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;">';
+        echo '<h2 style="margin-top:0;">' . esc_html__('Periodevergelijking', 'bso-phoenix') . '</h2>';
+        echo '<canvas id="phoenixComparisonChart" height="180"></canvas>';
+        echo '</section>';
         echo '</div>';
 
         echo '<h2>' . esc_html__('Periodevergelijking', 'bso-phoenix') . '</h2>';
@@ -282,6 +310,7 @@ class BSO_Phoenix_Reports_Admin
         echo '</section>';
 
         echo '</div>';
+        $this->render_chart_script($chart_data);
         echo '</div>';
     }
 
@@ -546,6 +575,96 @@ class BSO_Phoenix_Reports_Admin
         });
 
         return array_slice($suppliers, 0, 8);
+    }
+
+    private function build_chart_data(array $report, array $comparison, array $monthly_totals): array
+    {
+        $months = array_reverse(array_keys($monthly_totals));
+        $trip_counts = array();
+        $distances = array();
+        $costs = array();
+
+        foreach ($months as $month) {
+            $trip_counts[] = (int) $monthly_totals[$month]['trip_count'];
+            $distances[] = (float) $monthly_totals[$month]['distance_km'];
+            $costs[] = (float) $monthly_totals[$month]['cost_total'];
+        }
+
+        return array(
+            'monthly' => array(
+                'labels' => $months,
+                'tripCounts' => $trip_counts,
+                'distancesKm' => $distances,
+                'costTotals' => $costs,
+            ),
+            'comparison' => array(
+                'labels' => array('Tochten', 'Afstand', 'Kosten', 'Logboekitems'),
+                'current' => array(
+                    (float) $comparison['current']['trip_count'],
+                    (float) $comparison['current']['distance_km'],
+                    (float) $comparison['current']['cost_total'],
+                    (float) $comparison['current']['log_count'],
+                ),
+                'previous' => array(
+                    (float) $comparison['previous']['trip_count'],
+                    (float) $comparison['previous']['distance_km'],
+                    (float) $comparison['previous']['cost_total'],
+                    (float) $comparison['previous']['log_count'],
+                ),
+            ),
+        );
+    }
+
+    private function render_chart_script(array $chart_data): void
+    {
+        $json = wp_json_encode($chart_data);
+        if (! is_string($json)) {
+            return;
+        }
+
+        echo '<script>';
+        echo 'document.addEventListener("DOMContentLoaded", function () {';
+        echo 'if (typeof Chart === "undefined") { return; }';
+        echo 'var chartData = ' . $json . ';';
+        echo 'var monthlyCanvas = document.getElementById("phoenixMonthlyTrendChart");';
+        echo 'if (monthlyCanvas) {';
+        echo 'new Chart(monthlyCanvas, {';
+        echo 'type: "line",';
+        echo 'data: {';
+        echo 'labels: chartData.monthly.labels,';
+        echo 'datasets: [';
+        echo '{ label: "Tochten", data: chartData.monthly.tripCounts, borderColor: "#0a6a4a", backgroundColor: "rgba(10,106,74,0.12)", yAxisID: "y", tension: 0.25 },';
+        echo '{ label: "Afstand (km)", data: chartData.monthly.distancesKm, borderColor: "#1d4ed8", backgroundColor: "rgba(29,78,216,0.10)", yAxisID: "y1", tension: 0.25 },';
+        echo '{ label: "Kosten", data: chartData.monthly.costTotals, borderColor: "#b45309", backgroundColor: "rgba(180,83,9,0.10)", yAxisID: "y2", tension: 0.25 }';
+        echo ']';
+        echo '},';
+        echo 'options: {';
+        echo 'responsive: true,';
+        echo 'interaction: { mode: "index", intersect: false },';
+        echo 'scales: {';
+        echo 'y: { type: "linear", position: "left", beginAtZero: true },';
+        echo 'y1: { type: "linear", position: "right", beginAtZero: true, grid: { drawOnChartArea: false } },';
+        echo 'y2: { type: "linear", position: "right", beginAtZero: true, display: false }';
+        echo '}';
+        echo '}';
+        echo '});';
+        echo '}';
+        echo 'var comparisonCanvas = document.getElementById("phoenixComparisonChart");';
+        echo 'if (comparisonCanvas) {';
+        echo 'new Chart(comparisonCanvas, {';
+        echo 'type: "bar",';
+        echo 'data: {';
+        echo 'labels: chartData.comparison.labels,';
+        echo 'datasets: [';
+        echo '{ label: "Huidige periode", data: chartData.comparison.current, backgroundColor: "rgba(10,106,74,0.75)" },';
+        echo '{ label: "Vorige periode", data: chartData.comparison.previous, backgroundColor: "rgba(107,114,128,0.65)" }';
+        echo ']';
+        echo '},';
+        echo 'options: { responsive: true, scales: { y: { beginAtZero: true } } }';
+        echo '});';
+        echo '}';
+        echo '});';
+        echo '</script>';
     }
 
     private function render_stat_card(string $label, string $value): void
