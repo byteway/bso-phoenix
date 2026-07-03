@@ -18,7 +18,7 @@ class BSO_Phoenix_Admin_Page
         add_menu_page(
             __('Phoenix Logboek', 'bso-phoenix'),
             __('Phoenix', 'bso-phoenix'),
-            'manage_options',
+            BSO_PHOENIX_CAP_READ,
             'bso-phoenix',
             array($this, 'render_page'),
             'dashicons-location-alt',
@@ -28,7 +28,7 @@ class BSO_Phoenix_Admin_Page
 
     public function render_page(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_READ)) {
             wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'bso-phoenix'));
         }
 
@@ -151,7 +151,7 @@ class BSO_Phoenix_Admin_Page
 
     public function handle_export_trips_csv(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_READ)) {
             wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
         }
 
@@ -238,7 +238,7 @@ class BSO_Phoenix_Admin_Page
 
     public function handle_export_trip_trackpoints(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_READ)) {
             wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
         }
 

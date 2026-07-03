@@ -32,7 +32,7 @@ class BSO_Phoenix_Boat_Admin
             'bso-phoenix',
             __('Bootprofiel', 'bso-phoenix'),
             __('Bootprofiel', 'bso-phoenix'),
-            'manage_options',
+            BSO_PHOENIX_CAP_MANAGE,
             'bso-phoenix-boat',
             array($this, 'render_page')
         );
@@ -40,7 +40,7 @@ class BSO_Phoenix_Boat_Admin
 
     public function render_page(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_MANAGE)) {
             wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'bso-phoenix'));
         }
 
@@ -118,7 +118,7 @@ class BSO_Phoenix_Boat_Admin
 
     public function handle_save_boat(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_MANAGE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 

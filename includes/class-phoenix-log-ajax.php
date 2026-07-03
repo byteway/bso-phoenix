@@ -15,7 +15,7 @@ class BSO_Phoenix_Log_Ajax
 
     public function create_log(): void
     {
-        $this->guard_request('bso_phoenix_log');
+		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_WRITE);
 
         $entry_text = isset($_POST['entry_text']) ? wp_kses_post((string) $_POST['entry_text']) : '';
         $boat_id = isset($_POST['boat_id']) ? (int) $_POST['boat_id'] : 1;
@@ -64,7 +64,7 @@ class BSO_Phoenix_Log_Ajax
 
     public function delete_log(): void
     {
-        $this->guard_request('bso_phoenix_log');
+		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_WRITE);
 
         $log_id = isset($_POST['log_id']) ? (int) $_POST['log_id'] : 0;
         if ($log_id <= 0) {
@@ -83,7 +83,7 @@ class BSO_Phoenix_Log_Ajax
 
     public function get_logs(): void
     {
-        $this->guard_request('bso_phoenix_log');
+		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_READ);
 
         $limit = isset($_POST['limit']) ? (int) $_POST['limit'] : 20;
         $service = new BSO_Phoenix_Log_Service();
@@ -101,11 +101,15 @@ class BSO_Phoenix_Log_Ajax
         wp_send_json_success(array('logs' => $logs_with_photos));
     }
 
-    private function guard_request(string $nonce_action): void
+	private function guard_request(string $nonce_action, string $required_cap): void
     {
         if (! is_user_logged_in()) {
             wp_send_json_error(array('message' => 'Inloggen vereist.'), 401);
         }
+
+		if (! current_user_can($required_cap)) {
+			wp_send_json_error(array('message' => 'Onvoldoende rechten.'), 403);
+		}
 
         $nonce = isset($_POST['nonce']) ? sanitize_text_field((string) $_POST['nonce']) : '';
         if (! wp_verify_nonce($nonce, $nonce_action)) {

@@ -32,7 +32,7 @@ class BSO_Phoenix_Todo_Admin
             'bso-phoenix',
             __('TODO beheer', 'bso-phoenix'),
             __('TODO', 'bso-phoenix'),
-            'manage_options',
+            BSO_PHOENIX_CAP_WRITE,
             'bso-phoenix-todo',
             array($this, 'render_page')
         );
@@ -40,7 +40,7 @@ class BSO_Phoenix_Todo_Admin
 
     public function render_page(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'bso-phoenix'));
         }
 
@@ -185,7 +185,7 @@ class BSO_Phoenix_Todo_Admin
 
     public function handle_save_todo(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -210,7 +210,7 @@ class BSO_Phoenix_Todo_Admin
 
     public function handle_update_todo(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -241,7 +241,7 @@ class BSO_Phoenix_Todo_Admin
 
     public function handle_delete_todo(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 

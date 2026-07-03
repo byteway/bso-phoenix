@@ -16,7 +16,7 @@ class BSO_Phoenix_Ajax
 
     public function start_trip(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
         $boat_id = isset($_POST['boat_id']) ? (int) $_POST['boat_id'] : 1;
         if ($boat_id <= 0) {
@@ -41,7 +41,7 @@ class BSO_Phoenix_Ajax
 
     public function trackpoint(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
         $trip_id = isset($_POST['trip_id']) ? (int) $_POST['trip_id'] : 0;
         $latitude = isset($_POST['latitude']) ? (float) $_POST['latitude'] : null;
@@ -72,7 +72,7 @@ class BSO_Phoenix_Ajax
 
     public function stop_trip(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
         $trip_id = isset($_POST['trip_id']) ? (int) $_POST['trip_id'] : 0;
         if ($trip_id <= 0) {
@@ -91,7 +91,7 @@ class BSO_Phoenix_Ajax
 
     public function get_trip_trackpoints(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_READ);
 
         $trip_id = isset($_POST['trip_id']) ? (int) $_POST['trip_id'] : 0;
         if ($trip_id <= 0) {
@@ -114,11 +114,15 @@ class BSO_Phoenix_Ajax
         );
     }
 
-    private function guard_request(): void
+	private function guard_request(string $required_cap): void
     {
         if (! is_user_logged_in()) {
             wp_send_json_error(array('message' => 'Inloggen vereist.'), 401);
         }
+
+		if (! current_user_can($required_cap)) {
+			wp_send_json_error(array('message' => 'Onvoldoende rechten.'), 403);
+		}
 
         $nonce = isset($_POST['nonce']) ? sanitize_text_field((string) $_POST['nonce']) : '';
         if (! wp_verify_nonce($nonce, 'bso_phoenix_gps')) {

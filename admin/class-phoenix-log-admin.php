@@ -21,7 +21,7 @@ class BSO_Phoenix_Log_Admin
             'bso-phoenix',
             __("Captain's log", 'bso-phoenix'),
             __("Captain's log", 'bso-phoenix'),
-            'manage_options',
+            BSO_PHOENIX_CAP_WRITE,
             'bso-phoenix-log',
             array($this, 'render_page')
         );
@@ -29,7 +29,7 @@ class BSO_Phoenix_Log_Admin
 
     public function render_page(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'bso-phoenix'));
         }
 
@@ -141,7 +141,7 @@ class BSO_Phoenix_Log_Admin
 
     public function handle_save_log(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -171,7 +171,7 @@ class BSO_Phoenix_Log_Admin
 
     public function handle_delete_log(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -200,7 +200,7 @@ class BSO_Phoenix_Log_Admin
 
     public function handle_update_log_photo_caption(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -222,7 +222,7 @@ class BSO_Phoenix_Log_Admin
 
     public function handle_delete_log_photo(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -287,7 +287,7 @@ add_action(
             return;
         }
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( BSO_PHOENIX_CAP_WRITE ) ) {
             wp_die( esc_html__( 'Je hebt geen toestemming om logfoto\'s te sorteren.', 'bso-phoenix' ) );
         }
 

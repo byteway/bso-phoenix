@@ -30,7 +30,7 @@ class BSO_Phoenix_Cost_Admin
             'bso-phoenix',
             __('Kostenbeheer', 'bso-phoenix'),
             __('Kosten', 'bso-phoenix'),
-            'manage_options',
+            BSO_PHOENIX_CAP_WRITE,
             'bso-phoenix-costs',
             array($this, 'render_page')
         );
@@ -38,7 +38,7 @@ class BSO_Phoenix_Cost_Admin
 
     public function render_page(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'bso-phoenix'));
         }
 
@@ -185,7 +185,7 @@ class BSO_Phoenix_Cost_Admin
 
     public function handle_save_cost(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -212,7 +212,7 @@ class BSO_Phoenix_Cost_Admin
 
     public function handle_update_cost(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -244,7 +244,7 @@ class BSO_Phoenix_Cost_Admin
 
     public function handle_delete_cost(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 
@@ -264,7 +264,7 @@ class BSO_Phoenix_Cost_Admin
 
     public function handle_export_costs_csv(): void
     {
-        if (! current_user_can('manage_options')) {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
             wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
         }
 

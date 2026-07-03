@@ -1028,6 +1028,11 @@
     }
 
     function handleStart() {
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setFeedback('Je hebt alleen-lezen rechten. Starten van routes is niet toegestaan.');
+            return;
+        }
+
         if (state.activeTripId) {
             setFeedback('Er is al een actieve route.');
             setStatus('Actief');
@@ -1072,6 +1077,11 @@
     }
 
     function handleStop() {
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setFeedback('Je hebt alleen-lezen rechten. Stoppen van routes is niet toegestaan.');
+            return;
+        }
+
         if (!state.activeTripId) {
             setFeedback('Er is geen actieve route om te stoppen.');
             return;
@@ -1107,6 +1117,11 @@
 
     function handleLogSubmit(event) {
         event.preventDefault();
+
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setLogFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
+            return;
+        }
 
         var textNode = document.querySelector('[data-phoenix-log-text]');
         var fileNode = document.querySelector('[data-phoenix-log-photos]');
@@ -1188,6 +1203,11 @@
     function handleCostSubmit(event) {
         event.preventDefault();
 
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setCostFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
+            return;
+        }
+
         var typeNode = document.querySelector('[data-phoenix-cost-type]');
         var amountNode = document.querySelector('[data-phoenix-cost-amount]');
         var dateNode = document.querySelector('[data-phoenix-cost-date]');
@@ -1243,6 +1263,11 @@
 
     function handleTodoSubmit(event) {
         event.preventDefault();
+
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setTodoFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
+            return;
+        }
 
         var titleNode = document.querySelector('[data-phoenix-todo-title]');
         var priorityNode = document.querySelector('[data-phoenix-todo-priority]');
@@ -1432,6 +1457,15 @@
     ensureMap();
     initLogPhotoInput();
     loadLogGallery();
+
+    if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+        Array.prototype.slice.call(document.querySelectorAll('[data-phoenix-start], [data-phoenix-stop], [data-phoenix-log-form] button[type="submit"], [data-phoenix-todo-form] button[type="submit"], [data-phoenix-cost-form] button[type="submit"]')).forEach(function (node) {
+            node.setAttribute('disabled', 'disabled');
+        });
+
+        setFeedback('Alleen-lezen modus actief.');
+    }
+
     updateQueuedCount();
     resetLiveStats();
     setConnectionStatus();

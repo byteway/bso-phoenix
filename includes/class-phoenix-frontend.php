@@ -69,6 +69,9 @@ class BSO_Phoenix_Frontend
                 'activeTripStartedAt' => is_array($active_trip) && ! empty($active_trip['started_at']) ? (string) $active_trip['started_at'] : '',
                 'distanceUnit' => $settings_service->get_distance_unit(),
                 'fuelUseLph' => (float) $settings_service->get('fuel_use_lph'),
+                'canRead' => current_user_can(BSO_PHOENIX_CAP_READ),
+                'canWrite' => current_user_can(BSO_PHOENIX_CAP_WRITE),
+                'canManage' => current_user_can(BSO_PHOENIX_CAP_MANAGE),
             )
         );
     }

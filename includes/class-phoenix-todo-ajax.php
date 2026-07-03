@@ -15,7 +15,7 @@ class BSO_Phoenix_Todo_Ajax
 
     public function create_todo(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
         $title = isset($_POST['title']) ? sanitize_text_field((string) $_POST['title']) : '';
         $description = isset($_POST['description']) ? sanitize_textarea_field((string) $_POST['description']) : '';
@@ -41,7 +41,7 @@ class BSO_Phoenix_Todo_Ajax
 
     public function update_status(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
         $todo_id = isset($_POST['todo_id']) ? (int) $_POST['todo_id'] : 0;
         $status = isset($_POST['status']) ? sanitize_key((string) $_POST['status']) : '';
@@ -62,7 +62,7 @@ class BSO_Phoenix_Todo_Ajax
 
     public function get_todos(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_READ);
 
         $status = isset($_POST['status']) ? sanitize_key((string) $_POST['status']) : '';
         $priority = isset($_POST['priority']) ? sanitize_key((string) $_POST['priority']) : '';
@@ -73,11 +73,15 @@ class BSO_Phoenix_Todo_Ajax
         wp_send_json_success(array('todos' => $todos));
     }
 
-    private function guard_request(): void
+	private function guard_request(string $required_cap): void
     {
         if (! is_user_logged_in()) {
             wp_send_json_error(array('message' => 'Inloggen vereist.'), 401);
         }
+
+		if (! current_user_can($required_cap)) {
+			wp_send_json_error(array('message' => 'Onvoldoende rechten.'), 403);
+		}
 
         $nonce = isset($_POST['nonce']) ? sanitize_text_field((string) $_POST['nonce']) : '';
         if (! wp_verify_nonce($nonce, 'bso_phoenix_todo')) {

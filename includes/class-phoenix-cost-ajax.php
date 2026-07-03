@@ -13,7 +13,7 @@ class BSO_Phoenix_Cost_Ajax
 
     public function create_cost(): void
     {
-        $this->guard_request();
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
         $cost_type = isset($_POST['cost_type']) ? sanitize_key((string) $_POST['cost_type']) : 'other';
         $amount_raw = isset($_POST['amount']) ? (string) $_POST['amount'] : '';
@@ -43,11 +43,15 @@ class BSO_Phoenix_Cost_Ajax
         wp_send_json_success(array('cost_id' => $cost_id));
     }
 
-    private function guard_request(): void
+	private function guard_request(string $required_cap): void
     {
         if (! is_user_logged_in()) {
             wp_send_json_error(array('message' => 'Inloggen vereist.'), 401);
         }
+
+		if (! current_user_can($required_cap)) {
+			wp_send_json_error(array('message' => 'Onvoldoende rechten.'), 403);
+		}
 
         $nonce = isset($_POST['nonce']) ? sanitize_text_field((string) $_POST['nonce']) : '';
         if (! wp_verify_nonce($nonce, 'bso_phoenix_cost')) {
