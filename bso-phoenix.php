@@ -35,6 +35,7 @@ require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-todo-admin.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-cost-admin.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-boat-admin.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-settings-admin.php';
+require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-access-admin.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-reports-admin.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-frontend.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-plugin.php';

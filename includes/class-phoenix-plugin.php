@@ -39,6 +39,9 @@ class BSO_Phoenix_Plugin
             $settings_admin = new BSO_Phoenix_Settings_Admin();
             $settings_admin->init();
 
+			$access_admin = new BSO_Phoenix_Access_Admin();
+			$access_admin->init();
+
             $reports_admin = new BSO_Phoenix_Reports_Admin();
             $reports_admin->init();
         }
