@@ -9,6 +9,7 @@ class BSO_Phoenix_Reports_Admin
     public function init(): void
     {
         add_action('admin_menu', array($this, 'register_submenu'));
+        add_action('admin_post_bso_phoenix_export_reports_csv', array($this, 'handle_export_reports_csv'));
     }
 
     public function register_submenu(): void
@@ -61,6 +62,14 @@ class BSO_Phoenix_Reports_Admin
         echo '</label>';
         submit_button(__('Filter', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=bso-phoenix-reports')) . '">' . esc_html__('Reset', 'bso-phoenix') . '</a>';
+        echo '</form>';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0 0 18px;">';
+        echo '<input type="hidden" name="action" value="bso_phoenix_export_reports_csv" />';
+        echo '<input type="hidden" name="date_from" value="' . esc_attr($date_from) . '" />';
+        echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
+        wp_nonce_field('bso_phoenix_export_reports_csv', 'bso_phoenix_reports_export_nonce');
+        submit_button(__('Exporteer rapportage naar CSV', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:0 0 24px;">';
@@ -269,5 +278,60 @@ class BSO_Phoenix_Reports_Admin
         );
 
         return $labels[$status] ?? $status;
+    }
+
+    public function handle_export_reports_csv(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_export_reports_csv', 'bso_phoenix_reports_export_nonce');
+
+        $date_from = $this->normalize_date(isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '');
+        $date_to = $this->normalize_date(isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '');
+
+        $trip_service = new BSO_Phoenix_Trip_Service();
+        $cost_service = new BSO_Phoenix_Cost_Service();
+        $log_service = new BSO_Phoenix_Log_Service();
+        $todo_service = new BSO_Phoenix_Todo_Service();
+        $settings_service = new BSO_Phoenix_Settings_Service();
+
+        $trips = $trip_service->get_trips_by_date_range($date_from, $date_to, '', 1000);
+        $costs = $cost_service->get_costs($date_from, $date_to, '', 1000);
+        $logs = $log_service->get_logs($date_from, $date_to, 1000);
+        $todos = $todo_service->get_todos('', '', 1000);
+        $report = $this->build_report($trips, $costs, $logs, $todos, $date_from, $date_to);
+
+        $filename = 'phoenix-report-' . gmdate('Ymd-His') . '.csv';
+
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+
+        $output = fopen('php://output', 'w');
+        if ($output === false) {
+            wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
+        }
+
+        fputcsv($output, array('metric', 'value'));
+        fputcsv($output, array('trip_count', (string) $report['trip_count']));
+        fputcsv($output, array('distance', $settings_service->format_distance($report['distance_km'], 2)));
+        fputcsv($output, array('duration_hours', number_format_i18n($report['duration_hours'], 2)));
+        fputcsv($output, array('average_speed', $settings_service->format_speed($report['average_speed_kmh'], 2)));
+        fputcsv($output, array('cost_total', $settings_service->format_money($report['cost_total'])));
+        fputcsv($output, array('log_count', (string) $report['log_count']));
+        fputcsv($output, array('todo_open_count', (string) $report['todo_open_count']));
+
+        foreach ($report['costs_by_type'] as $type => $amount) {
+            fputcsv($output, array('cost_type_' . $type, $settings_service->format_money($amount)));
+        }
+
+        foreach ($report['todos_by_status'] as $status => $count) {
+            fputcsv($output, array('todo_status_' . $status, (string) $count));
+        }
+
+        fclose($output);
+        exit;
     }
 }
