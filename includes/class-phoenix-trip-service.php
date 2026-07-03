@@ -43,21 +43,43 @@ class BSO_Phoenix_Trip_Service
 
     public function get_recent_trips(int $limit = 10): array
     {
+        $rows = $this->get_trips_by_date_range(null, null, $limit);
+
+        return is_array($rows) ? $rows : array();
+    }
+
+    public function get_trips_by_date_range(?string $date_from, ?string $date_to, int $limit = 1000): array
+    {
         global $wpdb;
 
         $table = $wpdb->prefix . 'phoenix_trips';
-        $limit = max(1, min(50, $limit));
+        $limit = max(1, min(1000, $limit));
 
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
-                FROM {$table}
-                ORDER BY id DESC
-                LIMIT %d",
-                $limit
-            ),
-            ARRAY_A
-        );
+        $sql = "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+                FROM {$table}";
+
+        $where = array();
+        $args = array();
+
+        if ($date_from !== null && $date_from !== '') {
+            $where[] = 'DATE(started_at) >= %s';
+            $args[] = $date_from;
+        }
+
+        if ($date_to !== null && $date_to !== '') {
+            $where[] = 'DATE(started_at) <= %s';
+            $args[] = $date_to;
+        }
+
+        if (! empty($where)) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' ORDER BY id DESC LIMIT %d';
+        $args[] = $limit;
+
+        $prepared = $wpdb->prepare($sql, ...$args);
+        $rows = $wpdb->get_results($prepared, ARRAY_A);
 
         return is_array($rows) ? $rows : array();
     }

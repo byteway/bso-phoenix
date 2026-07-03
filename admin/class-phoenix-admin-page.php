@@ -32,9 +32,14 @@ class BSO_Phoenix_Admin_Page
             wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'bso-phoenix'));
         }
 
+        $date_from = isset($_GET['date_from']) ? sanitize_text_field((string) $_GET['date_from']) : '';
+        $date_to = isset($_GET['date_to']) ? sanitize_text_field((string) $_GET['date_to']) : '';
+        $date_from = $this->normalize_date_input($date_from);
+        $date_to = $this->normalize_date_input($date_to);
+
         $service = new BSO_Phoenix_Trip_Service();
         $summary = $service->get_dashboard_summary();
-        $recent_trips = $service->get_recent_trips(12);
+        $recent_trips = $service->get_trips_by_date_range($date_from, $date_to, 50);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Phoenix Logboek', 'bso-phoenix') . '</h1>';
@@ -50,8 +55,25 @@ class BSO_Phoenix_Admin_Page
         echo '</div>';
 
         echo '<h2>' . esc_html__('Recente tochten', 'bso-phoenix') . '</h2>';
+
+        echo '<form method="get" action="" style="display:flex;gap:8px;align-items:end;margin:8px 0 12px;flex-wrap:wrap;">';
+        echo '<input type="hidden" name="page" value="bso-phoenix" />';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Vanaf', 'bso-phoenix') . '</span>';
+        echo '<input type="date" name="date_from" value="' . esc_attr($date_from) . '" />';
+        echo '</label>';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Tot en met', 'bso-phoenix') . '</span>';
+        echo '<input type="date" name="date_to" value="' . esc_attr($date_to) . '" />';
+        echo '</label>';
+        submit_button(__('Filter', 'bso-phoenix'), 'secondary', 'submit', false);
+        echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=bso-phoenix')) . '">' . esc_html__('Reset', 'bso-phoenix') . '</a>';
+        echo '</form>';
+
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:8px 0 14px;">';
         echo '<input type="hidden" name="action" value="bso_phoenix_export_trips_csv" />';
+        echo '<input type="hidden" name="date_from" value="' . esc_attr($date_from) . '" />';
+        echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
         wp_nonce_field('bso_phoenix_export_trips_csv', 'bso_phoenix_export_nonce');
         submit_button(__('Exporteer trips naar CSV', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
@@ -121,10 +143,19 @@ class BSO_Phoenix_Admin_Page
 
         check_admin_referer('bso_phoenix_export_trips_csv', 'bso_phoenix_export_nonce');
 
-        $service = new BSO_Phoenix_Trip_Service();
-        $trips = $service->get_recent_trips(1000);
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '';
+        $date_from = $this->normalize_date_input($date_from);
+        $date_to = $this->normalize_date_input($date_to);
 
-        $filename = 'phoenix-trips-' . gmdate('Ymd-His') . '.csv';
+        $service = new BSO_Phoenix_Trip_Service();
+        $trips = $service->get_trips_by_date_range($date_from, $date_to, 1000);
+
+        $range_suffix = '';
+        if ($date_from !== '' || $date_to !== '') {
+            $range_suffix = '-' . ($date_from !== '' ? $date_from : 'start') . '-to-' . ($date_to !== '' ? $date_to : 'end');
+        }
+        $filename = 'phoenix-trips' . $range_suffix . '-' . gmdate('Ymd-His') . '.csv';
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
@@ -154,6 +185,24 @@ class BSO_Phoenix_Admin_Page
 
         fclose($output);
         exit;
+    }
+
+    private function normalize_date_input(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return '';
+        }
+
+        $timestamp = strtotime($value . ' 00:00:00');
+        if ($timestamp === false) {
+            return '';
+        }
+
+        return gmdate('Y-m-d', $timestamp);
     }
 
     public function handle_export_trip_trackpoints(): void
