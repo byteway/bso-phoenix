@@ -15,6 +15,14 @@ if (! defined('ABSPATH')) {
     </div>
     <p class="phoenix-dashboard__feedback" data-phoenix-feedback>Geen actieve route.</p>
     <p class="phoenix-dashboard__feedback" data-phoenix-sync-feedback>Synchronisatie gereed.</p>
+    <section class="phoenix-queue" aria-label="Offline wachtrij">
+        <div class="phoenix-queue__header">
+            <h3>Offline wachtrij</h3>
+            <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-queue-retry-all>Probeer alles opnieuw</button>
+        </div>
+        <p class="phoenix-queue__empty" data-phoenix-queue-empty>Geen acties in de wachtrij.</p>
+        <ul class="phoenix-queue__list" data-phoenix-queue-list></ul>
+    </section>
 
     <div class="phoenix-dashboard__grid">
         <article class="phoenix-card">

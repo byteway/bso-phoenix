@@ -89,8 +89,88 @@
         });
     }
 
+    function queueKindLabel(queueKind) {
+        var labels = {
+            trackpoint: 'GPS-trackpoint',
+            log: 'Captain\'s log',
+            todo: 'TODO',
+            cost: 'Kostenpost'
+        };
+
+        return labels[queueKind] || 'Actie';
+    }
+
+    function formatQueueTime(timestamp) {
+        var date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleString();
+    }
+
+    function renderQueuedList(entries) {
+        var listNode = document.querySelector('[data-phoenix-queue-list]');
+        var emptyNode = document.querySelector('[data-phoenix-queue-empty]');
+
+        if (!listNode || !emptyNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+
+        if (!entries.length) {
+            emptyNode.style.display = '';
+            return;
+        }
+
+        emptyNode.style.display = 'none';
+
+        entries.forEach(function (entry) {
+            var item = document.createElement('li');
+            item.className = 'phoenix-queue__item';
+            item.setAttribute('data-queue-id', String(entry.id));
+
+            var meta = document.createElement('div');
+            meta.className = 'phoenix-queue__meta';
+
+            var title = document.createElement('span');
+            title.className = 'phoenix-queue__title';
+            title.textContent = queueKindLabel(entry.queueKind);
+            meta.appendChild(title);
+
+            var time = document.createElement('span');
+            time.className = 'phoenix-queue__time';
+            time.textContent = formatQueueTime(entry.createdAt);
+            meta.appendChild(time);
+
+            var actions = document.createElement('div');
+            actions.className = 'phoenix-queue__actions';
+
+            var retryButton = document.createElement('button');
+            retryButton.type = 'button';
+            retryButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+            retryButton.textContent = 'Opnieuw';
+            retryButton.setAttribute('data-phoenix-queue-retry', String(entry.id));
+
+            var removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+            removeButton.textContent = 'Verwijder';
+            removeButton.setAttribute('data-phoenix-queue-remove', String(entry.id));
+
+            actions.appendChild(retryButton);
+            actions.appendChild(removeButton);
+
+            item.appendChild(meta);
+            item.appendChild(actions);
+            listNode.appendChild(item);
+        });
+    }
+
     function updateQueuedCount() {
         return getQueuedRequests().then(function (entries) {
+            renderQueuedList(entries);
             if (!entries.length) {
                 setSyncFeedback('Synchronisatie gereed.');
                 return 0;
@@ -101,6 +181,16 @@
         }).catch(function () {
             setSyncFeedback('Synchronisatiestatus niet beschikbaar.');
             return 0;
+        });
+    }
+
+    function replayQueuedEntry(entry) {
+        var sender = entry.transport === 'form'
+            ? buildFormDataRequest(entry.action, entry.nonce, entry.payload, entry.files || [])
+            : requestJson(entry.action, entry.payload, entry.nonce);
+
+        return sender.then(function () {
+            return deleteQueuedRequest(entry.id);
         });
     }
 
@@ -245,13 +335,7 @@
         return getQueuedRequests().then(function (entries) {
             return entries.reduce(function (promise, entry) {
                 return promise.then(function () {
-                    var sender = entry.transport === 'form'
-                        ? buildFormDataRequest(entry.action, entry.nonce, entry.payload, entry.files || [])
-                        : requestJson(entry.action, entry.payload, entry.nonce);
-
-                    return sender.then(function () {
-                        return deleteQueuedRequest(entry.id);
-                    }).catch(function () {
+                    return replayQueuedEntry(entry).catch(function () {
                         return Promise.resolve();
                     });
                 });
@@ -746,6 +830,34 @@
     document.addEventListener('click', function (event) {
         var target = event.target;
         if (!(target instanceof Element)) {
+            return;
+        }
+
+        if (target.closest('[data-phoenix-queue-retry-all]')) {
+            flushQueuedRequests();
+            return;
+        }
+
+        if (target.closest('[data-phoenix-queue-remove]')) {
+            deleteQueuedRequest(parseInt(target.closest('[data-phoenix-queue-remove]').getAttribute('data-phoenix-queue-remove'), 10));
+            return;
+        }
+
+        if (target.closest('[data-phoenix-queue-retry]')) {
+            getQueuedRequests().then(function (entries) {
+                var id = parseInt(target.closest('[data-phoenix-queue-retry]').getAttribute('data-phoenix-queue-retry'), 10);
+                var entry = entries.find(function (queuedEntry) {
+                    return queuedEntry.id === id;
+                });
+
+                if (!entry) {
+                    return;
+                }
+
+                replayQueuedEntry(entry).catch(function () {
+                    setSyncFeedback('Opnieuw proberen mislukt. Actie blijft in wachtrij.');
+                });
+            });
             return;
         }
 

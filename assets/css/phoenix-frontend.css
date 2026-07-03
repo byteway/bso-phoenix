@@ -39,6 +39,77 @@
     color: #242424;
 }
 
+.phoenix-btn--small {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.phoenix-queue {
+    margin: 0 0 18px;
+    padding: 12px;
+    border: 1px solid #e4e4e4;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.phoenix-queue__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.phoenix-queue__header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.phoenix-queue__empty {
+    margin: 0;
+    font-size: 14px;
+    color: #50575e;
+}
+
+.phoenix-queue__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.phoenix-queue__item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #e4e4e4;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.phoenix-queue__meta {
+    display: grid;
+    gap: 2px;
+}
+
+.phoenix-queue__title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.phoenix-queue__time {
+    font-size: 12px;
+    color: #50575e;
+}
+
+.phoenix-queue__actions {
+    display: flex;
+    gap: 6px;
+}
+
 .phoenix-dashboard__grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
