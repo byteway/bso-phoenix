@@ -10,6 +10,7 @@ class BSO_Phoenix_Admin_Page
     {
         add_action('admin_menu', array($this, 'register_menu'));
         add_action('admin_post_bso_phoenix_export_trips_csv', array($this, 'handle_export_trips_csv'));
+        add_action('admin_post_bso_phoenix_export_trip_trackpoints', array($this, 'handle_export_trip_trackpoints'));
     }
 
     public function register_menu(): void
@@ -70,6 +71,7 @@ class BSO_Phoenix_Admin_Page
         echo '<th>' . esc_html__('Afstand (km)', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Duur (min)', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Gem. snelheid (km/u)', 'bso-phoenix') . '</th>';
+        echo '<th>' . esc_html__('Export', 'bso-phoenix') . '</th>';
         echo '</tr></thead><tbody>';
 
         foreach ($recent_trips as $trip) {
@@ -81,6 +83,7 @@ class BSO_Phoenix_Admin_Page
             echo '<td>' . esc_html(number_format_i18n((float) $trip['distance_km'], 2)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float) $trip['duration_minutes'], 1)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float) $trip['average_speed_kmh'], 2)) . '</td>';
+            echo '<td>' . $this->render_trip_export_links((int) $trip['id']) . '</td>';
             echo '</tr>';
         }
 
@@ -150,6 +153,125 @@ class BSO_Phoenix_Admin_Page
         }
 
         fclose($output);
+        exit;
+    }
+
+    public function handle_export_trip_trackpoints(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
+        }
+
+        $trip_id = isset($_GET['trip_id']) ? (int) $_GET['trip_id'] : 0;
+        $format = isset($_GET['format']) ? sanitize_key((string) $_GET['format']) : 'csv';
+
+        if ($trip_id <= 0) {
+            wp_die(esc_html__('Ongeldige trip-id.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_export_trip_' . $trip_id);
+
+        if (! in_array($format, array('csv', 'gpx'), true)) {
+            wp_die(esc_html__('Ongeldig exportformaat.', 'bso-phoenix'));
+        }
+
+        $service = new BSO_Phoenix_Trip_Service();
+        $trip = $service->get_trip_by_id($trip_id);
+        if (! is_array($trip)) {
+            wp_die(esc_html__('Trip niet gevonden.', 'bso-phoenix'));
+        }
+
+        $points = $service->get_trackpoints_for_trip($trip_id);
+
+        if ($format === 'gpx') {
+            $this->download_trackpoints_gpx($trip_id, $trip, $points);
+            return;
+        }
+
+        $this->download_trackpoints_csv($trip_id, $points);
+    }
+
+    private function render_trip_export_links(int $trip_id): string
+    {
+        $csv_url = wp_nonce_url(
+            admin_url('admin-post.php?action=bso_phoenix_export_trip_trackpoints&format=csv&trip_id=' . $trip_id),
+            'bso_phoenix_export_trip_' . $trip_id
+        );
+
+        $gpx_url = wp_nonce_url(
+            admin_url('admin-post.php?action=bso_phoenix_export_trip_trackpoints&format=gpx&trip_id=' . $trip_id),
+            'bso_phoenix_export_trip_' . $trip_id
+        );
+
+        return '<a class="button button-small" href="' . esc_url($csv_url) . '">CSV</a> '
+            . '<a class="button button-small" href="' . esc_url($gpx_url) . '">GPX</a>';
+    }
+
+    private function download_trackpoints_csv(int $trip_id, array $points): void
+    {
+        $filename = 'phoenix-trip-' . $trip_id . '-trackpoints-' . gmdate('Ymd-His') . '.csv';
+
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+
+        $output = fopen('php://output', 'w');
+        if ($output === false) {
+            wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
+        }
+
+        fputcsv($output, array('trip_id', 'latitude', 'longitude', 'altitude_m', 'speed_kmh', 'accuracy_m', 'recorded_at'));
+
+        foreach ($points as $point) {
+            fputcsv(
+                $output,
+                array(
+                    (string) $point['trip_id'],
+                    (string) $point['latitude'],
+                    (string) $point['longitude'],
+                    (string) $point['altitude_m'],
+                    (string) $point['speed_kmh'],
+                    (string) $point['accuracy_m'],
+                    (string) $point['recorded_at'],
+                )
+            );
+        }
+
+        fclose($output);
+        exit;
+    }
+
+    private function download_trackpoints_gpx(int $trip_id, array $trip, array $points): void
+    {
+        $filename = 'phoenix-trip-' . $trip_id . '-' . gmdate('Ymd-His') . '.gpx';
+
+        nocache_headers();
+        header('Content-Type: application/gpx+xml; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+
+        echo '<?xml version="1.0" encoding="UTF-8"?>';
+        echo '<gpx version="1.1" creator="BSO Phoenix" xmlns="http://www.topografix.com/GPX/1/1">';
+        echo '<metadata><name>' . esc_html('Phoenix Trip #' . $trip_id) . '</name></metadata>';
+        echo '<trk><name>' . esc_html('Trip #' . $trip_id) . '</name><trkseg>';
+
+        foreach ($points as $point) {
+            $lat = (string) $point['latitude'];
+            $lon = (string) $point['longitude'];
+            $ele = isset($point['altitude_m']) ? (string) $point['altitude_m'] : '';
+            $recorded_at = (string) $point['recorded_at'];
+            $timestamp = strtotime($recorded_at);
+
+            echo '<trkpt lat="' . esc_attr($lat) . '" lon="' . esc_attr($lon) . '">';
+            if ($ele !== '') {
+                echo '<ele>' . esc_html($ele) . '</ele>';
+            }
+            if ($timestamp !== false) {
+                echo '<time>' . esc_html(gmdate('c', $timestamp)) . '</time>';
+            }
+            echo '</trkpt>';
+        }
+
+        echo '</trkseg></trk></gpx>';
         exit;
     }
 }

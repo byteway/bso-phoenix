@@ -62,6 +62,43 @@ class BSO_Phoenix_Trip_Service
         return is_array($rows) ? $rows : array();
     }
 
+    public function get_trip_by_id(int $trip_id): ?array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trips';
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+                FROM {$table}
+                WHERE id = %d",
+                $trip_id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function get_trackpoints_for_trip(int $trip_id): array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trackpoints';
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, trip_id, latitude, longitude, altitude_m, speed_kmh, accuracy_m, recorded_at
+                FROM {$table}
+                WHERE trip_id = %d
+                ORDER BY recorded_at ASC, id ASC",
+                $trip_id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($rows) ? $rows : array();
+    }
+
     public function start_trip(int $boat_id): int
     {
         global $wpdb;
