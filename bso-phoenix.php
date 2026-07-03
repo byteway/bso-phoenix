@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BSO Phoenix
  * Description: Logboek en route-app voor de motorboot Phoenix.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Byteway Software Ontwikkeling
  * Text Domain: bso-phoenix
  * Domain Path: /languages
@@ -12,7 +12,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('BSO_PHOENIX_VERSION', '1.1.0');
+define('BSO_PHOENIX_VERSION', '1.1.1');
 define('BSO_PHOENIX_FILE', __FILE__);
 define('BSO_PHOENIX_DIR', plugin_dir_path(__FILE__));
 define('BSO_PHOENIX_URL', plugin_dir_url(__FILE__));

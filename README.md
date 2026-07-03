@@ -2,7 +2,7 @@
 
 WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3 meter breed, 80 cm diepgang, 2,35 meter hoogte en een dieselmotor met topsnelheid van ongeveer 8 km/uur.
 
-> **Release / v1.1.0**
+> **Release / v1.1.1**
 > Deze plugin is ingericht als app-achtige WordPress-oplossing voor één boot: de Phoenix, inclusief route logging, logboek, taken, kosten, bootprofiel, instellingen en rapportages.
 
 ## Inhoudsopgave
@@ -111,6 +111,7 @@ bso-phoenix/
 │   ├── Functional_Design.md
 │   ├── Release_Notes_1.0.0.md
 │   ├── Release_Notes_1.1.0.md
+│   ├── Release_Notes_1.1.1.md
 │   └── Technical_Design.md
 ├── includes/
 │   ├── class-phoenix-ajax.php
@@ -162,6 +163,7 @@ Meer details staan in:
 - [Technical Design](document/Technical_Design.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
 - [Release Notes v1.1.0](document/Release_Notes_1.1.0.md)
+- [Release Notes v1.1.1](document/Release_Notes_1.1.1.md)
 
 ## Contributing
 
