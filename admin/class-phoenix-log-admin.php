@@ -51,7 +51,7 @@ class BSO_Phoenix_Log_Admin
         }
 
         echo '<h2>' . esc_html__('Nieuw logboekitem', 'bso-phoenix') . '</h2>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data">';
         echo '<input type="hidden" name="action" value="bso_phoenix_save_log" />';
         wp_nonce_field('bso_phoenix_save_log', 'bso_phoenix_log_nonce');
 
@@ -67,6 +67,11 @@ class BSO_Phoenix_Log_Admin
         echo '<tr>';
         echo '<th scope="row"><label for="entry_text">' . esc_html__('Notitie', 'bso-phoenix') . '</label></th>';
         echo '<td><textarea id="entry_text" name="entry_text" rows="6" class="large-text" required placeholder="' . esc_attr__('Beschrijf de dag, weersomstandigheden, bijzonderheden...', 'bso-phoenix') . '"></textarea></td>';
+        echo '</tr>';
+        echo '<tr>';
+        echo '<th scope="row"><label for="log_photos">' . esc_html__('Foto\'s', 'bso-phoenix') . '</label></th>';
+        echo '<td><input type="file" id="log_photos" name="log_photos[]" accept="image/*" multiple />';
+        echo '<p class="description">' . esc_html__('Upload een of meerdere foto\'s bij dit logboekitem.', 'bso-phoenix') . '</p></td>';
         echo '</tr>';
         echo '</table>';
 
@@ -101,10 +106,12 @@ class BSO_Phoenix_Log_Admin
         echo '<th>' . esc_html__('Tijd', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Notitie', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Trip', 'bso-phoenix') . '</th>';
+        echo '<th>' . esc_html__('Foto\'s', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Actie', 'bso-phoenix') . '</th>';
         echo '</tr></thead><tbody>';
 
         foreach ($logs as $log) {
+            $photos = $service->get_log_photos((int) $log['id']);
             $delete_url = wp_nonce_url(
                 admin_url('admin-post.php?action=bso_phoenix_delete_log&log_id=' . (int) $log['id']),
                 'bso_phoenix_delete_log_' . (int) $log['id']
@@ -115,6 +122,7 @@ class BSO_Phoenix_Log_Admin
             echo '<td>' . esc_html(substr((string) $log['log_time'], 0, 5)) . '</td>';
             echo '<td>' . nl2br(esc_html(wp_trim_words((string) $log['entry_text'], 20))) . '</td>';
             echo '<td>' . (! empty($log['trip_id']) ? '#' . esc_html((string) $log['trip_id']) : '-') . '</td>';
+            echo '<td>' . $this->render_photo_previews($photos) . '</td>';
             echo '<td><a class="button button-small button-link-delete" href="' . esc_url($delete_url) . '" onclick="return confirm(\'' . esc_js(__('Logboekitem verwijderen?', 'bso-phoenix')) . '\')">' . esc_html__('Verwijder', 'bso-phoenix') . '</a></td>';
             echo '</tr>';
         }
@@ -144,7 +152,10 @@ class BSO_Phoenix_Log_Admin
         $log_time = $log_time !== '' ? sanitize_text_field($log_time) : null;
 
         $service = new BSO_Phoenix_Log_Service();
-        $service->create_log(1, $entry_text, null, $log_date, $log_time);
+        $log_id = $service->create_log(1, $entry_text, null, $log_date, $log_time);
+        if ($log_id > 0 && isset($_FILES['log_photos'])) {
+            $service->store_uploaded_photos($log_id, $_FILES['log_photos']);
+        }
 
         wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-log&saved=1'));
         exit;
@@ -177,5 +188,23 @@ class BSO_Phoenix_Log_Admin
         }
 
         return $value;
+    }
+
+    private function render_photo_previews(array $photos): string
+    {
+        if (empty($photos)) {
+            return '-';
+        }
+
+        $html = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        foreach ($photos as $photo) {
+            $thumb = wp_get_attachment_image((int) $photo['attachment_id'], array(48, 48), false, array('style' => 'border-radius:6px;display:block;'));
+            if ($thumb) {
+                $html .= $thumb;
+            }
+        }
+        $html .= '</div>';
+
+        return $html;
     }
 }

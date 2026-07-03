@@ -61,6 +61,95 @@ class BSO_Phoenix_Log_Service
         return $deleted !== false;
     }
 
+    public function attach_photo_to_log(int $log_id, int $attachment_id, string $caption = ''): bool
+    {
+        global $wpdb;
+
+        $inserted = $wpdb->insert(
+            $wpdb->prefix . 'phoenix_log_photos',
+            array(
+                'log_id' => $log_id,
+                'attachment_id' => $attachment_id,
+                'caption' => $caption,
+                'created_at' => current_time('mysql'),
+            ),
+            array('%d', '%d', '%s', '%s')
+        );
+
+        return $inserted !== false;
+    }
+
+    public function get_log_photos(int $log_id): array
+    {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, log_id, attachment_id, caption, created_at
+                FROM {$wpdb->prefix}phoenix_log_photos
+                WHERE log_id = %d
+                ORDER BY id ASC",
+                $log_id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($rows) ? $rows : array();
+    }
+
+    public function store_uploaded_photos(int $log_id, array $file_input): array
+    {
+        $attachment_ids = array();
+
+        if (empty($file_input['name'])) {
+            return $attachment_ids;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+
+        $normalized_files = $this->normalize_uploaded_files($file_input);
+
+        foreach ($normalized_files as $file) {
+            if (! isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $overrides = array(
+                'test_form' => false,
+            );
+
+            $uploaded = wp_handle_upload($file, $overrides);
+            if (! is_array($uploaded) || isset($uploaded['error'])) {
+                continue;
+            }
+
+            $attachment = array(
+                'post_mime_type' => $uploaded['type'],
+                'post_title' => sanitize_file_name(pathinfo($uploaded['file'], PATHINFO_FILENAME)),
+                'post_content' => '',
+                'post_status' => 'inherit',
+            );
+
+            $attachment_id = wp_insert_attachment($attachment, $uploaded['file']);
+            if (! $attachment_id || is_wp_error($attachment_id)) {
+                continue;
+            }
+
+            $metadata = wp_generate_attachment_metadata($attachment_id, $uploaded['file']);
+            if (is_array($metadata)) {
+                wp_update_attachment_metadata($attachment_id, $metadata);
+            }
+
+            if ($this->attach_photo_to_log($log_id, (int) $attachment_id)) {
+                $attachment_ids[] = (int) $attachment_id;
+            }
+        }
+
+        return $attachment_ids;
+    }
+
     public function get_log_by_id(int $log_id): ?array
     {
         global $wpdb;
@@ -108,5 +197,27 @@ class BSO_Phoenix_Log_Service
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
 
         return is_array($rows) ? $rows : array();
+    }
+
+    private function normalize_uploaded_files(array $file_input): array
+    {
+        if (! is_array($file_input['name'])) {
+            return array($file_input);
+        }
+
+        $normalized = array();
+        $count = count($file_input['name']);
+
+        for ($index = 0; $index < $count; $index++) {
+            $normalized[] = array(
+                'name' => $file_input['name'][$index] ?? '',
+                'type' => $file_input['type'][$index] ?? '',
+                'tmp_name' => $file_input['tmp_name'][$index] ?? '',
+                'error' => $file_input['error'][$index] ?? UPLOAD_ERR_NO_FILE,
+                'size' => $file_input['size'][$index] ?? 0,
+            );
+        }
+
+        return $normalized;
     }
 }

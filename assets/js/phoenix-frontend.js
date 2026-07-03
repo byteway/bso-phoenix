@@ -260,6 +260,7 @@
         event.preventDefault();
 
         var textNode = document.querySelector('[data-phoenix-log-text]');
+        var fileNode = document.querySelector('[data-phoenix-log-photos]');
         var text = textNode ? textNode.value.trim() : '';
 
         if (!text) {
@@ -272,11 +273,25 @@
             return;
         }
 
-        ajaxRequest('bso_phoenix_create_log', {
-            nonce: window.bsoPhoenix.logNonce || '',
-            entry_text: text,
-            boat_id: window.bsoPhoenix.defaultBoatId || 1,
-            trip_id: state.activeTripId || '',
+        var formData = new FormData();
+        formData.append('action', 'bso_phoenix_create_log');
+        formData.append('nonce', window.bsoPhoenix.logNonce || '');
+        formData.append('entry_text', text);
+        formData.append('boat_id', String(window.bsoPhoenix.defaultBoatId || 1));
+        formData.append('trip_id', String(state.activeTripId || ''));
+
+        if (fileNode && fileNode.files) {
+            Array.prototype.forEach.call(fileNode.files, function (file) {
+                formData.append('log_photos[]', file);
+            });
+        }
+
+        fetch(window.bsoPhoenix.ajaxUrl, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+        }).then(function (response) {
+            return response.json();
         }).then(function (result) {
             if (!result || !result.success) {
                 setLogFeedback('Opslaan mislukt.');
@@ -286,7 +301,10 @@
             if (textNode) {
                 textNode.value = '';
             }
-            setLogFeedback('Notitie opgeslagen.');
+            if (fileNode) {
+                fileNode.value = '';
+            }
+            setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'));
         }).catch(function () {
             setLogFeedback('Opslaan mislukt. Controleer verbinding.');
         });

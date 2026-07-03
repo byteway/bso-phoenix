@@ -36,7 +36,12 @@ class BSO_Phoenix_Log_Ajax
             wp_send_json_error(array('message' => 'Kon logboek niet opslaan.'), 500);
         }
 
-        wp_send_json_success(array('log_id' => $log_id));
+        $attachment_ids = array();
+        if (isset($_FILES['log_photos'])) {
+            $attachment_ids = $service->store_uploaded_photos($log_id, $_FILES['log_photos']);
+        }
+
+        wp_send_json_success(array('log_id' => $log_id, 'attachment_ids' => $attachment_ids));
     }
 
     public function delete_log(): void
