@@ -11,6 +11,7 @@ class BSO_Phoenix_Ajax
         add_action('wp_ajax_bso_phoenix_start_trip', array($this, 'start_trip'));
         add_action('wp_ajax_bso_phoenix_trackpoint', array($this, 'trackpoint'));
         add_action('wp_ajax_bso_phoenix_stop_trip', array($this, 'stop_trip'));
+        add_action('wp_ajax_bso_phoenix_get_trip_trackpoints', array($this, 'get_trip_trackpoints'));
     }
 
     public function start_trip(): void
@@ -80,6 +81,31 @@ class BSO_Phoenix_Ajax
         }
 
         wp_send_json_success(array('trip_id' => $trip_id, 'status' => 'completed'));
+    }
+
+    public function get_trip_trackpoints(): void
+    {
+        $this->guard_request();
+
+        $trip_id = isset($_POST['trip_id']) ? (int) $_POST['trip_id'] : 0;
+        if ($trip_id <= 0) {
+            wp_send_json_error(array('message' => 'Ongeldige trip_id.'), 400);
+        }
+
+        $service = new BSO_Phoenix_Trip_Service();
+        $trip = $service->get_trip_by_id($trip_id);
+        if (! is_array($trip)) {
+            wp_send_json_error(array('message' => 'Trip niet gevonden.'), 404);
+        }
+
+        $points = $service->get_trackpoints_for_trip($trip_id);
+
+        wp_send_json_success(
+            array(
+                'trip' => $trip,
+                'trackpoints' => $points,
+            )
+        );
     }
 
     private function guard_request(): void

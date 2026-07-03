@@ -46,3 +46,23 @@
     border-radius: 10px;
     padding: 12px;
 }
+
+.phoenix-map {
+    min-height: 320px;
+    border: 1px solid #d7d7d7;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #dfeef8 0%, #f7fafc 100%);
+}
+
+.phoenix-map__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+.phoenix-map__meta p {
+    margin: 0;
+}

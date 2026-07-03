@@ -2,7 +2,116 @@
     var state = {
         activeTripId: null,
         watchId: null,
+        map: null,
+        routeLine: null,
+        routePoints: [],
     };
+
+    function setMapTrip(text) {
+        var node = document.querySelector('[data-phoenix-map-trip]');
+        if (!node) {
+            return;
+        }
+        node.textContent = text;
+    }
+
+    function setMapPointCount(count) {
+        var node = document.querySelector('[data-phoenix-map-points]');
+        if (!node) {
+            return;
+        }
+        node.textContent = String(count);
+    }
+
+    function ensureMap() {
+        if (state.map || !window.L) {
+            return;
+        }
+
+        var mapNode = document.querySelector('[data-phoenix-map]');
+        if (!mapNode) {
+            return;
+        }
+
+        state.map = L.map(mapNode).setView([53.1748, 5.4146], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap-bijdragers',
+        }).addTo(state.map);
+
+        state.routeLine = L.polyline([], {
+            color: '#0a6a4a',
+            weight: 4,
+            opacity: 0.9,
+        }).addTo(state.map);
+    }
+
+    function renderRoute(points) {
+        ensureMap();
+        if (!state.map || !state.routeLine) {
+            return;
+        }
+
+        state.routePoints = (points || []).map(function (point) {
+            return [parseFloat(point.latitude), parseFloat(point.longitude)];
+        }).filter(function (point) {
+            return !Number.isNaN(point[0]) && !Number.isNaN(point[1]);
+        });
+
+        state.routeLine.setLatLngs(state.routePoints);
+        setMapPointCount(state.routePoints.length);
+
+        if (state.routePoints.length === 1) {
+            state.map.setView(state.routePoints[0], 14);
+        }
+
+        if (state.routePoints.length > 1) {
+            state.map.fitBounds(state.routeLine.getBounds(), {
+                padding: [20, 20],
+            });
+        }
+    }
+
+    function appendRoutePoint(latitude, longitude) {
+        ensureMap();
+        if (!state.map || !state.routeLine) {
+            return;
+        }
+
+        var nextPoint = [parseFloat(latitude), parseFloat(longitude)];
+        if (Number.isNaN(nextPoint[0]) || Number.isNaN(nextPoint[1])) {
+            return;
+        }
+
+        state.routePoints.push(nextPoint);
+        state.routeLine.addLatLng(nextPoint);
+        setMapPointCount(state.routePoints.length);
+
+        if (state.routePoints.length === 1) {
+            state.map.setView(nextPoint, 14);
+        } else {
+            state.map.panTo(nextPoint);
+        }
+    }
+
+    function loadTripRoute(tripId) {
+        if (!tripId) {
+            return;
+        }
+
+        ajaxRequest('bso_phoenix_get_trip_trackpoints', {
+            trip_id: tripId,
+        }).then(function (result) {
+            if (!result || !result.success || !result.data) {
+                return;
+            }
+
+            renderRoute(result.data.trackpoints || []);
+            setMapTrip('Trip #' + tripId + ' (' + ((result.data.trip && result.data.trip.status) || 'onbekend') + ')');
+        }).catch(function () {
+            setFeedback('Laatste route laden mislukt.');
+        });
+    }
 
     function setFeedback(text) {
         var node = document.querySelector('[data-phoenix-feedback]');
@@ -53,6 +162,8 @@
         }
 
         var coords = position.coords;
+        appendRoutePoint(coords.latitude, coords.longitude);
+
         ajaxRequest('bso_phoenix_trackpoint', {
             trip_id: state.activeTripId,
             latitude: coords.latitude,
@@ -102,7 +213,10 @@
             }
 
             state.activeTripId = result.data.trip_id;
+            state.routePoints = [];
+            renderRoute([]);
             setStatus('Actief');
+            setMapTrip('Trip #' + state.activeTripId + ' (actief)');
             setFeedback('Route gestart. GPS tracking is actief.');
             startGeolocation();
         }).catch(function () {
@@ -125,6 +239,7 @@
             }
 
             stopGeolocation();
+            loadTripRoute(state.activeTripId);
             state.activeTripId = null;
             setStatus('Gestopt');
             setFeedback('Route gestopt en opgeslagen.');
@@ -312,4 +427,9 @@
             handleStop();
         }
     });
+
+    ensureMap();
+    if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
+        loadTripRoute(window.bsoPhoenix.latestTripId);
+    }
 })();

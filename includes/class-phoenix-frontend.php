@@ -15,19 +15,38 @@ class BSO_Phoenix_Frontend
     public function enqueue_assets(): void
     {
         wp_register_style(
+            'leaflet',
+            'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+            array(),
+            '1.9.4'
+        );
+
+        wp_register_style(
             'bso-phoenix-frontend',
             BSO_PHOENIX_URL . 'assets/css/phoenix-frontend.css',
-            array(),
+            array('leaflet'),
             BSO_PHOENIX_VERSION
+        );
+
+        wp_register_script(
+            'leaflet',
+            'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+            array(),
+            '1.9.4',
+            true
         );
 
         wp_register_script(
             'bso-phoenix-frontend',
             BSO_PHOENIX_URL . 'assets/js/phoenix-frontend.js',
-            array(),
+            array('leaflet'),
             BSO_PHOENIX_VERSION,
             true
         );
+
+        $trip_service = new BSO_Phoenix_Trip_Service();
+        $latest_trip = $trip_service->get_recent_trips(1);
+        $latest_trip_id = ! empty($latest_trip[0]['id']) ? (int) $latest_trip[0]['id'] : 0;
 
         wp_localize_script(
             'bso-phoenix-frontend',
@@ -40,6 +59,7 @@ class BSO_Phoenix_Frontend
                 'costNonce' => wp_create_nonce('bso_phoenix_cost'),
                 'defaultBoatId' => 1,
                 'gpsIntervalMs' => (int) (new BSO_Phoenix_Settings_Service())->get('gps_interval_seconds') * 1000,
+                'latestTripId' => $latest_trip_id,
             )
         );
     }
