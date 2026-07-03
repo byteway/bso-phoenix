@@ -6,6 +6,62 @@ if (! defined('ABSPATH')) {
 
 class BSO_Phoenix_Trip_Service
 {
+    public function get_dashboard_summary(): array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trips';
+        $row = $wpdb->get_row(
+            "SELECT
+                COUNT(*) AS total_trips,
+                COALESCE(SUM(distance_km), 0) AS total_distance_km,
+                COALESCE(SUM(duration_minutes), 0) AS total_duration_minutes,
+                COALESCE(AVG(average_speed_kmh), 0) AS average_speed_kmh,
+                COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) AS active_trips
+            FROM {$table}",
+            ARRAY_A
+        );
+
+        if (! is_array($row)) {
+            return array(
+                'total_trips' => 0,
+                'total_distance_km' => 0.0,
+                'total_duration_minutes' => 0.0,
+                'average_speed_kmh' => 0.0,
+                'active_trips' => 0,
+            );
+        }
+
+        return array(
+            'total_trips' => (int) $row['total_trips'],
+            'total_distance_km' => (float) $row['total_distance_km'],
+            'total_duration_minutes' => (float) $row['total_duration_minutes'],
+            'average_speed_kmh' => (float) $row['average_speed_kmh'],
+            'active_trips' => (int) $row['active_trips'],
+        );
+    }
+
+    public function get_recent_trips(int $limit = 10): array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trips';
+        $limit = max(1, min(50, $limit));
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+                FROM {$table}
+                ORDER BY id DESC
+                LIMIT %d",
+                $limit
+            ),
+            ARRAY_A
+        );
+
+        return is_array($rows) ? $rows : array();
+    }
+
     public function start_trip(int $boat_id): int
     {
         global $wpdb;
