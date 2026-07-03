@@ -51,9 +51,11 @@ class BSO_Phoenix_Cost_Admin
 
         $edit_id = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
         $service = new BSO_Phoenix_Cost_Service();
+        $settings_service = new BSO_Phoenix_Settings_Service();
         $costs = $service->get_costs($date_from, $date_to, $filter_type, 100);
         $summary = $service->get_summary($date_from, $date_to);
         $edit_cost = $edit_id > 0 ? $service->get_cost_by_id($edit_id) : null;
+        $currency_code = $settings_service->get_currency_code();
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Kostenbeheer', 'bso-phoenix') . '</h1>';
@@ -67,10 +69,10 @@ class BSO_Phoenix_Cost_Admin
 
         // Summary cards
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0 20px;">';
-        $this->render_stat_card(__('Totaal', 'bso-phoenix'), '€ ' . number_format_i18n((float) $summary['grand_total'], 2));
+        $this->render_stat_card(__('Totaal', 'bso-phoenix'), $settings_service->format_money((float) $summary['grand_total']));
         foreach ($summary['by_type'] as $row) {
             $type_label = self::TYPE_LABELS[$row['cost_type']] ?? $row['cost_type'];
-            $this->render_stat_card($type_label, '€ ' . number_format_i18n((float) $row['total'], 2));
+            $this->render_stat_card($type_label, $settings_service->format_money((float) $row['total']));
         }
         echo '</div>';
 
@@ -98,7 +100,7 @@ class BSO_Phoenix_Cost_Admin
         }
         echo '</select></td></tr>';
 
-        echo '<tr><th scope="row"><label for="cost_amount">' . esc_html__('Bedrag (€)', 'bso-phoenix') . '</label></th>';
+        echo '<tr><th scope="row"><label for="cost_amount">' . esc_html(sprintf(__('Bedrag (%s)', 'bso-phoenix'), $currency_code)) . '</label></th>';
         echo '<td><input type="number" id="cost_amount" name="amount" min="0.01" step="0.01" required value="' . esc_attr(is_array($edit_cost) ? (string) $edit_cost['amount'] : '') . '" /></td></tr>';
 
         echo '<tr><th scope="row"><label for="cost_supplier">' . esc_html__('Leverancier', 'bso-phoenix') . '</label></th>';
@@ -167,7 +169,7 @@ class BSO_Phoenix_Cost_Admin
             echo '<tr>';
             echo '<td>' . esc_html((string) $cost['cost_date']) . '</td>';
             echo '<td>' . esc_html(self::TYPE_LABELS[$cost['cost_type']] ?? (string) $cost['cost_type']) . '</td>';
-            echo '<td>€ ' . esc_html(number_format_i18n((float) $cost['amount'], 2)) . '</td>';
+            echo '<td>' . esc_html($settings_service->format_money((float) $cost['amount'], (string) $cost['currency'])) . '</td>';
             echo '<td>' . esc_html((string) $cost['supplier']) . '</td>';
             echo '<td>' . esc_html(wp_trim_words((string) $cost['notes'], 10)) . '</td>';
             echo '<td>';
@@ -201,7 +203,8 @@ class BSO_Phoenix_Cost_Admin
         }
 
         $service = new BSO_Phoenix_Cost_Service();
-        $service->create_cost(1, $cost_type, $amount, $cost_date, 'EUR', $supplier, $notes, null);
+        $currency = (new BSO_Phoenix_Settings_Service())->get_currency_code();
+        $service->create_cost(1, $cost_type, $amount, $cost_date, $currency, $supplier, $notes, null);
 
         wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-costs&saved=1'));
         exit;
@@ -232,7 +235,8 @@ class BSO_Phoenix_Cost_Admin
         }
 
         $service = new BSO_Phoenix_Cost_Service();
-        $service->update_cost($cost_id, $cost_type, $amount, $cost_date, 'EUR', $supplier, $notes);
+        $currency = (new BSO_Phoenix_Settings_Service())->get_currency_code();
+        $service->update_cost($cost_id, $cost_type, $amount, $cost_date, $currency, $supplier, $notes);
 
         wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-costs&saved=1'));
         exit;

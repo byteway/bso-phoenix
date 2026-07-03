@@ -33,7 +33,8 @@ class BSO_Phoenix_Cost_Ajax
         }
 
         $service = new BSO_Phoenix_Cost_Service();
-        $cost_id = $service->create_cost($boat_id, $cost_type, $amount, $cost_date, 'EUR', $supplier, $notes, $trip_id);
+        $currency = (new BSO_Phoenix_Settings_Service())->get_currency_code();
+        $cost_id = $service->create_cost($boat_id, $cost_type, $amount, $cost_date, $currency, $supplier, $notes, $trip_id);
 
         if ($cost_id <= 0) {
             wp_send_json_error(array('message' => 'Kon kostenpost niet opslaan.'), 500);

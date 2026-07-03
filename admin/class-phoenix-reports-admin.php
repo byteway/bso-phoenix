@@ -36,6 +36,7 @@ class BSO_Phoenix_Reports_Admin
         $cost_service = new BSO_Phoenix_Cost_Service();
         $log_service = new BSO_Phoenix_Log_Service();
         $todo_service = new BSO_Phoenix_Todo_Service();
+        $settings_service = new BSO_Phoenix_Settings_Service();
 
         $trips = $trip_service->get_trips_by_date_range($date_from, $date_to, '', 1000);
         $costs = $cost_service->get_costs($date_from, $date_to, '', 1000);
@@ -64,9 +65,9 @@ class BSO_Phoenix_Reports_Admin
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:0 0 24px;">';
         $this->render_stat_card(__('Tochten', 'bso-phoenix'), (string) $report['trip_count']);
-        $this->render_stat_card(__('Afstand totaal', 'bso-phoenix'), number_format_i18n($report['distance_km'], 2) . ' km');
+        $this->render_stat_card(__('Afstand totaal', 'bso-phoenix'), $settings_service->format_distance($report['distance_km'], 2));
         $this->render_stat_card(__('Vaarduur totaal', 'bso-phoenix'), number_format_i18n($report['duration_hours'], 2) . ' uur');
-        $this->render_stat_card(__('Kosten totaal', 'bso-phoenix'), 'EUR ' . number_format_i18n($report['cost_total'], 2));
+        $this->render_stat_card(__('Kosten totaal', 'bso-phoenix'), $settings_service->format_money($report['cost_total']));
         $this->render_stat_card(__('Logboekitems', 'bso-phoenix'), (string) $report['log_count']);
         $this->render_stat_card(__('Open taken', 'bso-phoenix'), (string) $report['todo_open_count']);
         echo '</div>';
@@ -80,7 +81,7 @@ class BSO_Phoenix_Reports_Admin
             foreach ($report['costs_by_type'] as $type => $amount) {
                 echo '<tr>';
                 echo '<td>' . esc_html($this->label_cost_type($type)) . '</td>';
-                echo '<td>' . esc_html('EUR ' . number_format_i18n($amount, 2)) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_money($amount)) . '</td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';
@@ -99,7 +100,7 @@ class BSO_Phoenix_Reports_Admin
                 echo '<tr>';
                 echo '<td>#' . esc_html((string) $trip['id']) . '</td>';
                 echo '<td>' . esc_html($this->format_datetime((string) $trip['started_at'])) . '</td>';
-                echo '<td>' . esc_html(number_format_i18n((float) $trip['distance_km'], 2)) . ' km</td>';
+                echo '<td>' . esc_html($settings_service->format_distance((float) $trip['distance_km'], 2)) . '</td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';

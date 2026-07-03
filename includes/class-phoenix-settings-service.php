@@ -85,4 +85,53 @@ class BSO_Phoenix_Settings_Service
     {
         return self::DEFAULTS;
     }
+
+    public function get_currency_code(): string
+    {
+        $currency = strtoupper((string) $this->get('currency'));
+
+        return in_array($currency, array('EUR', 'USD', 'GBP'), true) ? $currency : 'EUR';
+    }
+
+    public function get_currency_symbol(): string
+    {
+        $map = array(
+            'EUR' => 'EUR',
+            'USD' => 'USD',
+            'GBP' => 'GBP',
+        );
+
+        return $map[$this->get_currency_code()] ?? 'EUR';
+    }
+
+    public function get_distance_unit(): string
+    {
+        $unit = (string) $this->get('distance_unit');
+
+        return in_array($unit, array('km', 'nm'), true) ? $unit : 'km';
+    }
+
+    public function convert_distance_from_km(float $distance_km): float
+    {
+        if ($this->get_distance_unit() === 'nm') {
+            return $distance_km / 1.852;
+        }
+
+        return $distance_km;
+    }
+
+    public function format_distance(float $distance_km, int $decimals = 2): string
+    {
+        $unit = $this->get_distance_unit();
+        $distance = $this->convert_distance_from_km($distance_km);
+
+        return number_format_i18n($distance, $decimals) . ' ' . $unit;
+    }
+
+    public function format_money(float $amount, ?string $currency = null, int $decimals = 2): string
+    {
+        $code = $currency !== null && $currency !== '' ? strtoupper($currency) : $this->get_currency_code();
+
+        return $code . ' ' . number_format_i18n($amount, $decimals);
+    }
 }
