@@ -132,16 +132,18 @@ class BSO_Phoenix_Trip_Service
 
         $table = $wpdb->prefix . 'phoenix_trips';
         $now = current_time('mysql');
+        $default_fuel_use_lph = $this->get_default_fuel_use_lph();
 
         $wpdb->insert(
             $table,
             array(
                 'boat_id' => $boat_id,
                 'started_at' => $now,
+                'average_fuel_use_lph' => $default_fuel_use_lph,
                 'status' => 'active',
                 'created_at' => $now,
             ),
-            array('%d', '%s', '%s', '%s')
+            array('%d', '%s', '%f', '%s', '%s')
         );
 
         return (int) $wpdb->insert_id;
@@ -190,6 +192,9 @@ class BSO_Phoenix_Trip_Service
 
         $duration_hours = $metrics['duration_minutes'] / 60;
         $fuel_per_hour = isset($trip['average_fuel_use_lph']) ? (float) $trip['average_fuel_use_lph'] : 0.0;
+        if ($fuel_per_hour <= 0) {
+            $fuel_per_hour = $this->get_default_fuel_use_lph();
+        }
         $estimated_fuel = $fuel_per_hour > 0 ? $duration_hours * $fuel_per_hour : null;
 
         $updated = $wpdb->update(
@@ -258,5 +263,13 @@ class BSO_Phoenix_Trip_Service
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earth_radius_km * $c;
+    }
+
+    private function get_default_fuel_use_lph(): float
+    {
+        $settings_service = new BSO_Phoenix_Settings_Service();
+        $fuel_use = (float) $settings_service->get('fuel_use_lph');
+
+        return $fuel_use > 0 ? $fuel_use : 0.0;
     }
 }
