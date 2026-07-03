@@ -2,8 +2,8 @@
 
 WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3 meter breed, 80 cm diepgang, 2,35 meter hoogte en een dieselmotor met topsnelheid van ongeveer 8 km/uur.
 
-> **MVP / v1.0.0**
-> Deze plugin is ingericht als app-achtige WordPress-oplossing voor één boot: de Phoenix.
+> **Release / v1.1.0**
+> Deze plugin is ingericht als app-achtige WordPress-oplossing voor één boot: de Phoenix, inclusief route logging, logboek, taken, kosten, bootprofiel, instellingen en rapportages.
 
 ## Inhoudsopgave
 
@@ -27,7 +27,10 @@ WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3
 - GPX kaartgeneratie en delen via download of e-mail
 - TODO-beheer met status en prioriteit
 - Kostenbeheer voor varen, onderhoud en onderhoudsartikelen
-- Dashboard met vaartstatus, tankadvies en live routepreview
+- Dashboard met vaartstatus, live routekaart en recente routeweergave
+- Bootprofielbeheer in wp-admin
+- Instellingen voor GPS-interval, brandstofverbruik, valuta en afstandseenheid
+- Gecombineerde rapportagepagina voor trips, kosten, logboek en taken
 
 ## Requirements
 
@@ -73,7 +76,7 @@ Vast te leggen bootgegevens:
 
 ### Captain's log
 
-Gebruik het logboek voor dagelijkse notities en voeg eventueel foto’s toe.
+Gebruik het logboek voor dagelijkse notities en voeg eventueel foto’s toe via admin of frontend.
 
 ### GPX en delen
 
@@ -83,12 +86,22 @@ Na een tocht kan de route als GPX worden gegenereerd en gedeeld via download of 
 
 Gebruik de aparte formulieren voor onderhoudstaken en kostenregistratie.
 
+### Rapportages
+
+Gebruik de rapportagepagina in wp-admin voor een gecombineerd periodeoverzicht van trips, kosten, logboekitems en open taken.
+
 ## Project Structure
 
 ```text
 bso-phoenix/
 ├── admin/
-│   └── class-phoenix-admin-page.php
+│   ├── class-phoenix-admin-page.php
+│   ├── class-phoenix-boat-admin.php
+│   ├── class-phoenix-cost-admin.php
+│   ├── class-phoenix-log-admin.php
+│   ├── class-phoenix-reports-admin.php
+│   ├── class-phoenix-settings-admin.php
+│   └── class-phoenix-todo-admin.php
 ├── assets/
 │   ├── css/
 │   │   └── phoenix-frontend.css
@@ -96,11 +109,22 @@ bso-phoenix/
 │       └── phoenix-frontend.js
 ├── document/
 │   ├── Functional_Design.md
+│   ├── Release_Notes_1.0.0.md
+│   ├── Release_Notes_1.1.0.md
 │   └── Technical_Design.md
 ├── includes/
+│   ├── class-phoenix-ajax.php
+│   ├── class-phoenix-boat-service.php
+│   ├── class-phoenix-cost-ajax.php
+│   ├── class-phoenix-cost-service.php
 │   ├── class-phoenix-db.php
 │   ├── class-phoenix-frontend.php
+│   ├── class-phoenix-log-ajax.php
+│   ├── class-phoenix-log-service.php
 │   ├── class-phoenix-plugin.php
+│   ├── class-phoenix-settings-service.php
+│   ├── class-phoenix-todo-ajax.php
+│   ├── class-phoenix-todo-service.php
 │   └── class-phoenix-trip-service.php
 ├── templates/
 │   └── frontend-dashboard.php
@@ -111,7 +135,7 @@ bso-phoenix/
 
 ## MVP Status en Roadmap
 
-### Geimplementeerd in ontwerp
+### Geimplementeerd
 
 - [x] Eén bootprofiel voor de Phoenix
 - [x] GPS route logging met start en stop
@@ -119,12 +143,14 @@ bso-phoenix/
 - [x] GPX generatie en delen
 - [x] TODO-beheer
 - [x] Kostenbeheer
-- [x] Dashboard met vaartstatus en tankadvies
+- [x] Dashboard met live routekaart
+- [x] Instellingenmodule
+- [x] Rapportagepagina
 
 ### Verdere doorontwikkeling
 
-- [ ] Geautomatiseerde GPS- en kaartintegratie
-- [ ] Uitgebreidere rapportages
+- [ ] Offline buffering voor GPS-trackpoints
+- [ ] Uitgebreidere dashboardgrafieken
 - [ ] Eventuele geavanceerde offline ondersteuning
 - [ ] Extra gebruikersrechten en rollen
 
@@ -135,6 +161,7 @@ Meer details staan in:
 - [Functional Design](document/Functional_Design.md)
 - [Technical Design](document/Technical_Design.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
+- [Release Notes v1.1.0](document/Release_Notes_1.1.0.md)
 
 ## Contributing
 
@@ -146,4 +173,3 @@ Meer details staan in:
 ## License
 
 GPL-2.0-or-later
-# bso-phoenix
