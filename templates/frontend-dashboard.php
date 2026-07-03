@@ -6,7 +6,10 @@ if (! defined('ABSPATH')) {
 <section class="phoenix-dashboard" aria-label="Phoenix dashboard">
     <header class="phoenix-dashboard__header">
         <h2>Phoenix Dashboard</h2>
-        <p>Status: <strong data-phoenix-status>Inactief</strong></p>
+        <div class="phoenix-dashboard__statusbar">
+            <p>Status: <strong data-phoenix-status>Inactief</strong></p>
+            <span class="phoenix-status-pill" data-phoenix-connection-status>Online</span>
+        </div>
     </header>
 
     <div class="phoenix-dashboard__actions">
@@ -35,6 +38,28 @@ if (! defined('ABSPATH')) {
         <article class="phoenix-live-stat">
             <span class="phoenix-live-stat__label">Laatste update</span>
             <strong class="phoenix-live-stat__value" data-phoenix-stat-updated>-</strong>
+        </article>
+    </section>
+    <section class="phoenix-trip-summary" aria-label="Tochtsamenvattingen">
+        <article class="phoenix-card phoenix-trip-summary__card">
+            <h3>Actieve tocht</h3>
+            <p class="phoenix-trip-summary__empty" data-phoenix-active-trip-empty>Geen actieve tocht.</p>
+            <dl class="phoenix-trip-summary__list" data-phoenix-active-trip-list>
+                <div><dt>Trip</dt><dd data-phoenix-active-trip-id>-</dd></div>
+                <div><dt>Start</dt><dd data-phoenix-active-trip-start>-</dd></div>
+                <div><dt>Afstand</dt><dd data-phoenix-active-trip-distance>-</dd></div>
+                <div><dt>Brandstof</dt><dd data-phoenix-active-trip-fuel>-</dd></div>
+            </dl>
+        </article>
+        <article class="phoenix-card phoenix-trip-summary__card">
+            <h3>Laatste afgeronde tocht</h3>
+            <p class="phoenix-trip-summary__empty" data-phoenix-latest-trip-empty>Nog geen afgeronde tocht beschikbaar.</p>
+            <dl class="phoenix-trip-summary__list" data-phoenix-latest-trip-list>
+                <div><dt>Trip</dt><dd data-phoenix-latest-trip-id>-</dd></div>
+                <div><dt>Einde</dt><dd data-phoenix-latest-trip-end>-</dd></div>
+                <div><dt>Afstand</dt><dd data-phoenix-latest-trip-distance>-</dd></div>
+                <div><dt>Duur</dt><dd data-phoenix-latest-trip-duration>-</dd></div>
+            </dl>
         </article>
     </section>
     <section class="phoenix-queue" aria-label="Offline wachtrij">

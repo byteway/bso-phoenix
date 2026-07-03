@@ -47,6 +47,7 @@ class BSO_Phoenix_Frontend
         $trip_service = new BSO_Phoenix_Trip_Service();
         $latest_trip = $trip_service->get_recent_trips(1);
         $latest_trip_id = ! empty($latest_trip[0]['id']) ? (int) $latest_trip[0]['id'] : 0;
+        $latest_completed_trip = $trip_service->get_latest_completed_trip();
         $active_trip = $trip_service->get_active_trip();
         $active_trip_id = is_array($active_trip) && ! empty($active_trip['id']) ? (int) $active_trip['id'] : 0;
         $settings_service = new BSO_Phoenix_Settings_Service();
@@ -63,6 +64,7 @@ class BSO_Phoenix_Frontend
                 'defaultBoatId' => 1,
                 'gpsIntervalMs' => (int) $settings_service->get('gps_interval_seconds') * 1000,
                 'latestTripId' => $latest_trip_id,
+                'latestCompletedTrip' => $latest_completed_trip,
                 'activeTripId' => $active_trip_id,
                 'activeTripStartedAt' => is_array($active_trip) && ! empty($active_trip['started_at']) ? (string) $active_trip['started_at'] : '',
                 'distanceUnit' => $settings_service->get_distance_unit(),

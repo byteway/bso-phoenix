@@ -14,6 +14,29 @@
     margin-bottom: 16px;
 }
 
+.phoenix-dashboard__statusbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.phoenix-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #e7f5ec;
+    color: #0a6a4a;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.phoenix-status-pill.is-offline {
+    background: #fde9e7;
+    color: #b42318;
+}
+
 .phoenix-dashboard__actions {
     display: flex;
     gap: 10px;
@@ -49,6 +72,47 @@
 .phoenix-live-stat__value {
     font-size: 20px;
     line-height: 1.2;
+}
+
+.phoenix-trip-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin: 0 0 18px;
+}
+
+.phoenix-trip-summary__card h3 {
+    margin-top: 0;
+}
+
+.phoenix-trip-summary__empty {
+    margin: 0;
+    color: #50575e;
+}
+
+.phoenix-trip-summary__list {
+    margin: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.phoenix-trip-summary__list div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid #f1f1f1;
+    padding-bottom: 6px;
+}
+
+.phoenix-trip-summary__list dt {
+    font-size: 12px;
+    color: #50575e;
+}
+
+.phoenix-trip-summary__list dd {
+    margin: 0;
+    font-weight: 600;
+    text-align: right;
 }
 
 .phoenix-btn {

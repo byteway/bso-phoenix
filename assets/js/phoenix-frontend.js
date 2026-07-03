@@ -23,6 +23,29 @@
         }
         node.textContent = value;
     }
+    function setTripSummaryValue(selector, value) {
+        var node = document.querySelector(selector);
+        if (!node) {
+            return;
+        }
+        node.textContent = value;
+    }
+    
+    function setConnectionStatus() {
+        var node = document.querySelector('[data-phoenix-connection-status]');
+        if (!node) {
+            return;
+        }
+        
+        if (navigator.onLine === false) {
+            node.textContent = 'Offline';
+            node.classList.add('is-offline');
+            return;
+        }
+        
+        node.textContent = 'Online';
+        node.classList.remove('is-offline');
+    }
 
     function formatDuration(totalSeconds) {
         var seconds = Math.max(0, Math.floor(totalSeconds));
@@ -66,6 +89,7 @@
         setStatValue('[data-phoenix-stat-speed]', speedForDisplay(speedKmh).toFixed(2) + ' ' + speedUnit());
         setStatValue('[data-phoenix-stat-fuel]', estimatedFuel.toFixed(2) + ' l');
         setStatValue('[data-phoenix-stat-updated]', new Date().toLocaleTimeString());
+        renderActiveTripSummary();
     }
 
     function calculateTripDurationSeconds() {
@@ -109,7 +133,66 @@
         setStatValue('[data-phoenix-stat-speed]', '0.00 ' + speedUnit());
         setStatValue('[data-phoenix-stat-fuel]', '0.00 l');
         setStatValue('[data-phoenix-stat-updated]', '-');
+        renderActiveTripSummary();
     }
+    
+    function setSummaryVisibility(emptySelector, listSelector, hasData) {
+        var emptyNode = document.querySelector(emptySelector);
+        var listNode = document.querySelector(listSelector);
+        
+        if (emptyNode) {
+            emptyNode.style.display = hasData ? 'none' : '';
+        }
+        if (listNode) {
+            listNode.style.display = hasData ? 'grid' : 'none';
+        }
+    }
+    
+    function formatDateTimeLabel(rawValue) {
+        if (!rawValue) {
+            return '-';
+        }
+        
+        var parsed = Date.parse(String(rawValue).replace(' ', 'T'));
+        if (Number.isNaN(parsed)) {
+            return String(rawValue);
+        }
+        
+        return new Date(parsed).toLocaleString();
+    }
+    
+    function renderActiveTripSummary() {
+        var hasActive = !!state.activeTripId;
+        var distanceKm = calculateRouteDistanceKm(state.routePoints);
+        var durationSeconds = calculateTripDurationSeconds();
+        var durationHours = durationSeconds / 3600;
+        var fuelUseLph = window.bsoPhoenix && typeof window.bsoPhoenix.fuelUseLph === 'number' ? window.bsoPhoenix.fuelUseLph : 0;
+        var estimatedFuel = durationHours > 0 ? durationHours * fuelUseLph : 0;
+        
+        setSummaryVisibility('[data-phoenix-active-trip-empty]', '[data-phoenix-active-trip-list]', hasActive);
+        if (!hasActive) {
+            return;
+        }
+        
+        setTripSummaryValue('[data-phoenix-active-trip-id]', '#' + state.activeTripId);
+        setTripSummaryValue('[data-phoenix-active-trip-start]', formatDateTimeLabel(state.activeTripStartedAt));
+        setTripSummaryValue('[data-phoenix-active-trip-distance]', distanceForDisplay(distanceKm).toFixed(2) + ' ' + currentDistanceUnit());
+        setTripSummaryValue('[data-phoenix-active-trip-fuel]', estimatedFuel.toFixed(2) + ' l');
+    }
+    
+    function renderLatestCompletedTrip() {
+        var trip = window.bsoPhoenix && window.bsoPhoenix.latestCompletedTrip ? window.bsoPhoenix.latestCompletedTrip : null;
+        var hasTrip = !!(trip && trip.id);
+        
+        setSummaryVisibility('[data-phoenix-latest-trip-empty]', '[data-phoenix-latest-trip-list]', hasTrip);
+        if (!hasTrip) {
+            return;
+        }
+        
+        setTripSummaryValue('[data-phoenix-latest-trip-id]', '#' + trip.id);
+        setTripSummaryValue('[data-phoenix-latest-trip-end]', formatDateTimeLabel(trip.ended_at));
+        setTripSummaryValue('[data-phoenix-latest-trip-distance]', distanceForDisplay(parseFloat(trip.distance_km || 0)).toFixed(2) + ' ' + currentDistanceUnit());
+        setTripSummaryValue('[data-phoenix-latest-trip-duration]', formatDuration((parseFloat(trip.duration_minutes || 0) * 60)));
 
     function setSyncFeedback(text) {
         var node = document.querySelector('[data-phoenix-sync-feedback]');
@@ -982,6 +1065,8 @@
     ensureMap();
     updateQueuedCount();
     resetLiveStats();
+    setConnectionStatus();
+    renderLatestCompletedTrip();
     if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
         state.activeTripId = window.bsoPhoenix.activeTripId;
         state.activeTripStartedAt = window.bsoPhoenix.activeTripStartedAt || null;
@@ -996,8 +1081,14 @@
     }
 
     window.addEventListener('online', function () {
+        setConnectionStatus();
         setSyncFeedback('Verbinding hersteld. Synchronisatie gestart...');
         flushQueuedRequests();
+    });
+
+    window.addEventListener('offline', function () {
+        setConnectionStatus();
+        setSyncFeedback('Offline. Nieuwe acties worden lokaal in de wachtrij geplaatst.');
     });
 
     if (navigator.onLine !== false) {
