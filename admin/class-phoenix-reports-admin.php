@@ -49,6 +49,8 @@ class BSO_Phoenix_Reports_Admin
         $monthly_totals = $this->build_monthly_totals($trips, $costs);
         $top_costs = $this->build_top_costs($costs);
         $top_suppliers = $this->build_top_suppliers($costs);
+        $monthly_cost_breakdown = $this->build_monthly_cost_breakdown($costs);
+        $busiest_trip_days = $this->build_busiest_trip_days($trips);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Rapportages', 'bso-phoenix') . '</h1>';
@@ -111,6 +113,46 @@ class BSO_Phoenix_Reports_Admin
             }
             echo '</tbody></table>';
         }
+
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start;margin-bottom:24px;">';
+
+        echo '<section>';
+        echo '<h2>' . esc_html__('Maanddetail per kostensoort', 'bso-phoenix') . '</h2>';
+        if (empty($monthly_cost_breakdown)) {
+            echo '<p>' . esc_html__('Geen kostenverdeling per maand beschikbaar.', 'bso-phoenix') . '</p>';
+        } else {
+            echo '<table class="widefat striped">';
+            echo '<thead><tr><th>' . esc_html__('Maand', 'bso-phoenix') . '</th><th>' . esc_html__('Type', 'bso-phoenix') . '</th><th>' . esc_html__('Totaal', 'bso-phoenix') . '</th></tr></thead><tbody>';
+            foreach ($monthly_cost_breakdown as $row) {
+                echo '<tr>';
+                echo '<td>' . esc_html($row['month']) . '</td>';
+                echo '<td>' . esc_html($this->label_cost_type($row['cost_type'])) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_money((float) $row['total'])) . '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</section>';
+
+        echo '<section>';
+        echo '<h2>' . esc_html__('Drukste vaardagen', 'bso-phoenix') . '</h2>';
+        if (empty($busiest_trip_days)) {
+            echo '<p>' . esc_html__('Geen vaardagen beschikbaar in deze periode.', 'bso-phoenix') . '</p>';
+        } else {
+            echo '<table class="widefat striped">';
+            echo '<thead><tr><th>' . esc_html__('Datum', 'bso-phoenix') . '</th><th>' . esc_html__('Tochten', 'bso-phoenix') . '</th><th>' . esc_html__('Afstand', 'bso-phoenix') . '</th></tr></thead><tbody>';
+            foreach ($busiest_trip_days as $row) {
+                echo '<tr>';
+                echo '<td>' . esc_html($row['date']) . '</td>';
+                echo '<td>' . esc_html((string) $row['trip_count']) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_distance((float) $row['distance_km'], 2)) . '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</section>';
+
+        echo '</div>';
 
         echo '<h2>' . esc_html__('Kostensoorten', 'bso-phoenix') . '</h2>';
         if (empty($report['costs_by_type'])) {
@@ -396,6 +438,76 @@ class BSO_Phoenix_Reports_Admin
         krsort($months);
 
         return $months;
+    }
+
+    private function build_monthly_cost_breakdown(array $costs): array
+    {
+        $rows = array();
+
+        foreach ($costs as $cost) {
+            if (empty($cost['cost_date'])) {
+                continue;
+            }
+
+            $month = substr((string) $cost['cost_date'], 0, 7);
+            $type = isset($cost['cost_type']) ? (string) $cost['cost_type'] : 'other';
+            $key = $month . '|' . $type;
+
+            if (! isset($rows[$key])) {
+                $rows[$key] = array(
+                    'month' => $month,
+                    'cost_type' => $type,
+                    'total' => 0.0,
+                );
+            }
+
+            $rows[$key]['total'] += isset($cost['amount']) ? (float) $cost['amount'] : 0.0;
+        }
+
+        usort($rows, function ($left, $right) {
+            $monthCompare = strcmp((string) $right['month'], (string) $left['month']);
+            if ($monthCompare !== 0) {
+                return $monthCompare;
+            }
+
+            return ((float) $right['total']) <=> ((float) $left['total']);
+        });
+
+        return array_slice($rows, 0, 24);
+    }
+
+    private function build_busiest_trip_days(array $trips): array
+    {
+        $days = array();
+
+        foreach ($trips as $trip) {
+            if (empty($trip['started_at'])) {
+                continue;
+            }
+
+            $date = substr((string) $trip['started_at'], 0, 10);
+            if (! isset($days[$date])) {
+                $days[$date] = array(
+                    'date' => $date,
+                    'trip_count' => 0,
+                    'distance_km' => 0.0,
+                );
+            }
+
+            $days[$date]['trip_count']++;
+            $days[$date]['distance_km'] += isset($trip['distance_km']) ? (float) $trip['distance_km'] : 0.0;
+        }
+
+        usort($days, function ($left, $right) {
+            $tripCompare = ((int) $right['trip_count']) <=> ((int) $left['trip_count']);
+            if ($tripCompare !== 0) {
+                return $tripCompare;
+            }
+
+            return ((float) $right['distance_km']) <=> ((float) $left['distance_km']);
+        });
+
+        return array_slice($days, 0, 10);
     }
 
     private function build_top_costs(array $costs): array
