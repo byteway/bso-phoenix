@@ -30,9 +30,18 @@ if (! defined('ABSPATH')) {
             <p data-phoenix-log-feedback style="margin-top:8px;font-size:13px;"></p>
         </article>
 
-        <article class="phoenix-card">
-            <h3>TODO en kosten</h3>
-            <p>Onderhoudstaken en kostenoverzicht verschijnen hier.</p>
+        <article class="phoenix-card" id="phoenix-todo-card">
+            <h3><?php esc_html_e('TODO', 'bso-phoenix'); ?></h3>
+            <form data-phoenix-todo-form style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <input type="text" data-phoenix-todo-title placeholder="<?php esc_attr_e('Taakomschrijving...', 'bso-phoenix'); ?>" style="width:100%;" />
+                <select data-phoenix-todo-priority>
+                    <option value="high"><?php esc_html_e('Hoog', 'bso-phoenix'); ?></option>
+                    <option value="normal" selected><?php esc_html_e('Normaal', 'bso-phoenix'); ?></option>
+                    <option value="low"><?php esc_html_e('Laag', 'bso-phoenix'); ?></option>
+                </select>
+                <button type="submit" class="phoenix-btn"><?php esc_html_e('Taak toevoegen', 'bso-phoenix'); ?></button>
+            </form>
+            <p data-phoenix-todo-feedback style="margin-top:8px;font-size:13px;"></p>
         </article>
     </div>
 </section>

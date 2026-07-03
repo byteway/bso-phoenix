@@ -177,6 +177,52 @@
         });
     }
 
+    function setTodoFeedback(text) {
+        var node = document.querySelector('[data-phoenix-todo-feedback]');
+        if (!node) {
+            return;
+        }
+        node.textContent = text;
+    }
+
+    function handleTodoSubmit(event) {
+        event.preventDefault();
+
+        var titleNode = document.querySelector('[data-phoenix-todo-title]');
+        var priorityNode = document.querySelector('[data-phoenix-todo-priority]');
+        var title = titleNode ? titleNode.value.trim() : '';
+        var priority = priorityNode ? priorityNode.value : 'normal';
+
+        if (!title) {
+            setTodoFeedback('Vul een taakomschrijving in.');
+            return;
+        }
+
+        if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
+            setTodoFeedback('Configuratie ontbreekt.');
+            return;
+        }
+
+        ajaxRequest('bso_phoenix_create_todo', {
+            nonce: window.bsoPhoenix.todoNonce || '',
+            title: title,
+            priority: priority,
+            boat_id: window.bsoPhoenix.defaultBoatId || 1,
+        }).then(function (result) {
+            if (!result || !result.success) {
+                setTodoFeedback('Opslaan mislukt.');
+                return;
+            }
+
+            if (titleNode) {
+                titleNode.value = '';
+            }
+            setTodoFeedback('Taak toegevoegd.');
+        }).catch(function () {
+            setTodoFeedback('Opslaan mislukt. Controleer verbinding.');
+        });
+    }
+
     document.addEventListener('submit', function (event) {
         var target = event.target;
         if (!(target instanceof Element)) {
@@ -185,6 +231,10 @@
 
         if (target.closest('[data-phoenix-log-form]')) {
             handleLogSubmit(event);
+        }
+
+        if (target.closest('[data-phoenix-todo-form]')) {
+            handleTodoSubmit(event);
         }
     });
 
