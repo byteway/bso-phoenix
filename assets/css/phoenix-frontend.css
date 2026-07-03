@@ -1,0 +1,48 @@
+.phoenix-dashboard {
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    border: 1px solid #d7d7d7;
+    border-radius: 10px;
+    padding: 16px;
+    background: #fafafa;
+}
+
+.phoenix-dashboard__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.phoenix-dashboard__actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.phoenix-btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: #0a6a4a;
+    color: #fff;
+    cursor: pointer;
+}
+
+.phoenix-btn--ghost {
+    background: #ececec;
+    color: #242424;
+}
+
+.phoenix-dashboard__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.phoenix-card {
+    background: #fff;
+    border: 1px solid #e4e4e4;
+    border-radius: 10px;
+    padding: 12px;
+}
