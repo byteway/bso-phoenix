@@ -60,6 +60,7 @@ class BSO_Phoenix_Frontend
                 'defaultBoatId' => 1,
                 'gpsIntervalMs' => (int) (new BSO_Phoenix_Settings_Service())->get('gps_interval_seconds') * 1000,
                 'latestTripId' => $latest_trip_id,
+                'distanceUnit' => (new BSO_Phoenix_Settings_Service())->get_distance_unit(),
             )
         );
     }

@@ -164,7 +164,9 @@ class BSO_Phoenix_Admin_Page
         $status = $this->normalize_status_input($status);
 
         $service = new BSO_Phoenix_Trip_Service();
+        $settings_service = new BSO_Phoenix_Settings_Service();
         $trips = $service->get_trips_by_date_range($date_from, $date_to, $status, 1000);
+        $distance_unit = $settings_service->get_distance_unit();
 
         $range_suffix = '';
         if ($date_from !== '' || $date_to !== '' || $status !== '') {
@@ -184,7 +186,7 @@ class BSO_Phoenix_Admin_Page
             wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
         }
 
-        fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_km', 'duration_minutes', 'average_speed_kmh'));
+        fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_' . $distance_unit, 'duration_minutes', 'average_speed_kmh'));
 
         foreach ($trips as $trip) {
             fputcsv(
@@ -194,7 +196,7 @@ class BSO_Phoenix_Admin_Page
                     (string) $trip['started_at'],
                     (string) $trip['ended_at'],
                     (string) $trip['status'],
-                    (string) $trip['distance_km'],
+                    (string) $settings_service->convert_distance_from_km((float) $trip['distance_km']),
                     (string) $trip['duration_minutes'],
                     (string) $trip['average_speed_kmh'],
                 )

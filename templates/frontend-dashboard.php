@@ -22,6 +22,7 @@ if (! defined('ABSPATH')) {
             <div class="phoenix-map__meta">
                 <p><strong><?php esc_html_e('Trip', 'bso-phoenix'); ?>:</strong> <span data-phoenix-map-trip><?php esc_html_e('Nog geen route geladen', 'bso-phoenix'); ?></span></p>
                 <p><strong><?php esc_html_e('Trackpoints', 'bso-phoenix'); ?>:</strong> <span data-phoenix-map-points>0</span></p>
+                <p><strong><?php esc_html_e('Afstand', 'bso-phoenix'); ?>:</strong> <span data-phoenix-map-distance>0</span></p>
             </div>
         </article>
 

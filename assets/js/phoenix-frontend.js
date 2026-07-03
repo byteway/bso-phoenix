@@ -23,6 +23,33 @@
         node.textContent = String(count);
     }
 
+    function setMapDistance(distanceKm) {
+        var node = document.querySelector('[data-phoenix-map-distance]');
+        if (!node) {
+            return;
+        }
+
+        var unit = window.bsoPhoenix && window.bsoPhoenix.distanceUnit ? window.bsoPhoenix.distanceUnit : 'km';
+        var distance = distanceKm;
+        if (unit === 'nm') {
+            distance = distanceKm / 1.852;
+        }
+
+        node.textContent = distance.toFixed(2) + ' ' + unit;
+    }
+
+    function haversineKm(fromLat, fromLng, toLat, toLng) {
+        var earthRadiusKm = 6371;
+        var dLat = (toLat - fromLat) * Math.PI / 180;
+        var dLng = (toLng - fromLng) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(fromLat * Math.PI / 180) * Math.cos(toLat * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return earthRadiusKm * c;
+    }
+
     function ensureMap() {
         if (state.map || !window.L) {
             return;
@@ -60,6 +87,7 @@
 
         state.routeLine.setLatLngs(state.routePoints);
         setMapPointCount(state.routePoints.length);
+        setMapDistance(calculateRouteDistanceKm(state.routePoints));
 
         if (state.routePoints.length === 1) {
             state.map.setView(state.routePoints[0], 14);
@@ -86,6 +114,7 @@
         state.routePoints.push(nextPoint);
         state.routeLine.addLatLng(nextPoint);
         setMapPointCount(state.routePoints.length);
+        setMapDistance(calculateRouteDistanceKm(state.routePoints));
 
         if (state.routePoints.length === 1) {
             state.map.setView(nextPoint, 14);
@@ -111,6 +140,17 @@
         }).catch(function () {
             setFeedback('Laatste route laden mislukt.');
         });
+    }
+
+    function calculateRouteDistanceKm(points) {
+        var distance = 0;
+        var index;
+
+        for (index = 1; index < points.length; index += 1) {
+            distance += haversineKm(points[index - 1][0], points[index - 1][1], points[index][0], points[index][1]);
+        }
+
+        return distance;
     }
 
     function setFeedback(text) {
