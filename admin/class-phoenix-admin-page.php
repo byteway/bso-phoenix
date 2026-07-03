@@ -9,6 +9,7 @@ class BSO_Phoenix_Admin_Page
     public function init(): void
     {
         add_action('admin_menu', array($this, 'register_menu'));
+        add_action('admin_post_bso_phoenix_export_trips_csv', array($this, 'handle_export_trips_csv'));
     }
 
     public function register_menu(): void
@@ -48,6 +49,11 @@ class BSO_Phoenix_Admin_Page
         echo '</div>';
 
         echo '<h2>' . esc_html__('Recente tochten', 'bso-phoenix') . '</h2>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:8px 0 14px;">';
+        echo '<input type="hidden" name="action" value="bso_phoenix_export_trips_csv" />';
+        wp_nonce_field('bso_phoenix_export_trips_csv', 'bso_phoenix_export_nonce');
+        submit_button(__('Exporteer trips naar CSV', 'bso-phoenix'), 'secondary', 'submit', false);
+        echo '</form>';
 
         if (empty($recent_trips)) {
             echo '<p>' . esc_html__('Nog geen tochten geregistreerd.', 'bso-phoenix') . '</p>';
@@ -102,5 +108,48 @@ class BSO_Phoenix_Admin_Page
         }
 
         return wp_date('d-m-Y H:i', $timestamp);
+    }
+
+    public function handle_export_trips_csv(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_export_trips_csv', 'bso_phoenix_export_nonce');
+
+        $service = new BSO_Phoenix_Trip_Service();
+        $trips = $service->get_recent_trips(1000);
+
+        $filename = 'phoenix-trips-' . gmdate('Ymd-His') . '.csv';
+
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+
+        $output = fopen('php://output', 'w');
+        if ($output === false) {
+            wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
+        }
+
+        fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_km', 'duration_minutes', 'average_speed_kmh'));
+
+        foreach ($trips as $trip) {
+            fputcsv(
+                $output,
+                array(
+                    (string) $trip['id'],
+                    (string) $trip['started_at'],
+                    (string) $trip['ended_at'],
+                    (string) $trip['status'],
+                    (string) $trip['distance_km'],
+                    (string) $trip['duration_minutes'],
+                    (string) $trip['average_speed_kmh'],
+                )
+            );
+        }
+
+        fclose($output);
+        exit;
     }
 }
