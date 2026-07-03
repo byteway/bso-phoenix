@@ -15,6 +15,28 @@ if (! defined('ABSPATH')) {
     </div>
     <p class="phoenix-dashboard__feedback" data-phoenix-feedback>Geen actieve route.</p>
     <p class="phoenix-dashboard__feedback" data-phoenix-sync-feedback>Synchronisatie gereed.</p>
+    <section class="phoenix-live-stats" aria-label="Live vaarinformatie">
+        <article class="phoenix-live-stat">
+            <span class="phoenix-live-stat__label">Duur</span>
+            <strong class="phoenix-live-stat__value" data-phoenix-stat-duration>00:00:00</strong>
+        </article>
+        <article class="phoenix-live-stat">
+            <span class="phoenix-live-stat__label">Afstand</span>
+            <strong class="phoenix-live-stat__value" data-phoenix-stat-distance>0.00</strong>
+        </article>
+        <article class="phoenix-live-stat">
+            <span class="phoenix-live-stat__label">Snelheid</span>
+            <strong class="phoenix-live-stat__value" data-phoenix-stat-speed>0.00</strong>
+        </article>
+        <article class="phoenix-live-stat">
+            <span class="phoenix-live-stat__label">Brandstof</span>
+            <strong class="phoenix-live-stat__value" data-phoenix-stat-fuel>0.00 l</strong>
+        </article>
+        <article class="phoenix-live-stat">
+            <span class="phoenix-live-stat__label">Laatste update</span>
+            <strong class="phoenix-live-stat__value" data-phoenix-stat-updated>-</strong>
+        </article>
+    </section>
     <section class="phoenix-queue" aria-label="Offline wachtrij">
         <div class="phoenix-queue__header">
             <h3>Offline wachtrij</h3>

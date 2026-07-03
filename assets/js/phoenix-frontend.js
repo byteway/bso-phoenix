@@ -3,12 +3,113 @@
     var STORE_NAME = 'requests';
     var state = {
         activeTripId: null,
+        activeTripStartedAt: null,
         watchId: null,
         map: null,
         routeLine: null,
         routePoints: [],
         syncInProgress: false,
+        liveStatsTimer: null,
     };
+
+    function statNode(selector) {
+        return document.querySelector(selector);
+    }
+
+    function setStatValue(selector, value) {
+        var node = statNode(selector);
+        if (!node) {
+            return;
+        }
+        node.textContent = value;
+    }
+
+    function formatDuration(totalSeconds) {
+        var seconds = Math.max(0, Math.floor(totalSeconds));
+        var hours = Math.floor(seconds / 3600);
+        var minutes = Math.floor((seconds % 3600) / 60);
+        var remainder = seconds % 60;
+
+        return String(hours).padStart(2, '0') + ':'
+            + String(minutes).padStart(2, '0') + ':'
+            + String(remainder).padStart(2, '0');
+    }
+
+    function currentDistanceUnit() {
+        return window.bsoPhoenix && window.bsoPhoenix.distanceUnit ? window.bsoPhoenix.distanceUnit : 'km';
+    }
+
+    function distanceForDisplay(distanceKm) {
+        return currentDistanceUnit() === 'nm' ? distanceKm / 1.852 : distanceKm;
+    }
+
+    function speedForDisplay(speedKmh) {
+        return currentDistanceUnit() === 'nm' ? speedKmh / 1.852 : speedKmh;
+    }
+
+    function speedUnit() {
+        return currentDistanceUnit() === 'nm' ? 'kn' : 'km/u';
+    }
+
+    function updateLiveStats(lastSpeedKmh) {
+        var distanceKm = calculateRouteDistanceKm(state.routePoints);
+        var distanceDisplay = distanceForDisplay(distanceKm);
+        var speedKmh = typeof lastSpeedKmh === 'number' && !Number.isNaN(lastSpeedKmh)
+            ? lastSpeedKmh
+            : calculateAverageSpeedKmh(distanceKm);
+        var fuelUseLph = window.bsoPhoenix && typeof window.bsoPhoenix.fuelUseLph === 'number' ? window.bsoPhoenix.fuelUseLph : 0;
+        var durationHours = calculateTripDurationSeconds() / 3600;
+        var estimatedFuel = durationHours > 0 ? durationHours * fuelUseLph : 0;
+
+        setStatValue('[data-phoenix-stat-duration]', formatDuration(calculateTripDurationSeconds()));
+        setStatValue('[data-phoenix-stat-distance]', distanceDisplay.toFixed(2) + ' ' + currentDistanceUnit());
+        setStatValue('[data-phoenix-stat-speed]', speedForDisplay(speedKmh).toFixed(2) + ' ' + speedUnit());
+        setStatValue('[data-phoenix-stat-fuel]', estimatedFuel.toFixed(2) + ' l');
+        setStatValue('[data-phoenix-stat-updated]', new Date().toLocaleTimeString());
+    }
+
+    function calculateTripDurationSeconds() {
+        if (!state.activeTripStartedAt) {
+            return 0;
+        }
+
+        var startedAt = Date.parse(state.activeTripStartedAt.replace(' ', 'T'));
+        if (Number.isNaN(startedAt)) {
+            return 0;
+        }
+
+        return Math.max(0, (Date.now() - startedAt) / 1000);
+    }
+
+    function calculateAverageSpeedKmh(distanceKm) {
+        var durationSeconds = calculateTripDurationSeconds();
+        var durationHours = durationSeconds / 3600;
+        if (durationHours <= 0) {
+            return 0;
+        }
+
+        return distanceKm / durationHours;
+    }
+
+    function ensureLiveStatsTimer() {
+        if (state.liveStatsTimer !== null) {
+            return;
+        }
+
+        state.liveStatsTimer = window.setInterval(function () {
+            if (state.activeTripId) {
+                updateLiveStats();
+            }
+        }, 1000);
+    }
+
+    function resetLiveStats() {
+        setStatValue('[data-phoenix-stat-duration]', '00:00:00');
+        setStatValue('[data-phoenix-stat-distance]', '0.00 ' + currentDistanceUnit());
+        setStatValue('[data-phoenix-stat-speed]', '0.00 ' + speedUnit());
+        setStatValue('[data-phoenix-stat-fuel]', '0.00 l');
+        setStatValue('[data-phoenix-stat-updated]', '-');
+    }
 
     function setSyncFeedback(text) {
         var node = document.querySelector('[data-phoenix-sync-feedback]');
@@ -427,6 +528,7 @@
         state.routeLine.setLatLngs(state.routePoints);
         setMapPointCount(state.routePoints.length);
         setMapDistance(calculateRouteDistanceKm(state.routePoints));
+        updateLiveStats();
 
         if (state.routePoints.length === 1) {
             state.map.setView(state.routePoints[0], 14);
@@ -454,6 +556,7 @@
         state.routeLine.addLatLng(nextPoint);
         setMapPointCount(state.routePoints.length);
         setMapDistance(calculateRouteDistanceKm(state.routePoints));
+        updateLiveStats();
 
         if (state.routePoints.length === 1) {
             state.map.setView(nextPoint, 14);
@@ -519,6 +622,7 @@
 
         var coords = position.coords;
         appendRoutePoint(coords.latitude, coords.longitude);
+        updateLiveStats(coords.speed ? coords.speed * 3.6 : null);
 
         queueOrSendJson('bso_phoenix_trackpoint', {
             trip_id: state.activeTripId,
@@ -589,6 +693,7 @@
             }
 
             state.activeTripId = result.data.trip_id;
+            state.activeTripStartedAt = new Date().toISOString();
             setStatus('Actief');
             setMapTrip('Trip #' + state.activeTripId + ' (actief)');
 
@@ -601,6 +706,8 @@
                 setFeedback('Route gestart. GPS tracking is actief.');
             }
 
+            ensureLiveStatsTimer();
+            updateLiveStats();
             startGeolocation();
             flushQueuedRequests();
         }).catch(function () {
@@ -625,8 +732,10 @@
             stopGeolocation();
             loadTripRoute(state.activeTripId);
             state.activeTripId = null;
+            state.activeTripStartedAt = null;
             setStatus('Gestopt');
             setFeedback('Route gestopt en opgeslagen.');
+            resetLiveStats();
         }).catch(function () {
             setFeedback('Stop route mislukt. Controleer verbinding.');
         });
@@ -872,11 +981,15 @@
 
     ensureMap();
     updateQueuedCount();
+    resetLiveStats();
     if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
         state.activeTripId = window.bsoPhoenix.activeTripId;
+        state.activeTripStartedAt = window.bsoPhoenix.activeTripStartedAt || null;
         setStatus('Actief');
         setFeedback('Actieve route hervat na herladen van de pagina.');
         loadTripRoute(window.bsoPhoenix.activeTripId);
+        ensureLiveStatsTimer();
+        updateLiveStats();
         startGeolocation();
     } else if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
         loadTripRoute(window.bsoPhoenix.latestTripId);

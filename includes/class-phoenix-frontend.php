@@ -49,6 +49,7 @@ class BSO_Phoenix_Frontend
         $latest_trip_id = ! empty($latest_trip[0]['id']) ? (int) $latest_trip[0]['id'] : 0;
         $active_trip = $trip_service->get_active_trip();
         $active_trip_id = is_array($active_trip) && ! empty($active_trip['id']) ? (int) $active_trip['id'] : 0;
+        $settings_service = new BSO_Phoenix_Settings_Service();
 
         wp_localize_script(
             'bso-phoenix-frontend',
@@ -60,10 +61,12 @@ class BSO_Phoenix_Frontend
                 'todoNonce' => wp_create_nonce('bso_phoenix_todo'),
                 'costNonce' => wp_create_nonce('bso_phoenix_cost'),
                 'defaultBoatId' => 1,
-                'gpsIntervalMs' => (int) (new BSO_Phoenix_Settings_Service())->get('gps_interval_seconds') * 1000,
+                'gpsIntervalMs' => (int) $settings_service->get('gps_interval_seconds') * 1000,
                 'latestTripId' => $latest_trip_id,
                 'activeTripId' => $active_trip_id,
-                'distanceUnit' => (new BSO_Phoenix_Settings_Service())->get_distance_unit(),
+                'activeTripStartedAt' => is_array($active_trip) && ! empty($active_trip['started_at']) ? (string) $active_trip['started_at'] : '',
+                'distanceUnit' => $settings_service->get_distance_unit(),
+                'fuelUseLph' => (float) $settings_service->get('fuel_use_lph'),
             )
         );
     }
