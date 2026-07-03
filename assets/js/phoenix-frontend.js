@@ -185,6 +185,62 @@
         node.textContent = text;
     }
 
+    function setCostFeedback(text) {
+        var node = document.querySelector('[data-phoenix-cost-feedback]');
+        if (!node) {
+            return;
+        }
+        node.textContent = text;
+    }
+
+    function handleCostSubmit(event) {
+        event.preventDefault();
+
+        var typeNode = document.querySelector('[data-phoenix-cost-type]');
+        var amountNode = document.querySelector('[data-phoenix-cost-amount]');
+        var dateNode = document.querySelector('[data-phoenix-cost-date]');
+
+        var cost_type = typeNode ? typeNode.value : 'other';
+        var amount = amountNode ? amountNode.value.trim() : '';
+        var cost_date = dateNode ? dateNode.value : '';
+
+        if (!amount || parseFloat(amount) <= 0) {
+            setCostFeedback('Vul een geldig bedrag in.');
+            return;
+        }
+
+        if (!cost_date) {
+            setCostFeedback('Vul een datum in.');
+            return;
+        }
+
+        if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
+            setCostFeedback('Configuratie ontbreekt.');
+            return;
+        }
+
+        ajaxRequest('bso_phoenix_create_cost', {
+            nonce: window.bsoPhoenix.costNonce || '',
+            cost_type: cost_type,
+            amount: amount,
+            cost_date: cost_date,
+            boat_id: window.bsoPhoenix.defaultBoatId || 1,
+            trip_id: state.activeTripId || '',
+        }).then(function (result) {
+            if (!result || !result.success) {
+                setCostFeedback('Opslaan mislukt.');
+                return;
+            }
+
+            if (amountNode) {
+                amountNode.value = '';
+            }
+            setCostFeedback('Kostenpost opgeslagen.');
+        }).catch(function () {
+            setCostFeedback('Opslaan mislukt. Controleer verbinding.');
+        });
+    }
+
     function handleTodoSubmit(event) {
         event.preventDefault();
 
@@ -235,6 +291,10 @@
 
         if (target.closest('[data-phoenix-todo-form]')) {
             handleTodoSubmit(event);
+        }
+
+        if (target.closest('[data-phoenix-cost-form]')) {
+            handleCostSubmit(event);
         }
     });
 

@@ -43,5 +43,23 @@ if (! defined('ABSPATH')) {
             </form>
             <p data-phoenix-todo-feedback style="margin-top:8px;font-size:13px;"></p>
         </article>
+
+        <article class="phoenix-card" id="phoenix-cost-card">
+            <h3><?php esc_html_e('Kosten', 'bso-phoenix'); ?></h3>
+            <form data-phoenix-cost-form style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <select data-phoenix-cost-type>
+                    <option value="fuel"><?php esc_html_e('Brandstof', 'bso-phoenix'); ?></option>
+                    <option value="maintenance"><?php esc_html_e('Onderhoud', 'bso-phoenix'); ?></option>
+                    <option value="mooring"><?php esc_html_e('Ligplaats', 'bso-phoenix'); ?></option>
+                    <option value="insurance"><?php esc_html_e('Verzekering', 'bso-phoenix'); ?></option>
+                    <option value="parts"><?php esc_html_e('Onderdelen', 'bso-phoenix'); ?></option>
+                    <option value="other"><?php esc_html_e('Overig', 'bso-phoenix'); ?></option>
+                </select>
+                <input type="number" data-phoenix-cost-amount min="0.01" step="0.01" placeholder="<?php esc_attr_e('Bedrag (€)', 'bso-phoenix'); ?>" style="width:100%;" />
+                <input type="date" data-phoenix-cost-date value="<?php echo esc_attr(current_time('Y-m-d')); ?>" style="width:100%;" />
+                <button type="submit" class="phoenix-btn"><?php esc_html_e('Kostenpost opslaan', 'bso-phoenix'); ?></button>
+            </form>
+            <p data-phoenix-cost-feedback style="margin-top:8px;font-size:13px;"></p>
+        </article>
     </div>
 </section>

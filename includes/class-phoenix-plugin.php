@@ -17,6 +17,9 @@ class BSO_Phoenix_Plugin
         $todo_ajax = new BSO_Phoenix_Todo_Ajax();
         $todo_ajax->init();
 
+        $cost_ajax = new BSO_Phoenix_Cost_Ajax();
+        $cost_ajax->init();
+
         if (is_admin()) {
             $admin = new BSO_Phoenix_Admin_Page();
             $admin->init();
@@ -26,6 +29,9 @@ class BSO_Phoenix_Plugin
 
             $todo_admin = new BSO_Phoenix_Todo_Admin();
             $todo_admin->init();
+
+            $cost_admin = new BSO_Phoenix_Cost_Admin();
+            $cost_admin->init();
         }
 
         $frontend = new BSO_Phoenix_Frontend();
