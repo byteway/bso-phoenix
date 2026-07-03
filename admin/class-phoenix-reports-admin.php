@@ -68,12 +68,16 @@ class BSO_Phoenix_Reports_Admin
         $monthly_cost_breakdown = $this->build_monthly_cost_breakdown($costs);
         $busiest_trip_days = $this->build_busiest_trip_days($trips);
         $chart_data = $this->build_chart_data($report, $comparison, $monthly_totals);
+        $printed_at = wp_date('d-m-Y H:i');
+        $period_label = $this->build_period_label($date_from, $date_to);
 
         echo '<div class="wrap">';
+        $this->render_print_styles();
         echo '<h1>' . esc_html__('Rapportages', 'bso-phoenix') . '</h1>';
         echo '<p>' . esc_html__('Gecombineerd overzicht van tochten, kosten, logboek en taken binnen de geselecteerde periode.', 'bso-phoenix') . '</p>';
 
-        echo '<form method="get" action="" style="display:flex;gap:8px;align-items:end;margin:12px 0 18px;flex-wrap:wrap;">';
+        echo '<div class="phoenix-report-toolbar no-print" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:12px 0 18px;">';
+        echo '<form method="get" action="" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:0;">';
         echo '<input type="hidden" name="page" value="bso-phoenix-reports" />';
         echo '<label>';
         echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Vanaf', 'bso-phoenix') . '</span>';
@@ -86,14 +90,23 @@ class BSO_Phoenix_Reports_Admin
         submit_button(__('Filter', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=bso-phoenix-reports')) . '">' . esc_html__('Reset', 'bso-phoenix') . '</a>';
         echo '</form>';
+        echo '<button type="button" class="button" onclick="window.print()">' . esc_html__('Printvriendelijke weergave', 'bso-phoenix') . '</button>';
+        echo '</div>';
 
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0 0 18px;">';
+        echo '<form class="no-print" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0 0 18px;">';
         echo '<input type="hidden" name="action" value="bso_phoenix_export_reports_csv" />';
         echo '<input type="hidden" name="date_from" value="' . esc_attr($date_from) . '" />';
         echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
         wp_nonce_field('bso_phoenix_export_reports_csv', 'bso_phoenix_reports_export_nonce');
         submit_button(__('Exporteer rapportage naar CSV', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
+
+        echo '<div class="phoenix-report-print">';
+        echo '<div class="phoenix-report-print__header">';
+        echo '<h1>' . esc_html__('Phoenix Rapportage', 'bso-phoenix') . '</h1>';
+        echo '<p><strong>' . esc_html__('Periode', 'bso-phoenix') . ':</strong> ' . esc_html($period_label) . '</p>';
+        echo '<p><strong>' . esc_html__('Gegenereerd op', 'bso-phoenix') . ':</strong> ' . esc_html($printed_at) . '</p>';
+        echo '</div>';
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:0 0 24px;">';
         $this->render_stat_card(__('Tochten', 'bso-phoenix'), (string) $report['trip_count']);
@@ -311,6 +324,7 @@ class BSO_Phoenix_Reports_Admin
 
         echo '</div>';
         $this->render_chart_script($chart_data);
+        echo '</div>';
         echo '</div>';
     }
 
@@ -721,6 +735,42 @@ class BSO_Phoenix_Reports_Admin
         );
 
         return $labels[$status] ?? $status;
+    }
+
+    private function build_period_label(string $date_from, string $date_to): string
+    {
+        if ($date_from === '' && $date_to === '') {
+            return __('Alle beschikbare data', 'bso-phoenix');
+        }
+
+        if ($date_from !== '' && $date_to !== '') {
+            return $date_from . ' t/m ' . $date_to;
+        }
+
+        if ($date_from !== '') {
+            return __('Vanaf', 'bso-phoenix') . ' ' . $date_from;
+        }
+
+        return __('Tot en met', 'bso-phoenix') . ' ' . $date_to;
+    }
+
+    private function render_print_styles(): void
+    {
+        echo '<style>';
+        echo '.phoenix-report-print__header{display:none;margin:0 0 24px;}';
+        echo '.phoenix-report-print__header h1{margin:0 0 8px;font-size:28px;}';
+        echo '.phoenix-report-print__header p{margin:0 0 4px;font-size:14px;}';
+        echo '@media print {';
+        echo 'body.wp-admin{background:#fff !important;}';
+        echo '#wpadminbar,#adminmenumain,#screen-meta,#screen-meta-links,.notice,.update-nag,.wrap > h1:first-of-type,.wrap > p:first-of-type,.no-print{display:none !important;}';
+        echo '#wpcontent,#wpbody-content{margin:0 !important;padding:0 !important;}';
+        echo '.wrap{margin:0 !important;padding:0 !important;}';
+        echo '.phoenix-report-print__header{display:block;}';
+        echo 'table{page-break-inside:avoid;width:100% !important;}';
+        echo 'section,div{break-inside:avoid;}';
+        echo 'canvas{max-width:100% !important;height:auto !important;}';
+        echo '}';
+        echo '</style>';
     }
 
     public function handle_export_reports_csv(): void
