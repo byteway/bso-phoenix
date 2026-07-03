@@ -34,12 +34,14 @@ class BSO_Phoenix_Admin_Page
 
         $date_from = isset($_GET['date_from']) ? sanitize_text_field((string) $_GET['date_from']) : '';
         $date_to = isset($_GET['date_to']) ? sanitize_text_field((string) $_GET['date_to']) : '';
+        $status = isset($_GET['status']) ? sanitize_text_field((string) $_GET['status']) : '';
         $date_from = $this->normalize_date_input($date_from);
         $date_to = $this->normalize_date_input($date_to);
+        $status = $this->normalize_status_input($status);
 
         $service = new BSO_Phoenix_Trip_Service();
         $summary = $service->get_dashboard_summary();
-        $recent_trips = $service->get_trips_by_date_range($date_from, $date_to, 50);
+        $recent_trips = $service->get_trips_by_date_range($date_from, $date_to, $status, 50);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Phoenix Logboek', 'bso-phoenix') . '</h1>';
@@ -66,6 +68,14 @@ class BSO_Phoenix_Admin_Page
         echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Tot en met', 'bso-phoenix') . '</span>';
         echo '<input type="date" name="date_to" value="' . esc_attr($date_to) . '" />';
         echo '</label>';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Status', 'bso-phoenix') . '</span>';
+        echo '<select name="status">';
+        echo '<option value=""' . selected($status, '', false) . '>' . esc_html__('Alle', 'bso-phoenix') . '</option>';
+        echo '<option value="active"' . selected($status, 'active', false) . '>' . esc_html__('Actief', 'bso-phoenix') . '</option>';
+        echo '<option value="completed"' . selected($status, 'completed', false) . '>' . esc_html__('Afgerond', 'bso-phoenix') . '</option>';
+        echo '</select>';
+        echo '</label>';
         submit_button(__('Filter', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=bso-phoenix')) . '">' . esc_html__('Reset', 'bso-phoenix') . '</a>';
         echo '</form>';
@@ -74,6 +84,7 @@ class BSO_Phoenix_Admin_Page
         echo '<input type="hidden" name="action" value="bso_phoenix_export_trips_csv" />';
         echo '<input type="hidden" name="date_from" value="' . esc_attr($date_from) . '" />';
         echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
+        echo '<input type="hidden" name="status" value="' . esc_attr($status) . '" />';
         wp_nonce_field('bso_phoenix_export_trips_csv', 'bso_phoenix_export_nonce');
         submit_button(__('Exporteer trips naar CSV', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
@@ -145,15 +156,20 @@ class BSO_Phoenix_Admin_Page
 
         $date_from = isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '';
         $date_to = isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field((string) $_POST['status']) : '';
         $date_from = $this->normalize_date_input($date_from);
         $date_to = $this->normalize_date_input($date_to);
+        $status = $this->normalize_status_input($status);
 
         $service = new BSO_Phoenix_Trip_Service();
-        $trips = $service->get_trips_by_date_range($date_from, $date_to, 1000);
+        $trips = $service->get_trips_by_date_range($date_from, $date_to, $status, 1000);
 
         $range_suffix = '';
-        if ($date_from !== '' || $date_to !== '') {
+        if ($date_from !== '' || $date_to !== '' || $status !== '') {
             $range_suffix = '-' . ($date_from !== '' ? $date_from : 'start') . '-to-' . ($date_to !== '' ? $date_to : 'end');
+            if ($status !== '') {
+                $range_suffix .= '-' . $status;
+            }
         }
         $filename = 'phoenix-trips' . $range_suffix . '-' . gmdate('Ymd-His') . '.csv';
 
@@ -203,6 +219,15 @@ class BSO_Phoenix_Admin_Page
         }
 
         return gmdate('Y-m-d', $timestamp);
+    }
+
+    private function normalize_status_input(string $value): string
+    {
+        if (! in_array($value, array('', 'active', 'completed'), true)) {
+            return '';
+        }
+
+        return $value;
     }
 
     public function handle_export_trip_trackpoints(): void

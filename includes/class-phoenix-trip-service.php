@@ -43,12 +43,12 @@ class BSO_Phoenix_Trip_Service
 
     public function get_recent_trips(int $limit = 10): array
     {
-        $rows = $this->get_trips_by_date_range(null, null, $limit);
+        $rows = $this->get_trips_by_date_range(null, null, '', $limit);
 
         return is_array($rows) ? $rows : array();
     }
 
-    public function get_trips_by_date_range(?string $date_from, ?string $date_to, int $limit = 1000): array
+    public function get_trips_by_date_range(?string $date_from, ?string $date_to, string $status = '', int $limit = 1000): array
     {
         global $wpdb;
 
@@ -69,6 +69,11 @@ class BSO_Phoenix_Trip_Service
         if ($date_to !== null && $date_to !== '') {
             $where[] = 'DATE(started_at) <= %s';
             $args[] = $date_to;
+        }
+
+        if ($status !== '') {
+            $where[] = 'status = %s';
+            $args[] = $status;
         }
 
         if (! empty($where)) {
