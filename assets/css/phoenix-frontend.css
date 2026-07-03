@@ -20,6 +20,11 @@
     margin-bottom: 16px;
 }
 
+.phoenix-dashboard__feedback {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
+
 .phoenix-btn {
     border: 0;
     border-radius: 8px;

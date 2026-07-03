@@ -1,11 +1,266 @@
 (function () {
+    var DB_NAME = 'bsoPhoenixOfflineQueue';
+    var STORE_NAME = 'requests';
     var state = {
         activeTripId: null,
         watchId: null,
         map: null,
         routeLine: null,
         routePoints: [],
+        syncInProgress: false,
     };
+
+    function setSyncFeedback(text) {
+        var node = document.querySelector('[data-phoenix-sync-feedback]');
+        if (!node) {
+            return;
+        }
+        node.textContent = text;
+    }
+
+    function openQueueDb() {
+        return new Promise(function (resolve, reject) {
+            if (!window.indexedDB) {
+                reject(new Error('IndexedDB unavailable'));
+                return;
+            }
+
+            var request = window.indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = function () {
+                var db = request.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                }
+            };
+            request.onsuccess = function () {
+                resolve(request.result);
+            };
+            request.onerror = function () {
+                reject(request.error || new Error('IndexedDB open failed'));
+            };
+        });
+    }
+
+    function withStore(mode, callback) {
+        return openQueueDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+                var transaction = db.transaction(STORE_NAME, mode);
+                var store = transaction.objectStore(STORE_NAME);
+                var result = callback(store, resolve, reject);
+
+                transaction.onerror = function () {
+                    reject(transaction.error || new Error('IndexedDB transaction failed'));
+                };
+                transaction.oncomplete = function () {
+                    db.close();
+                    if (result === undefined) {
+                        resolve();
+                    }
+                };
+            });
+        });
+    }
+
+    function queueRequest(entry) {
+        return withStore('readwrite', function (store) {
+            store.add(entry);
+        }).then(function () {
+            return updateQueuedCount();
+        });
+    }
+
+    function getQueuedRequests() {
+        return withStore('readonly', function (store, resolve, reject) {
+            var request = store.getAll();
+            request.onsuccess = function () {
+                resolve(request.result || []);
+            };
+            request.onerror = function () {
+                reject(request.error || new Error('Queue read failed'));
+            };
+        });
+    }
+
+    function deleteQueuedRequest(id) {
+        return withStore('readwrite', function (store) {
+            store.delete(id);
+        }).then(function () {
+            return updateQueuedCount();
+        });
+    }
+
+    function updateQueuedCount() {
+        return getQueuedRequests().then(function (entries) {
+            if (!entries.length) {
+                setSyncFeedback('Synchronisatie gereed.');
+                return 0;
+            }
+
+            setSyncFeedback(entries.length + ' actie(s) wachten op synchronisatie.');
+            return entries.length;
+        }).catch(function () {
+            setSyncFeedback('Synchronisatiestatus niet beschikbaar.');
+            return 0;
+        });
+    }
+
+    function buildQueuedFiles(fileList) {
+        if (!fileList || !fileList.length) {
+            return [];
+        }
+
+        return Array.prototype.map.call(fileList, function (file) {
+            return {
+                name: file.name,
+                type: file.type,
+                lastModified: file.lastModified,
+                blob: file,
+            };
+        });
+    }
+
+    function buildFormDataRequest(action, nonce, payload, files) {
+        var formData = new FormData();
+        var key;
+
+        formData.append('action', action);
+        formData.append('nonce', nonce);
+
+        for (key in payload) {
+            if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== null && payload[key] !== undefined) {
+                formData.append(key, String(payload[key]));
+            }
+        }
+
+        (files || []).forEach(function (file) {
+            var restoredFile = new File([file.blob], file.name, {
+                type: file.type,
+                lastModified: file.lastModified,
+            });
+            formData.append('log_photos[]', restoredFile);
+        });
+
+        return fetch(window.bsoPhoenix.ajaxUrl, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+        }).then(function (response) {
+            return response.json();
+        });
+    }
+
+    function requestJson(action, payload, nonceValue) {
+        if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
+            return Promise.reject(new Error('Missing bsoPhoenix config'));
+        }
+
+        var formData = new URLSearchParams();
+        formData.append('action', action);
+        formData.append('nonce', nonceValue);
+
+        Object.keys(payload || {}).forEach(function (key) {
+            if (payload[key] !== null && payload[key] !== undefined) {
+                formData.append(key, String(payload[key]));
+            }
+        });
+
+        return fetch(window.bsoPhoenix.ajaxUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            },
+            body: formData.toString(),
+            credentials: 'same-origin',
+        }).then(function (response) {
+            return response.json();
+        });
+    }
+
+    function queueOrSendJson(action, payload, nonceValue, queueKind, queuedMessage) {
+        if (navigator.onLine === false) {
+            return queueRequest({
+                queueKind: queueKind,
+                transport: 'json',
+                action: action,
+                nonce: nonceValue,
+                payload: payload,
+                createdAt: Date.now(),
+            }).then(function () {
+                throw new Error(queuedMessage || 'queued');
+            });
+        }
+
+        return requestJson(action, payload, nonceValue).catch(function () {
+            return queueRequest({
+                queueKind: queueKind,
+                transport: 'json',
+                action: action,
+                nonce: nonceValue,
+                payload: payload,
+                createdAt: Date.now(),
+            }).then(function () {
+                throw new Error(queuedMessage || 'queued');
+            });
+        });
+    }
+
+    function queueOrSendForm(action, payload, nonceValue, files, queueKind, queuedMessage) {
+        if (navigator.onLine === false) {
+            return queueRequest({
+                queueKind: queueKind,
+                transport: 'form',
+                action: action,
+                nonce: nonceValue,
+                payload: payload,
+                files: files,
+                createdAt: Date.now(),
+            }).then(function () {
+                throw new Error(queuedMessage || 'queued');
+            });
+        }
+
+        return buildFormDataRequest(action, nonceValue, payload, files).catch(function () {
+            return queueRequest({
+                queueKind: queueKind,
+                transport: 'form',
+                action: action,
+                nonce: nonceValue,
+                payload: payload,
+                files: files,
+                createdAt: Date.now(),
+            }).then(function () {
+                throw new Error(queuedMessage || 'queued');
+            });
+        });
+    }
+
+    function flushQueuedRequests() {
+        if (state.syncInProgress || navigator.onLine === false) {
+            return Promise.resolve();
+        }
+
+        state.syncInProgress = true;
+        setSyncFeedback('Synchronisatie bezig...');
+
+        return getQueuedRequests().then(function (entries) {
+            return entries.reduce(function (promise, entry) {
+                return promise.then(function () {
+                    var sender = entry.transport === 'form'
+                        ? buildFormDataRequest(entry.action, entry.nonce, entry.payload, entry.files || [])
+                        : requestJson(entry.action, entry.payload, entry.nonce);
+
+                    return sender.then(function () {
+                        return deleteQueuedRequest(entry.id);
+                    }).catch(function () {
+                        return Promise.resolve();
+                    });
+                });
+            }, Promise.resolve());
+        }).finally(function () {
+            state.syncInProgress = false;
+            updateQueuedCount();
+        });
+    }
 
     function setMapTrip(text) {
         var node = document.querySelector('[data-phoenix-map-trip]');
@@ -170,30 +425,7 @@
     }
 
     function ajaxRequest(action, payload) {
-        if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
-            return Promise.reject(new Error('Missing bsoPhoenix config'));
-        }
-
-        var formData = new URLSearchParams();
-        formData.append('action', action);
-        formData.append('nonce', window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '');
-
-        Object.keys(payload || {}).forEach(function (key) {
-            if (payload[key] !== null && payload[key] !== undefined) {
-                formData.append(key, String(payload[key]));
-            }
-        });
-
-        return fetch(window.bsoPhoenix.ajaxUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            },
-            body: formData.toString(),
-            credentials: 'same-origin',
-        }).then(function (response) {
-            return response.json();
-        });
+        return requestJson(action, payload, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '');
     }
 
     function sendTrackpoint(position) {
@@ -204,7 +436,7 @@
         var coords = position.coords;
         appendRoutePoint(coords.latitude, coords.longitude);
 
-        ajaxRequest('bso_phoenix_trackpoint', {
+        queueOrSendJson('bso_phoenix_trackpoint', {
             trip_id: state.activeTripId,
             latitude: coords.latitude,
             longitude: coords.longitude,
@@ -212,7 +444,11 @@
             speed: coords.speed ? coords.speed * 3.6 : null,
             accuracy: coords.accuracy,
             recorded_at: Date.now(),
-        }).catch(function () {
+        }, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '', 'trackpoint', 'queued').catch(function (error) {
+            if (error && error.message === 'queued') {
+                setFeedback('Geen verbinding. Trackpoint lokaal opgeslagen voor latere synchronisatie.');
+                return;
+            }
             setFeedback('Trackpoint opslaan mislukt. Controleer verbinding.');
         });
     }
@@ -255,6 +491,11 @@
             return;
         }
 
+        if (navigator.onLine === false) {
+            setFeedback('Een nieuwe route starten vereist verbinding met de server.');
+            return;
+        }
+
         ajaxRequest('bso_phoenix_start_trip', {
             boat_id: window.bsoPhoenix && window.bsoPhoenix.defaultBoatId ? window.bsoPhoenix.defaultBoatId : 1,
         }).then(function (result) {
@@ -277,6 +518,7 @@
             }
 
             startGeolocation();
+            flushQueuedRequests();
         }).catch(function () {
             setFeedback('Start route mislukt. Controleer sessie of permissies.');
         });
@@ -331,26 +573,11 @@
             return;
         }
 
-        var formData = new FormData();
-        formData.append('action', 'bso_phoenix_create_log');
-        formData.append('nonce', window.bsoPhoenix.logNonce || '');
-        formData.append('entry_text', text);
-        formData.append('boat_id', String(window.bsoPhoenix.defaultBoatId || 1));
-        formData.append('trip_id', String(state.activeTripId || ''));
-
-        if (fileNode && fileNode.files) {
-            Array.prototype.forEach.call(fileNode.files, function (file) {
-                formData.append('log_photos[]', file);
-            });
-        }
-
-        fetch(window.bsoPhoenix.ajaxUrl, {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin',
-        }).then(function (response) {
-            return response.json();
-        }).then(function (result) {
+        queueOrSendForm('bso_phoenix_create_log', {
+            entry_text: text,
+            boat_id: String(window.bsoPhoenix.defaultBoatId || 1),
+            trip_id: String(state.activeTripId || ''),
+        }, window.bsoPhoenix.logNonce || '', buildQueuedFiles(fileNode && fileNode.files ? fileNode.files : []), 'log', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setLogFeedback('Opslaan mislukt.');
                 return;
@@ -363,7 +590,18 @@
                 fileNode.value = '';
             }
             setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'));
-        }).catch(function () {
+            flushQueuedRequests();
+        }).catch(function (error) {
+            if (error && error.message === 'queued') {
+                if (textNode) {
+                    textNode.value = '';
+                }
+                if (fileNode) {
+                    fileNode.value = '';
+                }
+                setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.');
+                return;
+            }
             setLogFeedback('Opslaan mislukt. Controleer verbinding.');
         });
     }
@@ -410,14 +648,14 @@
             return;
         }
 
-        ajaxRequest('bso_phoenix_create_cost', {
+        queueOrSendJson('bso_phoenix_create_cost', {
             nonce: window.bsoPhoenix.costNonce || '',
             cost_type: cost_type,
             amount: amount,
             cost_date: cost_date,
             boat_id: window.bsoPhoenix.defaultBoatId || 1,
             trip_id: state.activeTripId || '',
-        }).then(function (result) {
+        }, window.bsoPhoenix.costNonce || '', 'cost', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setCostFeedback('Opslaan mislukt.');
                 return;
@@ -427,7 +665,15 @@
                 amountNode.value = '';
             }
             setCostFeedback('Kostenpost opgeslagen.');
-        }).catch(function () {
+            flushQueuedRequests();
+        }).catch(function (error) {
+            if (error && error.message === 'queued') {
+                if (amountNode) {
+                    amountNode.value = '';
+                }
+                setCostFeedback('Geen verbinding. Kostenpost lokaal in wachtrij geplaatst.');
+                return;
+            }
             setCostFeedback('Opslaan mislukt. Controleer verbinding.');
         });
     }
@@ -450,12 +696,12 @@
             return;
         }
 
-        ajaxRequest('bso_phoenix_create_todo', {
+        queueOrSendJson('bso_phoenix_create_todo', {
             nonce: window.bsoPhoenix.todoNonce || '',
             title: title,
             priority: priority,
             boat_id: window.bsoPhoenix.defaultBoatId || 1,
-        }).then(function (result) {
+        }, window.bsoPhoenix.todoNonce || '', 'todo', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setTodoFeedback('Opslaan mislukt.');
                 return;
@@ -465,7 +711,15 @@
                 titleNode.value = '';
             }
             setTodoFeedback('Taak toegevoegd.');
-        }).catch(function () {
+            flushQueuedRequests();
+        }).catch(function (error) {
+            if (error && error.message === 'queued') {
+                if (titleNode) {
+                    titleNode.value = '';
+                }
+                setTodoFeedback('Geen verbinding. Taak lokaal in wachtrij geplaatst.');
+                return;
+            }
             setTodoFeedback('Opslaan mislukt. Controleer verbinding.');
         });
     }
@@ -505,6 +759,7 @@
     });
 
     ensureMap();
+    updateQueuedCount();
     if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
         state.activeTripId = window.bsoPhoenix.activeTripId;
         setStatus('Actief');
@@ -513,5 +768,14 @@
         startGeolocation();
     } else if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
         loadTripRoute(window.bsoPhoenix.latestTripId);
+    }
+
+    window.addEventListener('online', function () {
+        setSyncFeedback('Verbinding hersteld. Synchronisatie gestart...');
+        flushQueuedRequests();
+    });
+
+    if (navigator.onLine !== false) {
+        flushQueuedRequests();
     }
 })();

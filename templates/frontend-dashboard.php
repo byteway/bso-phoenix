@@ -14,6 +14,7 @@ if (! defined('ABSPATH')) {
         <button type="button" class="phoenix-btn phoenix-btn--ghost" data-phoenix-stop>Stop route</button>
     </div>
     <p class="phoenix-dashboard__feedback" data-phoenix-feedback>Geen actieve route.</p>
+    <p class="phoenix-dashboard__feedback" data-phoenix-sync-feedback>Synchronisatie gereed.</p>
 
     <div class="phoenix-dashboard__grid">
         <article class="phoenix-card">
