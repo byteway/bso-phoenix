@@ -134,4 +134,23 @@ class BSO_Phoenix_Settings_Service
 
         return $code . ' ' . number_format_i18n($amount, $decimals);
     }
+
+    public function get_speed_unit(): string
+    {
+        return $this->get_distance_unit() === 'nm' ? 'kn' : 'km/u';
+    }
+
+    public function convert_speed_from_kmh(float $speed_kmh): float
+    {
+        if ($this->get_distance_unit() === 'nm') {
+            return $speed_kmh / 1.852;
+        }
+
+        return $speed_kmh;
+    }
+
+    public function format_speed(float $speed_kmh, int $decimals = 2): string
+    {
+        return number_format_i18n($this->convert_speed_from_kmh($speed_kmh), $decimals) . ' ' . $this->get_speed_unit();
+    }
 }

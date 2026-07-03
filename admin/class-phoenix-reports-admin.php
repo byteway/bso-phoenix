@@ -67,6 +67,7 @@ class BSO_Phoenix_Reports_Admin
         $this->render_stat_card(__('Tochten', 'bso-phoenix'), (string) $report['trip_count']);
         $this->render_stat_card(__('Afstand totaal', 'bso-phoenix'), $settings_service->format_distance($report['distance_km'], 2));
         $this->render_stat_card(__('Vaarduur totaal', 'bso-phoenix'), number_format_i18n($report['duration_hours'], 2) . ' uur');
+        $this->render_stat_card(__('Gem. snelheid', 'bso-phoenix'), $settings_service->format_speed($report['average_speed_kmh'], 2));
         $this->render_stat_card(__('Kosten totaal', 'bso-phoenix'), $settings_service->format_money($report['cost_total']));
         $this->render_stat_card(__('Logboekitems', 'bso-phoenix'), (string) $report['log_count']);
         $this->render_stat_card(__('Open taken', 'bso-phoenix'), (string) $report['todo_open_count']);
@@ -95,12 +96,13 @@ class BSO_Phoenix_Reports_Admin
             echo '<p>' . esc_html__('Geen tochten gevonden.', 'bso-phoenix') . '</p>';
         } else {
             echo '<table class="widefat striped">';
-            echo '<thead><tr><th>' . esc_html__('Trip', 'bso-phoenix') . '</th><th>' . esc_html__('Start', 'bso-phoenix') . '</th><th>' . esc_html__('Afstand', 'bso-phoenix') . '</th></tr></thead><tbody>';
+            echo '<thead><tr><th>' . esc_html__('Trip', 'bso-phoenix') . '</th><th>' . esc_html__('Start', 'bso-phoenix') . '</th><th>' . esc_html__('Afstand', 'bso-phoenix') . '</th><th>' . esc_html__('Gem. snelheid', 'bso-phoenix') . '</th></tr></thead><tbody>';
             foreach (array_slice($trips, 0, 8) as $trip) {
                 echo '<tr>';
                 echo '<td>#' . esc_html((string) $trip['id']) . '</td>';
                 echo '<td>' . esc_html($this->format_datetime((string) $trip['started_at'])) . '</td>';
                 echo '<td>' . esc_html($settings_service->format_distance((float) $trip['distance_km'], 2)) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_speed((float) $trip['average_speed_kmh'], 2)) . '</td>';
                 echo '</tr>';
             }
             echo '</tbody></table>';
@@ -202,6 +204,7 @@ class BSO_Phoenix_Reports_Admin
             'trip_count' => count($trips),
             'distance_km' => $distance_km,
             'duration_hours' => $duration_minutes / 60,
+            'average_speed_kmh' => $duration_minutes > 0 ? ($distance_km / ($duration_minutes / 60)) : 0.0,
             'cost_total' => $cost_total,
             'costs_by_type' => $costs_by_type,
             'log_count' => count($logs),

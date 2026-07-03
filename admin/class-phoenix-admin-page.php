@@ -44,6 +44,7 @@ class BSO_Phoenix_Admin_Page
         $summary = $service->get_dashboard_summary();
         $recent_trips = $service->get_trips_by_date_range($date_from, $date_to, $status, 50);
         $distance_unit = $settings_service->get_distance_unit();
+        $speed_unit = $settings_service->get_speed_unit();
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Phoenix Logboek', 'bso-phoenix') . '</h1>';
@@ -55,7 +56,7 @@ class BSO_Phoenix_Admin_Page
         $this->render_stat_card(__('Actieve tochten', 'bso-phoenix'), (string) $summary['active_trips']);
         $this->render_stat_card(sprintf(__('Afstand totaal (%s)', 'bso-phoenix'), $distance_unit), $settings_service->format_distance((float) $summary['total_distance_km'], 2));
         $this->render_stat_card(__('Duur totaal (uur)', 'bso-phoenix'), number_format_i18n(((float) $summary['total_duration_minutes']) / 60, 2));
-        $this->render_stat_card(__('Gem. snelheid (km/u)', 'bso-phoenix'), number_format_i18n((float) $summary['average_speed_kmh'], 2));
+        $this->render_stat_card(sprintf(__('Gem. snelheid (%s)', 'bso-phoenix'), $speed_unit), $settings_service->format_speed((float) $summary['average_speed_kmh'], 2));
         echo '</div>';
 
         echo '<h2>' . esc_html__('Recente tochten', 'bso-phoenix') . '</h2>';
@@ -105,7 +106,7 @@ class BSO_Phoenix_Admin_Page
         echo '<th>' . esc_html__('Status', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html(sprintf(__('Afstand (%s)', 'bso-phoenix'), $distance_unit)) . '</th>';
         echo '<th>' . esc_html__('Duur (min)', 'bso-phoenix') . '</th>';
-        echo '<th>' . esc_html__('Gem. snelheid (km/u)', 'bso-phoenix') . '</th>';
+        echo '<th>' . esc_html(sprintf(__('Gem. snelheid (%s)', 'bso-phoenix'), $speed_unit)) . '</th>';
         echo '<th>' . esc_html__('Export', 'bso-phoenix') . '</th>';
         echo '</tr></thead><tbody>';
 
@@ -117,7 +118,7 @@ class BSO_Phoenix_Admin_Page
             echo '<td>' . esc_html((string) $trip['status']) . '</td>';
             echo '<td>' . esc_html($settings_service->format_distance((float) $trip['distance_km'], 2)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float) $trip['duration_minutes'], 1)) . '</td>';
-            echo '<td>' . esc_html(number_format_i18n((float) $trip['average_speed_kmh'], 2)) . '</td>';
+            echo '<td>' . esc_html($settings_service->format_speed((float) $trip['average_speed_kmh'], 2)) . '</td>';
             echo '<td>' . $this->render_trip_export_links((int) $trip['id']) . '</td>';
             echo '</tr>';
         }
@@ -167,6 +168,7 @@ class BSO_Phoenix_Admin_Page
         $settings_service = new BSO_Phoenix_Settings_Service();
         $trips = $service->get_trips_by_date_range($date_from, $date_to, $status, 1000);
         $distance_unit = $settings_service->get_distance_unit();
+        $speed_unit = $settings_service->get_speed_unit();
 
         $range_suffix = '';
         if ($date_from !== '' || $date_to !== '' || $status !== '') {
@@ -186,7 +188,7 @@ class BSO_Phoenix_Admin_Page
             wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
         }
 
-        fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_' . $distance_unit, 'duration_minutes', 'average_speed_kmh'));
+        fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_' . $distance_unit, 'duration_minutes', 'average_speed_' . $speed_unit));
 
         foreach ($trips as $trip) {
             fputcsv(
@@ -198,7 +200,7 @@ class BSO_Phoenix_Admin_Page
                     (string) $trip['status'],
                     (string) $settings_service->convert_distance_from_km((float) $trip['distance_km']),
                     (string) $trip['duration_minutes'],
-                    (string) $trip['average_speed_kmh'],
+                    (string) $settings_service->convert_speed_from_kmh((float) $trip['average_speed_kmh']),
                 )
             );
         }
