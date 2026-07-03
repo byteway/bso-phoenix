@@ -275,3 +275,130 @@ class BSO_Phoenix_Log_Admin
         return $html;
     }
 }
+
+add_action(
+    'admin_init',
+    static function (): void {
+        if ( ! is_admin() || 'POST' !== strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+            return;
+        }
+
+        if ( empty( $_POST['bso_phoenix_photo_sorting_submit'] ) || empty( $_POST['photo_id'] ) ) {
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Je hebt geen toestemming om logfoto\'s te sorteren.', 'bso-phoenix' ) );
+        }
+
+        $nonce = isset( $_POST['bso_phoenix_photo_sorting_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['bso_phoenix_photo_sorting_nonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'bso_phoenix_photo_sorting' ) ) {
+            wp_die( esc_html__( 'Ongeldige beveiligingstoken voor fotosortering.', 'bso-phoenix' ) );
+        }
+
+        $service = new BSO_Phoenix_Log_Service();
+        $photo_id = (int) $_POST['photo_id'];
+        $caption = isset( $_POST['photo_caption'] ) ? sanitize_text_field( wp_unslash( $_POST['photo_caption'] ) ) : '';
+        $sort_order = isset( $_POST['photo_sort_order'] ) ? max( 1, (int) $_POST['photo_sort_order'] ) : null;
+        $redirect_to = isset( $_POST['_wp_http_referer'] ) ? esc_url_raw( wp_unslash( $_POST['_wp_http_referer'] ) ) : admin_url( 'admin.php?page=bso-phoenix-log' );
+
+        $updated = $service->update_photo_details( $photo_id, $caption, $sort_order );
+
+        wp_safe_redirect(
+            add_query_arg(
+                array(
+                    'photo_updated' => $updated ? '1' : '0',
+                ),
+                $redirect_to
+            )
+        );
+        exit;
+    }
+);
+
+add_action(
+    'admin_footer',
+    static function (): void {
+        if ( ! isset( $_GET['page'] ) || 'bso-phoenix-log' !== $_GET['page'] ) {
+            return;
+        }
+        ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var photoInputs = Array.prototype.slice.call(document.querySelectorAll('form input[name="photo_id"]'));
+            var sortNonce = '<?php echo esc_js( wp_create_nonce( 'bso_phoenix_photo_sorting' ) ); ?>';
+
+            photoInputs.forEach(function (input, index) {
+                var form = input.form;
+                if (!form || form.querySelector('input[name="photo_sort_order"]')) {
+                    return;
+                }
+
+                var captionInput = form.querySelector('input[name="photo_caption"]');
+                if (!captionInput) {
+                    return;
+                }
+
+                var captionRow = captionInput.closest('p');
+                if (!captionRow) {
+                    return;
+                }
+
+                var marker = document.createElement('input');
+                marker.type = 'hidden';
+                marker.name = 'bso_phoenix_photo_sorting_submit';
+                marker.value = '1';
+                form.appendChild(marker);
+
+				var nonceInput = document.createElement('input');
+				nonceInput.type = 'hidden';
+				nonceInput.name = 'bso_phoenix_photo_sorting_nonce';
+				nonceInput.value = sortNonce;
+				form.appendChild(nonceInput);
+
+                var wrapper = document.createElement('p');
+                var label = document.createElement('label');
+                label.setAttribute('for', 'phoenix-photo-order-' + input.value);
+                label.innerHTML = '<strong><?php echo esc_js( __( 'Volgorde', 'bso-phoenix' ) ); ?></strong>';
+                wrapper.appendChild(label);
+                wrapper.appendChild(document.createElement('br'));
+
+                var orderInput = document.createElement('input');
+                orderInput.type = 'number';
+                orderInput.min = '1';
+                orderInput.step = '1';
+                orderInput.name = 'photo_sort_order';
+                orderInput.id = 'phoenix-photo-order-' + input.value;
+                orderInput.className = 'small-text';
+                orderInput.value = String(index + 1);
+                wrapper.appendChild(orderInput);
+
+                var upButton = document.createElement('button');
+                upButton.type = 'button';
+                upButton.className = 'button button-small';
+                upButton.style.marginLeft = '8px';
+                upButton.textContent = '<?php echo esc_js( __( 'Omhoog', 'bso-phoenix' ) ); ?>';
+
+                var downButton = document.createElement('button');
+                downButton.type = 'button';
+                downButton.className = 'button button-small';
+                downButton.style.marginLeft = '4px';
+                downButton.textContent = '<?php echo esc_js( __( 'Omlaag', 'bso-phoenix' ) ); ?>';
+
+                upButton.addEventListener('click', function () {
+                    orderInput.value = String(Math.max(1, parseInt(orderInput.value || '1', 10) - 1));
+                });
+
+                downButton.addEventListener('click', function () {
+                    orderInput.value = String(Math.max(1, parseInt(orderInput.value || '1', 10) + 1));
+                });
+
+                wrapper.appendChild(upButton);
+                wrapper.appendChild(downButton);
+                captionRow.insertAdjacentElement('afterend', wrapper);
+            });
+        });
+        </script>
+        <?php
+    }
+);

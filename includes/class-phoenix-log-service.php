@@ -71,9 +71,10 @@ class BSO_Phoenix_Log_Service
                 'log_id' => $log_id,
                 'attachment_id' => $attachment_id,
                 'caption' => $caption,
+                'sort_order' => $this->get_next_photo_sort_order( $log_id ),
                 'created_at' => current_time('mysql'),
             ),
-            array('%d', '%d', '%s', '%s')
+            array( '%d', '%d', '%s', '%d', '%s' )
         );
 
         return $inserted !== false;
@@ -83,12 +84,11 @@ class BSO_Phoenix_Log_Service
     {
         global $wpdb;
 
+		$this->ensure_photo_sort_order_column();
+
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, log_id, attachment_id, caption, created_at
-                FROM {$wpdb->prefix}phoenix_log_photos
-                WHERE log_id = %d
-                ORDER BY id ASC",
+                "SELECT * FROM {$wpdb->prefix}phoenix_log_photos WHERE log_id = %d ORDER BY sort_order ASC, id ASC",
                 $log_id
             ),
             ARRAY_A
@@ -97,30 +97,170 @@ class BSO_Phoenix_Log_Service
         return is_array($rows) ? $rows : array();
     }
 
+    /**
+     * Ensure the photo sort column exists before reading or writing order data.
+     */
+    private function ensure_photo_sort_order_column() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'phoenix_log_photos';
+        $column     = $wpdb->get_var(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM {$table_name} LIKE %s",
+                'sort_order'
+            )
+        );
+
+        if ( null === $column ) {
+            $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER caption" );
+        }
+
+		$wpdb->query( "UPDATE {$table_name} SET sort_order = id WHERE sort_order = 0" );
+    }
+
+    /**
+     * Get the next photo position within a single captain log entry.
+     *
+     * @param int $log_id Log identifier.
+     * @return int
+     */
+    private function get_next_photo_sort_order( $log_id ) {
+        global $wpdb;
+
+        $this->ensure_photo_sort_order_column();
+
+        $table_name = $wpdb->prefix . 'phoenix_log_photos';
+        $max_order  = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT MAX(sort_order) FROM {$table_name} WHERE log_id = %d",
+                $log_id
+            )
+        );
+
+        return $max_order + 1;
+    }
+
+    /**
+     * Normalize photo positions after updates or deletions.
+     *
+     * @param int $log_id Log identifier.
+     * @return void
+     */
+    private function normalize_photo_sort_order( $log_id ) {
+        global $wpdb;
+
+        $this->ensure_photo_sort_order_column();
+
+        $table_name = $wpdb->prefix . 'phoenix_log_photos';
+        $photo_ids  = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM {$table_name} WHERE log_id = %d ORDER BY sort_order ASC, id ASC",
+                $log_id
+            )
+        );
+
+        if ( empty( $photo_ids ) ) {
+            return;
+        }
+
+        foreach ( $photo_ids as $index => $photo_id ) {
+            $wpdb->update(
+                $table_name,
+                array( 'sort_order' => $index + 1 ),
+                array( 'id' => (int) $photo_id ),
+                array( '%d' ),
+                array( '%d' )
+            );
+        }
+    }
+
     public function update_photo_caption(int $photo_id, string $caption): bool
     {
+        return $this->update_photo_details( $photo_id, $caption, null );
+    }
+
+    public function update_photo_details(int $photo_id, string $caption, ?int $sort_order = null): bool
+    {
         global $wpdb;
+
+        $this->ensure_photo_sort_order_column();
+
+        $photo = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, log_id, sort_order FROM {$wpdb->prefix}phoenix_log_photos WHERE id = %d",
+                $photo_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $photo ) ) {
+            return false;
+        }
+
+        $current_order = max( 1, (int) $photo['sort_order'] );
+        $max_order     = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}phoenix_log_photos WHERE log_id = %d",
+                (int) $photo['log_id']
+            )
+        );
+        $target_order  = null === $sort_order ? $current_order : max( 1, min( $max_order, $sort_order ) );
+
+        if ( $target_order < $current_order ) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$wpdb->prefix}phoenix_log_photos
+                    SET sort_order = sort_order + 1
+                    WHERE log_id = %d AND id != %d AND sort_order >= %d AND sort_order < %d",
+                    (int) $photo['log_id'],
+                    $photo_id,
+                    $target_order,
+                    $current_order
+                )
+            );
+        } elseif ( $target_order > $current_order ) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$wpdb->prefix}phoenix_log_photos
+                    SET sort_order = sort_order - 1
+                    WHERE log_id = %d AND id != %d AND sort_order <= %d AND sort_order > %d",
+                    (int) $photo['log_id'],
+                    $photo_id,
+                    $target_order,
+                    $current_order
+                )
+            );
+        }
 
         $updated = $wpdb->update(
             $wpdb->prefix . 'phoenix_log_photos',
             array(
-                'caption' => $caption,
+                'caption' => sanitize_text_field( $caption ),
+                'sort_order' => $target_order,
             ),
-            array('id' => $photo_id),
-            array('%s'),
-            array('%d')
+            array( 'id' => $photo_id ),
+            array( '%s', '%d' ),
+            array( '%d' )
         );
 
-        return $updated !== false;
+        if ( false === $updated ) {
+            return false;
+        }
+
+        $this->normalize_photo_sort_order( (int) $photo['log_id'] );
+
+        return true;
     }
 
     public function delete_photo(int $photo_id): bool
     {
         global $wpdb;
 
+        $this->ensure_photo_sort_order_column();
+
         $photo = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT attachment_id FROM {$wpdb->prefix}phoenix_log_photos WHERE id = %d",
+                "SELECT id, log_id, attachment_id FROM {$wpdb->prefix}phoenix_log_photos WHERE id = %d",
                 $photo_id
             ),
             ARRAY_A
@@ -135,6 +275,10 @@ class BSO_Phoenix_Log_Service
             array('id' => $photo_id),
             array('%d')
         );
+
+		if ( $deleted !== false && is_array( $photo ) && ! empty( $photo['log_id'] ) ) {
+			$this->normalize_photo_sort_order( (int) $photo['log_id'] );
+		}
 
         return $deleted !== false;
     }
