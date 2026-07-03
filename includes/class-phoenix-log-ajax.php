@@ -10,6 +10,7 @@ class BSO_Phoenix_Log_Ajax
     {
         add_action('wp_ajax_bso_phoenix_create_log', array($this, 'create_log'));
         add_action('wp_ajax_bso_phoenix_delete_log', array($this, 'delete_log'));
+        add_action('wp_ajax_bso_phoenix_get_logs', array($this, 'get_logs'));
     }
 
     public function create_log(): void
@@ -37,11 +38,28 @@ class BSO_Phoenix_Log_Ajax
         }
 
         $attachment_ids = array();
-        if (isset($_FILES['log_photos'])) {
-            $attachment_ids = $service->store_uploaded_photos($log_id, $_FILES['log_photos']);
+        $photo_captions = array();
+
+        if (isset($_POST['log_photo_captions']) && is_array($_POST['log_photo_captions'])) {
+            $photo_captions = array_map(
+                static function ($value): string {
+                    return sanitize_text_field((string) $value);
+                },
+                wp_unslash($_POST['log_photo_captions'])
+            );
         }
 
-        wp_send_json_success(array('log_id' => $log_id, 'attachment_ids' => $attachment_ids));
+        if (isset($_FILES['log_photos'])) {
+            $attachment_ids = $service->store_uploaded_photos($log_id, $_FILES['log_photos'], $photo_captions);
+        }
+
+        wp_send_json_success(
+            array(
+                'log_id' => $log_id,
+                'attachment_ids' => $attachment_ids,
+                'photos' => $service->get_log_photos($log_id),
+            )
+        );
     }
 
     public function delete_log(): void
@@ -61,6 +79,26 @@ class BSO_Phoenix_Log_Ajax
         }
 
         wp_send_json_success(array('deleted' => true));
+    }
+
+    public function get_logs(): void
+    {
+        $this->guard_request('bso_phoenix_log');
+
+        $limit = isset($_POST['limit']) ? (int) $_POST['limit'] : 20;
+        $service = new BSO_Phoenix_Log_Service();
+        $logs = $service->get_logs('', '', max(1, min(100, $limit)));
+
+        $logs_with_photos = array_map(
+            static function (array $log) use ($service): array {
+                $log['id'] = isset($log['id']) ? (int) $log['id'] : 0;
+                $log['photos'] = $log['id'] > 0 ? $service->get_log_photos($log['id']) : array();
+                return $log;
+            },
+            $logs
+        );
+
+        wp_send_json_success(array('logs' => $logs_with_photos));
     }
 
     private function guard_request(string $nonce_action): void

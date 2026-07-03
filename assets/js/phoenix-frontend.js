@@ -8,6 +8,9 @@
         map: null,
         routeLine: null,
         routePoints: [],
+        logPhotoFiles: [],
+        galleryPhotos: [],
+        lightboxIndex: -1,
         syncInProgress: false,
         liveStatsTimer: null,
     };
@@ -193,6 +196,271 @@
         setTripSummaryValue('[data-phoenix-latest-trip-end]', formatDateTimeLabel(trip.ended_at));
         setTripSummaryValue('[data-phoenix-latest-trip-distance]', distanceForDisplay(parseFloat(trip.distance_km || 0)).toFixed(2) + ' ' + currentDistanceUnit());
         setTripSummaryValue('[data-phoenix-latest-trip-duration]', formatDuration((parseFloat(trip.duration_minutes || 0) * 60)));
+    }
+
+    function renderSelectedLogPhotos() {
+        var listNode = document.querySelector('[data-phoenix-log-photo-list]');
+        var emptyNode = document.querySelector('[data-phoenix-log-photo-empty]');
+
+        if (!listNode || !emptyNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+
+        if (!state.logPhotoFiles.length) {
+            emptyNode.style.display = '';
+            return;
+        }
+
+        emptyNode.style.display = 'none';
+
+        state.logPhotoFiles.forEach(function (entry, index) {
+            var item = document.createElement('li');
+            item.className = 'phoenix-log-photos__item';
+
+            var order = document.createElement('span');
+            order.className = 'phoenix-log-photos__order';
+            order.textContent = String(index + 1);
+
+            var name = document.createElement('span');
+            name.className = 'phoenix-log-photos__name';
+            name.textContent = entry.file.name;
+            name.title = entry.file.name;
+
+            var caption = document.createElement('input');
+            caption.type = 'text';
+            caption.className = 'phoenix-log-photos__caption';
+            caption.placeholder = 'Bijschrift (optioneel)';
+            caption.setAttribute('data-phoenix-log-photo-caption', String(index));
+            caption.value = entry.caption || '';
+
+            var actions = document.createElement('div');
+            actions.className = 'phoenix-log-photos__actions';
+
+            var upButton = document.createElement('button');
+            upButton.type = 'button';
+            upButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+            upButton.textContent = 'Omhoog';
+            upButton.setAttribute('data-phoenix-log-photo-up', String(index));
+            upButton.disabled = index === 0;
+
+            var downButton = document.createElement('button');
+            downButton.type = 'button';
+            downButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+            downButton.textContent = 'Omlaag';
+            downButton.setAttribute('data-phoenix-log-photo-down', String(index));
+            downButton.disabled = index === state.logPhotoFiles.length - 1;
+
+            var removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+            removeButton.textContent = 'Verwijder';
+            removeButton.setAttribute('data-phoenix-log-photo-remove', String(index));
+
+            actions.appendChild(upButton);
+            actions.appendChild(downButton);
+            actions.appendChild(removeButton);
+
+            var content = document.createElement('div');
+            content.className = 'phoenix-log-photos__content';
+            content.appendChild(name);
+            content.appendChild(caption);
+
+            item.appendChild(order);
+            item.appendChild(content);
+            item.appendChild(actions);
+            listNode.appendChild(item);
+        });
+    }
+
+    function setSelectedLogPhotos(fileList) {
+        state.logPhotoFiles = Array.prototype.slice.call(fileList || []).filter(function (file) {
+            return file && typeof file.type === 'string' && file.type.indexOf('image/') === 0;
+        }).map(function (file) {
+            return {
+                file: file,
+                caption: '',
+            };
+        });
+        renderSelectedLogPhotos();
+    }
+
+    function moveSelectedLogPhoto(fromIndex, toIndex) {
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= state.logPhotoFiles.length || toIndex >= state.logPhotoFiles.length) {
+            return;
+        }
+
+        var moved = state.logPhotoFiles.splice(fromIndex, 1)[0];
+        state.logPhotoFiles.splice(toIndex, 0, moved);
+        renderSelectedLogPhotos();
+    }
+
+    function removeSelectedLogPhoto(index) {
+        if (index < 0 || index >= state.logPhotoFiles.length) {
+            return;
+        }
+
+        state.logPhotoFiles.splice(index, 1);
+        renderSelectedLogPhotos();
+    }
+
+    function updateSelectedLogPhotoCaption(index, value) {
+        if (index < 0 || index >= state.logPhotoFiles.length) {
+            return;
+        }
+
+        state.logPhotoFiles[index].caption = value;
+    }
+
+    function initLogPhotoInput() {
+        var fileNode = document.querySelector('[data-phoenix-log-photos]');
+        if (!fileNode) {
+            return;
+        }
+
+        fileNode.addEventListener('change', function () {
+            setSelectedLogPhotos(fileNode.files);
+        });
+
+        renderSelectedLogPhotos();
+    }
+
+    function renderLogGallery() {
+        var listNode = document.querySelector('[data-phoenix-log-gallery-list]');
+        var emptyNode = document.querySelector('[data-phoenix-log-gallery-empty]');
+
+        if (!listNode || !emptyNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+
+        if (!state.galleryPhotos.length) {
+            emptyNode.style.display = '';
+            return;
+        }
+
+        emptyNode.style.display = 'none';
+
+        state.galleryPhotos.forEach(function (photo, index) {
+            var item = document.createElement('li');
+            item.className = 'phoenix-log-gallery__item';
+
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'phoenix-log-gallery__button';
+            button.setAttribute('data-phoenix-open-lightbox', String(index));
+
+            var image = document.createElement('img');
+            image.className = 'phoenix-log-gallery__image';
+            image.src = photo.thumbnail_url || photo.url || '';
+            image.alt = photo.caption || 'Logfoto';
+            image.loading = 'lazy';
+
+            var caption = document.createElement('span');
+            caption.className = 'phoenix-log-gallery__caption';
+            caption.textContent = photo.caption || 'Foto';
+
+            button.appendChild(image);
+            button.appendChild(caption);
+            item.appendChild(button);
+            listNode.appendChild(item);
+        });
+    }
+
+    function setGalleryFromLogs(logs) {
+        state.galleryPhotos = (logs || []).reduce(function (all, log) {
+            var photos = Array.isArray(log.photos) ? log.photos : [];
+            photos.forEach(function (photo) {
+                if (!photo || (!photo.url && !photo.thumbnail_url)) {
+                    return;
+                }
+
+                all.push({
+                    id: photo.id || 0,
+                    log_id: log.id || 0,
+                    caption: photo.caption || '',
+                    url: photo.url || photo.thumbnail_url || '',
+                    thumbnail_url: photo.thumbnail_url || photo.url || '',
+                    log_date: log.log_date || '',
+                    log_time: log.log_time || '',
+                });
+            });
+
+            return all;
+        }, []);
+
+        renderLogGallery();
+    }
+
+    function loadLogGallery() {
+        return queueOrSendJson('bso_phoenix_get_logs', {
+            limit: 20,
+        }, window.bsoPhoenix.logNonce || '', 'log', 'queued').then(function (result) {
+            if (!result || !result.success || !result.data) {
+                return;
+            }
+
+            setGalleryFromLogs(result.data.logs || []);
+        }).catch(function () {
+            // Keep current gallery as-is when fetch fails.
+        });
+    }
+
+    function getLightboxNodes() {
+        return {
+            root: document.querySelector('[data-phoenix-lightbox]'),
+            image: document.querySelector('[data-phoenix-lightbox-image]'),
+            caption: document.querySelector('[data-phoenix-lightbox-caption]'),
+        };
+    }
+
+    function renderLightbox() {
+        var nodes = getLightboxNodes();
+        if (!nodes.root || !nodes.image || !nodes.caption) {
+            return;
+        }
+
+        if (state.lightboxIndex < 0 || state.lightboxIndex >= state.galleryPhotos.length) {
+            nodes.root.hidden = true;
+            return;
+        }
+
+        var photo = state.galleryPhotos[state.lightboxIndex];
+        nodes.image.src = photo.url || photo.thumbnail_url || '';
+        nodes.image.alt = photo.caption || 'Logfoto';
+
+        var dateLabel = [photo.log_date, photo.log_time].filter(Boolean).join(' ');
+        nodes.caption.textContent = photo.caption
+            ? (dateLabel ? photo.caption + ' - ' + dateLabel : photo.caption)
+            : (dateLabel || 'Logfoto');
+        nodes.root.hidden = false;
+    }
+
+    function openLightbox(index) {
+        if (index < 0 || index >= state.galleryPhotos.length) {
+            return;
+        }
+
+        state.lightboxIndex = index;
+        renderLightbox();
+    }
+
+    function closeLightbox() {
+        state.lightboxIndex = -1;
+        renderLightbox();
+    }
+
+    function moveLightbox(step) {
+        if (!state.galleryPhotos.length || state.lightboxIndex < 0) {
+            return;
+        }
+
+        var length = state.galleryPhotos.length;
+        state.lightboxIndex = (state.lightboxIndex + step + length) % length;
+        renderLightbox();
+    }
 
     function setSyncFeedback(text) {
         var node = document.querySelector('[data-phoenix-sync-feedback]');
@@ -383,12 +651,16 @@
             return [];
         }
 
-        return Array.prototype.map.call(fileList, function (file) {
+        return Array.prototype.map.call(fileList, function (entry) {
+            var file = entry && entry.file ? entry.file : entry;
+            var caption = entry && typeof entry.caption === 'string' ? entry.caption : '';
+
             return {
                 name: file.name,
                 type: file.type,
                 lastModified: file.lastModified,
                 blob: file,
+                caption: caption,
             };
         });
     }
@@ -412,6 +684,7 @@
                 lastModified: file.lastModified,
             });
             formData.append('log_photos[]', restoredFile);
+            formData.append('log_photo_captions[]', file.caption || '');
         });
 
         return fetch(window.bsoPhoenix.ajaxUrl, {
@@ -849,11 +1122,20 @@
             return;
         }
 
+        var orderedPhotos = state.logPhotoFiles.length
+            ? state.logPhotoFiles
+            : Array.prototype.slice.call(fileNode && fileNode.files ? fileNode.files : []).map(function (file) {
+                return {
+                    file: file,
+                    caption: '',
+                };
+            });
+
         queueOrSendForm('bso_phoenix_create_log', {
             entry_text: text,
             boat_id: String(window.bsoPhoenix.defaultBoatId || 1),
             trip_id: String(state.activeTripId || ''),
-        }, window.bsoPhoenix.logNonce || '', buildQueuedFiles(fileNode && fileNode.files ? fileNode.files : []), 'log', 'queued').then(function (result) {
+        }, window.bsoPhoenix.logNonce || '', buildQueuedFiles(orderedPhotos), 'log', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setLogFeedback('Opslaan mislukt.');
                 return;
@@ -865,7 +1147,10 @@
             if (fileNode) {
                 fileNode.value = '';
             }
+            state.logPhotoFiles = [];
+            renderSelectedLogPhotos();
             setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'));
+            loadLogGallery();
             flushQueuedRequests();
         }).catch(function (error) {
             if (error && error.message === 'queued') {
@@ -875,6 +1160,8 @@
                 if (fileNode) {
                     fileNode.value = '';
                 }
+                state.logPhotoFiles = [];
+                renderSelectedLogPhotos();
                 setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.');
                 return;
             }
@@ -1053,6 +1340,52 @@
             return;
         }
 
+        if (target.closest('[data-phoenix-log-photo-up]')) {
+            moveSelectedLogPhoto(
+                parseInt(target.closest('[data-phoenix-log-photo-up]').getAttribute('data-phoenix-log-photo-up'), 10),
+                parseInt(target.closest('[data-phoenix-log-photo-up]').getAttribute('data-phoenix-log-photo-up'), 10) - 1
+            );
+            return;
+        }
+
+        if (target.closest('[data-phoenix-log-photo-down]')) {
+            moveSelectedLogPhoto(
+                parseInt(target.closest('[data-phoenix-log-photo-down]').getAttribute('data-phoenix-log-photo-down'), 10),
+                parseInt(target.closest('[data-phoenix-log-photo-down]').getAttribute('data-phoenix-log-photo-down'), 10) + 1
+            );
+            return;
+        }
+
+        if (target.closest('[data-phoenix-log-photo-remove]')) {
+            removeSelectedLogPhoto(parseInt(target.closest('[data-phoenix-log-photo-remove]').getAttribute('data-phoenix-log-photo-remove'), 10));
+            return;
+        }
+
+        if (target.closest('[data-phoenix-open-lightbox]')) {
+            openLightbox(parseInt(target.closest('[data-phoenix-open-lightbox]').getAttribute('data-phoenix-open-lightbox'), 10));
+            return;
+        }
+
+        if (target.closest('[data-phoenix-lightbox-close]')) {
+            closeLightbox();
+            return;
+        }
+
+        if (target.closest('[data-phoenix-lightbox-prev]')) {
+            moveLightbox(-1);
+            return;
+        }
+
+        if (target.closest('[data-phoenix-lightbox-next]')) {
+            moveLightbox(1);
+            return;
+        }
+
+        if (target.matches('[data-phoenix-lightbox]')) {
+            closeLightbox();
+            return;
+        }
+
         if (target.closest('[data-phoenix-start]')) {
             handleStart();
         }
@@ -1062,7 +1395,43 @@
         }
     });
 
+    document.addEventListener('input', function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        if (target.matches('[data-phoenix-log-photo-caption]')) {
+            updateSelectedLogPhotoCaption(
+                parseInt(target.getAttribute('data-phoenix-log-photo-caption'), 10),
+                target.value
+            );
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (state.lightboxIndex < 0) {
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            closeLightbox();
+            return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+            moveLightbox(-1);
+            return;
+        }
+
+        if (event.key === 'ArrowRight') {
+            moveLightbox(1);
+        }
+    });
+
     ensureMap();
+    initLogPhotoInput();
+    loadLogGallery();
     updateQueuedCount();
     resetLiveStats();
     setConnectionStatus();

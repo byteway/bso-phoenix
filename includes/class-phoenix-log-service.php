@@ -94,7 +94,25 @@ class BSO_Phoenix_Log_Service
             ARRAY_A
         );
 
-        return is_array($rows) ? $rows : array();
+        if (! is_array($rows)) {
+            return array();
+        }
+
+        return array_map(
+            static function (array $row): array {
+                $attachment_id = isset($row['attachment_id']) ? (int) $row['attachment_id'] : 0;
+                $row['attachment_id'] = $attachment_id;
+                $row['sort_order'] = isset($row['sort_order']) ? (int) $row['sort_order'] : 0;
+                $row['url'] = $attachment_id > 0 ? wp_get_attachment_url($attachment_id) : '';
+                $row['thumbnail_url'] = $attachment_id > 0 ? wp_get_attachment_image_url($attachment_id, 'medium') : '';
+                if (! is_string($row['thumbnail_url']) || $row['thumbnail_url'] === '') {
+                    $row['thumbnail_url'] = $row['url'];
+                }
+
+                return $row;
+            },
+            $rows
+        );
     }
 
     /**
@@ -283,7 +301,7 @@ class BSO_Phoenix_Log_Service
         return $deleted !== false;
     }
 
-    public function store_uploaded_photos(int $log_id, array $file_input): array
+    public function store_uploaded_photos(int $log_id, array $file_input, array $captions = array()): array
     {
         $attachment_ids = array();
 
@@ -297,7 +315,7 @@ class BSO_Phoenix_Log_Service
 
         $normalized_files = $this->normalize_uploaded_files($file_input);
 
-        foreach ($normalized_files as $file) {
+        foreach ($normalized_files as $index => $file) {
             if (! isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
                 continue;
             }
@@ -328,7 +346,9 @@ class BSO_Phoenix_Log_Service
                 wp_update_attachment_metadata($attachment_id, $metadata);
             }
 
-            if ($this->attach_photo_to_log($log_id, (int) $attachment_id)) {
+            $caption = isset($captions[$index]) ? sanitize_text_field((string) $captions[$index]) : '';
+
+            if ($this->attach_photo_to_log($log_id, (int) $attachment_id, $caption)) {
                 $attachment_ids[] = (int) $attachment_id;
             }
         }
