@@ -79,7 +79,7 @@
             },
             {
                 enableHighAccuracy: true,
-                maximumAge: 5000,
+                maximumAge: window.bsoPhoenix && window.bsoPhoenix.gpsIntervalMs ? window.bsoPhoenix.gpsIntervalMs : 10000,
                 timeout: 10000,
             }
         );

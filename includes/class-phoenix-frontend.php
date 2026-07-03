@@ -39,6 +39,7 @@ class BSO_Phoenix_Frontend
                 'todoNonce' => wp_create_nonce('bso_phoenix_todo'),
                 'costNonce' => wp_create_nonce('bso_phoenix_cost'),
                 'defaultBoatId' => 1,
+                'gpsIntervalMs' => (int) (new BSO_Phoenix_Settings_Service())->get('gps_interval_seconds') * 1000,
             )
         );
     }

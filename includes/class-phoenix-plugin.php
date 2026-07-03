@@ -35,6 +35,9 @@ class BSO_Phoenix_Plugin
 
             $boat_admin = new BSO_Phoenix_Boat_Admin();
             $boat_admin->init();
+
+            $settings_admin = new BSO_Phoenix_Settings_Admin();
+            $settings_admin->init();
         }
 
         $frontend = new BSO_Phoenix_Frontend();
