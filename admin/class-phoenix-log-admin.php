@@ -11,6 +11,8 @@ class BSO_Phoenix_Log_Admin
         add_action('admin_menu', array($this, 'register_submenu'));
         add_action('admin_post_bso_phoenix_save_log', array($this, 'handle_save_log'));
         add_action('admin_post_bso_phoenix_delete_log', array($this, 'handle_delete_log'));
+        add_action('admin_post_bso_phoenix_update_log_photo_caption', array($this, 'handle_update_log_photo_caption'));
+        add_action('admin_post_bso_phoenix_delete_log_photo', array($this, 'handle_delete_log_photo'));
     }
 
     public function register_submenu(): void
@@ -48,6 +50,12 @@ class BSO_Phoenix_Log_Admin
 
         if (isset($_GET['deleted'])) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Logboekitem verwijderd.', 'bso-phoenix') . '</p></div>';
+        }
+        if (isset($_GET['photo_saved'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Fotobijschrift opgeslagen.', 'bso-phoenix') . '</p></div>';
+        }
+        if (isset($_GET['photo_deleted'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Foto verwijderd.', 'bso-phoenix') . '</p></div>';
         }
 
         echo '<h2>' . esc_html__('Nieuw logboekitem', 'bso-phoenix') . '</h2>';
@@ -122,7 +130,7 @@ class BSO_Phoenix_Log_Admin
             echo '<td>' . esc_html(substr((string) $log['log_time'], 0, 5)) . '</td>';
             echo '<td>' . nl2br(esc_html(wp_trim_words((string) $log['entry_text'], 20))) . '</td>';
             echo '<td>' . (! empty($log['trip_id']) ? '#' . esc_html((string) $log['trip_id']) : '-') . '</td>';
-            echo '<td>' . $this->render_photo_previews($photos) . '</td>';
+            echo '<td>' . $this->render_photo_previews((int) $log['id'], $photos) . '</td>';
             echo '<td><a class="button button-small button-link-delete" href="' . esc_url($delete_url) . '" onclick="return confirm(\'' . esc_js(__('Logboekitem verwijderen?', 'bso-phoenix')) . '\')">' . esc_html__('Verwijder', 'bso-phoenix') . '</a></td>';
             echo '</tr>';
         }
@@ -190,17 +198,76 @@ class BSO_Phoenix_Log_Admin
         return $value;
     }
 
-    private function render_photo_previews(array $photos): string
+    public function handle_update_log_photo_caption(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
+        }
+
+        $photo_id = isset($_POST['photo_id']) ? (int) $_POST['photo_id'] : 0;
+        $log_id = isset($_POST['log_id']) ? (int) $_POST['log_id'] : 0;
+        if ($photo_id <= 0 || $log_id <= 0) {
+            wp_die(esc_html__('Ongeldige foto of log.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_update_log_photo_caption_' . $photo_id, 'bso_phoenix_log_photo_nonce');
+
+        $caption = isset($_POST['caption']) ? sanitize_text_field((string) $_POST['caption']) : '';
+        $service = new BSO_Phoenix_Log_Service();
+        $service->update_photo_caption($photo_id, $caption);
+
+        wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-log&photo_saved=1'));
+        exit;
+    }
+
+    public function handle_delete_log_photo(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_die(esc_html__('Geen rechten.', 'bso-phoenix'));
+        }
+
+        $photo_id = isset($_GET['photo_id']) ? (int) $_GET['photo_id'] : 0;
+        if ($photo_id <= 0) {
+            wp_die(esc_html__('Ongeldige foto.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_delete_log_photo_' . $photo_id);
+
+        $service = new BSO_Phoenix_Log_Service();
+        $service->delete_photo($photo_id);
+
+        wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-log&photo_deleted=1'));
+        exit;
+    }
+
+    private function render_photo_previews(int $log_id, array $photos): string
     {
         if (empty($photos)) {
             return '-';
         }
 
-        $html = '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        $html = '<div style="display:grid;gap:10px;">';
         foreach ($photos as $photo) {
             $thumb = wp_get_attachment_image((int) $photo['attachment_id'], array(48, 48), false, array('style' => 'border-radius:6px;display:block;'));
+            $delete_url = wp_nonce_url(
+                admin_url('admin-post.php?action=bso_phoenix_delete_log_photo&photo_id=' . (int) $photo['id']),
+                'bso_phoenix_delete_log_photo_' . (int) $photo['id']
+            );
             if ($thumb) {
+                $html .= '<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;">';
                 $html .= $thumb;
+                $html .= '<div style="display:grid;gap:6px;min-width:180px;">';
+                $html .= '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                $html .= '<input type="hidden" name="action" value="bso_phoenix_update_log_photo_caption" />';
+                $html .= '<input type="hidden" name="photo_id" value="' . esc_attr((string) $photo['id']) . '" />';
+                $html .= '<input type="hidden" name="log_id" value="' . esc_attr((string) $log_id) . '" />';
+                $html .= wp_nonce_field('bso_phoenix_update_log_photo_caption_' . (int) $photo['id'], 'bso_phoenix_log_photo_nonce', true, false);
+                $html .= '<input type="text" name="caption" value="' . esc_attr((string) $photo['caption']) . '" placeholder="' . esc_attr__('Bijschrift', 'bso-phoenix') . '" class="regular-text" /> ';
+                $html .= '<button type="submit" class="button button-small">' . esc_html__('Opslaan', 'bso-phoenix') . '</button>';
+                $html .= '</form>';
+                $html .= '<a class="button button-small button-link-delete" href="' . esc_url($delete_url) . '" onclick="return confirm(\'' . esc_js(__('Foto verwijderen?', 'bso-phoenix')) . '\')">' . esc_html__('Verwijder foto', 'bso-phoenix') . '</a>';
+                $html .= '</div>';
+                $html .= '</div>';
             }
         }
         $html .= '</div>';

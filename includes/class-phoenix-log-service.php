@@ -97,6 +97,48 @@ class BSO_Phoenix_Log_Service
         return is_array($rows) ? $rows : array();
     }
 
+    public function update_photo_caption(int $photo_id, string $caption): bool
+    {
+        global $wpdb;
+
+        $updated = $wpdb->update(
+            $wpdb->prefix . 'phoenix_log_photos',
+            array(
+                'caption' => $caption,
+            ),
+            array('id' => $photo_id),
+            array('%s'),
+            array('%d')
+        );
+
+        return $updated !== false;
+    }
+
+    public function delete_photo(int $photo_id): bool
+    {
+        global $wpdb;
+
+        $photo = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT attachment_id FROM {$wpdb->prefix}phoenix_log_photos WHERE id = %d",
+                $photo_id
+            ),
+            ARRAY_A
+        );
+
+        if (is_array($photo) && ! empty($photo['attachment_id'])) {
+            wp_delete_attachment((int) $photo['attachment_id'], true);
+        }
+
+        $deleted = $wpdb->delete(
+            $wpdb->prefix . 'phoenix_log_photos',
+            array('id' => $photo_id),
+            array('%d')
+        );
+
+        return $deleted !== false;
+    }
+
     public function store_uploaded_photos(int $log_id, array $file_input): array
     {
         $attachment_ids = array();
