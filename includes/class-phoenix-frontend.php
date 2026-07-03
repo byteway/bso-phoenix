@@ -47,6 +47,8 @@ class BSO_Phoenix_Frontend
         $trip_service = new BSO_Phoenix_Trip_Service();
         $latest_trip = $trip_service->get_recent_trips(1);
         $latest_trip_id = ! empty($latest_trip[0]['id']) ? (int) $latest_trip[0]['id'] : 0;
+        $active_trip = $trip_service->get_active_trip();
+        $active_trip_id = is_array($active_trip) && ! empty($active_trip['id']) ? (int) $active_trip['id'] : 0;
 
         wp_localize_script(
             'bso-phoenix-frontend',
@@ -60,6 +62,7 @@ class BSO_Phoenix_Frontend
                 'defaultBoatId' => 1,
                 'gpsIntervalMs' => (int) (new BSO_Phoenix_Settings_Service())->get('gps_interval_seconds') * 1000,
                 'latestTripId' => $latest_trip_id,
+                'activeTripId' => $active_trip_id,
                 'distanceUnit' => (new BSO_Phoenix_Settings_Service())->get_distance_unit(),
             )
         );

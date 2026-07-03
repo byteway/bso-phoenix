@@ -223,6 +223,10 @@
             return;
         }
 
+        if (state.watchId !== null) {
+            return;
+        }
+
         state.watchId = navigator.geolocation.watchPosition(
             sendTrackpoint,
             function () {
@@ -244,6 +248,13 @@
     }
 
     function handleStart() {
+        if (state.activeTripId) {
+            setFeedback('Er is al een actieve route.');
+            setStatus('Actief');
+            startGeolocation();
+            return;
+        }
+
         ajaxRequest('bso_phoenix_start_trip', {
             boat_id: window.bsoPhoenix && window.bsoPhoenix.defaultBoatId ? window.bsoPhoenix.defaultBoatId : 1,
         }).then(function (result) {
@@ -487,7 +498,13 @@
     });
 
     ensureMap();
-    if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
+    if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
+        state.activeTripId = window.bsoPhoenix.activeTripId;
+        setStatus('Actief');
+        setFeedback('Actieve route hervat na herladen van de pagina.');
+        loadTripRoute(window.bsoPhoenix.activeTripId);
+        startGeolocation();
+    } else if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
         loadTripRoute(window.bsoPhoenix.latestTripId);
     }
 })();
