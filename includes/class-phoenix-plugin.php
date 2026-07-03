@@ -38,6 +38,9 @@ class BSO_Phoenix_Plugin
 
             $settings_admin = new BSO_Phoenix_Settings_Admin();
             $settings_admin->init();
+
+            $reports_admin = new BSO_Phoenix_Reports_Admin();
+            $reports_admin->init();
         }
 
         $frontend = new BSO_Phoenix_Frontend();
