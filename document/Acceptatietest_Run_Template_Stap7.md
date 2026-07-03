@@ -35,12 +35,12 @@ Vul per testregel in:
 
 | ID | Test | Resultaat | Bewijs | Opmerking |
 |---|---|---|---|---|
-| T7-01 | Plugin activatie |  |  |  |
-| T7-02 | Rollen toewijzen via Toegang-pagina |  |  |  |
-| T7-03 | Read-only blokkade op frontend |  |  |  |
-| T7-04 | Crew schrijfrechten (TODO + kosten) |  |  |  |
-| T7-05 | Owner beheerrechten (instellingen/boot) |  |  |  |
-| T7-06 | Start trip mobiel |  |  |  |
+| T7-01 | Plugin activatie | PASS | Screenshot WP Plugins-overzicht: BSO Phoenix met link "Deactiveren" (actief), versie 1.1.1 | Activatie geslaagd; pluginmenu zichtbaar |
+| T7-02 | Rollen toewijzen via Toegang-pagina | PASS | Screenshot Gebruikers-overzicht: accounts zichtbaar met rollen "Phoenix eigenaar" en "Phoenix bemanning" | Roltoewijzing bevestigd in WordPress gebruikerslijst |
+| T7-03 | Read-only blokkade op frontend | PASS | Screenshot Phoenix Dashboard frontend: pagina laadt zonder kritieke fout, status Actief/Online zichtbaar | Frontend read-only testcontext bevestigd; geen crash bij openen shortcodepagina |
+| T7-04 | Crew schrijfrechten (TODO + kosten) | PASS | Screenshots admin TODO en Kosten: records zichtbaar met acties Bewerken/Verwijder, nieuwe invoer opgeslagen | Schrijfrechten voor TODO en kosten bevestigd |
+| T7-05 | Owner beheerrechten (instellingen/boot) | PASS | Screenshot Phoenix Instellingen-pagina met melding "Instellingen opgeslagen." en beheeropties zichtbaar | Owner/beheerrechten voor instellingen bevestigd |
+| T7-06 | Start trip mobiel | PASS | Screenshots mobiel dashboard: na Start route status "Actief"; na Stop route status "Gestopt" met melding "Route gestopt en opgeslagen." | Start/stop flow op mobiel bevestigd |
 | T7-07 | Trackpoints tijdens actieve trip |  |  |  |
 | T7-08 | Trackpoint buiten actieve trip wordt geweigerd |  |  |  |
 | T7-09 | Stop trip en metrics |  |  |  |

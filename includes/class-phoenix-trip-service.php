@@ -65,6 +65,23 @@ class BSO_Phoenix_Trip_Service
         return is_array($row) ? $row : null;
     }
 
+    public function get_latest_completed_trip(): ?array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trips';
+        $row = $wpdb->get_row(
+            "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+            FROM {$table}
+            WHERE status = 'completed'
+            ORDER BY ended_at DESC, id DESC
+            LIMIT 1",
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
     public function get_trips_by_date_range(?string $date_from, ?string $date_to, string $status = '', int $limit = 1000): array
     {
         global $wpdb;

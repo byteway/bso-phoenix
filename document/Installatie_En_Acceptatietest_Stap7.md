@@ -107,9 +107,12 @@ Gebruik kolommen: **Resultaat** (`PASS`/`FAIL`) en **Bewijs** (screenshot, expor
 
 | ID | Resultaat | Bewijs | Opmerking |
 |---|---|---|---|
-| T7-01 |  |  |  |
-| T7-02 |  |  |  |
-| T7-03 |  |  |  |
+| T7-01 | PASS | Screenshot WP Plugins-overzicht: BSO Phoenix met link "Deactiveren" (actief), versie 1.1.1 | Activatie geslaagd; pluginmenu zichtbaar |
+| T7-02 | PASS | Screenshot Gebruikers-overzicht: accounts zichtbaar met rollen "Phoenix eigenaar" en "Phoenix bemanning" | Roltoewijzing bevestigd in WordPress gebruikerslijst |
+| T7-03 | PASS | Screenshot Phoenix Dashboard frontend: pagina laadt zonder kritieke fout, status Actief/Online zichtbaar | Frontend read-only testcontext bevestigd; geen crash bij openen shortcodepagina |
+| T7-04 | PASS | Screenshots admin TODO en Kosten: records zichtbaar met acties Bewerken/Verwijder, nieuwe invoer opgeslagen | Schrijfrechten voor TODO en kosten bevestigd |
+| T7-05 | PASS | Screenshot Phoenix Instellingen-pagina met melding "Instellingen opgeslagen." en beheeropties zichtbaar | Owner/beheerrechten voor instellingen bevestigd |
+| T7-06 | PASS | Screenshots mobiel dashboard: na Start route status "Actief"; na Stop route status "Gestopt" met melding "Route gestopt en opgeslagen." | Start/stop flow op mobiel bevestigd |
 | ... |  |  |  |
 
 ## 7. Exit Criteria (Go/No-Go)

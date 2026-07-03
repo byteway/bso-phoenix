@@ -1005,6 +1005,11 @@
         node.textContent = nextStatus;
     }
 
+    function normalizeTripId(value) {
+        var tripId = parseInt(value, 10);
+        return Number.isFinite(tripId) && tripId > 0 ? tripId : 0;
+    }
+
     function ajaxRequest(action, payload) {
         return requestJson(action, payload, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '').then(function (response) {
             return ensureSuccessfulResponse(response, 'Verzoek afgewezen door server.');
@@ -1044,19 +1049,39 @@
             return;
         }
 
+        if (window.isSecureContext !== true) {
+            setFeedback('GPS vereist een beveiligde verbinding (HTTPS) of localhost. Open deze pagina via HTTPS.');
+            return;
+        }
+
         if (state.watchId !== null) {
             return;
         }
 
         state.watchId = navigator.geolocation.watchPosition(
             sendTrackpoint,
-            function () {
+            function (error) {
+                if (error && error.code === 1) {
+                    setFeedback('Locatietoegang geweigerd. Sta locatie toe in browser- en app-instellingen.');
+                    return;
+                }
+
+                if (error && error.code === 2) {
+                    setFeedback('Locatie niet beschikbaar. Controleer GPS, netwerk of ga naar buiten voor beter signaal.');
+                    return;
+                }
+
+                if (error && error.code === 3) {
+                    setFeedback('Locatie-opvraag timeout. Probeer opnieuw of verhoog het GPS-interval in de instellingen.');
+                    return;
+                }
+
                 setFeedback('Geen GPS-signaal. Controleer locatiepermissies.');
             },
             {
                 enableHighAccuracy: true,
                 maximumAge: window.bsoPhoenix && window.bsoPhoenix.gpsIntervalMs ? window.bsoPhoenix.gpsIntervalMs : 10000,
-                timeout: 10000,
+                timeout: window.bsoPhoenix && window.bsoPhoenix.gpsIntervalMs ? Math.max(15000, window.bsoPhoenix.gpsIntervalMs * 2) : 20000,
             }
         );
     }
@@ -1074,12 +1099,16 @@
             return;
         }
 
-        if (state.activeTripId) {
+        var knownActiveTripId = normalizeTripId(state.activeTripId);
+        if (knownActiveTripId > 0) {
+            state.activeTripId = knownActiveTripId;
             setFeedback('Er is al een actieve route.');
             setStatus('Actief');
             startGeolocation();
             return;
         }
+
+        state.activeTripId = null;
 
         if (navigator.onLine === false) {
             setFeedback('Een nieuwe route starten vereist verbinding met de server.');
@@ -1095,8 +1124,8 @@
                 return;
             }
 
-            state.activeTripId = result.data.trip_id;
-            state.activeTripStartedAt = new Date().toISOString();
+            state.activeTripId = normalizeTripId(result.data.trip_id);
+            state.activeTripStartedAt = result.data.started_at || new Date().toISOString();
             setStatus('Actief');
             setMapTrip('Trip #' + state.activeTripId + ' (actief)');
 
@@ -1124,13 +1153,17 @@
             return;
         }
 
-        if (!state.activeTripId) {
+        var activeTripId = normalizeTripId(state.activeTripId);
+        if (activeTripId <= 0) {
+            state.activeTripId = null;
             setFeedback('Er is geen actieve route om te stoppen.');
             return;
         }
 
+        state.activeTripId = activeTripId;
+
         ajaxRequest('bso_phoenix_stop_trip', {
-            trip_id: state.activeTripId,
+            trip_id: activeTripId,
             request_uid: createRequestUid('stop_trip'),
         }).then(function (result) {
             if (!result || !result.success) {
@@ -1139,7 +1172,7 @@
             }
 
             stopGeolocation();
-            loadTripRoute(state.activeTripId);
+            loadTripRoute(activeTripId);
             state.activeTripId = null;
             state.activeTripStartedAt = null;
             setStatus('Gestopt');
@@ -1517,14 +1550,16 @@
     setConnectionStatus();
     renderLatestCompletedTrip();
     if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
-        state.activeTripId = window.bsoPhoenix.activeTripId;
+        state.activeTripId = normalizeTripId(window.bsoPhoenix.activeTripId);
         state.activeTripStartedAt = window.bsoPhoenix.activeTripStartedAt || null;
-        setStatus('Actief');
-        setFeedback('Actieve route hervat na herladen van de pagina.');
-        loadTripRoute(window.bsoPhoenix.activeTripId);
-        ensureLiveStatsTimer();
-        updateLiveStats();
-        startGeolocation();
+        if (state.activeTripId > 0) {
+            setStatus('Actief');
+            setFeedback('Actieve route hervat na herladen van de pagina.');
+            loadTripRoute(state.activeTripId);
+            ensureLiveStatsTimer();
+            updateLiveStats();
+            startGeolocation();
+        }
     } else if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
         loadTripRoute(window.bsoPhoenix.latestTripId);
     }

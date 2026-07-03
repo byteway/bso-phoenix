@@ -33,6 +33,7 @@ class BSO_Phoenix_Ajax
         $service = new BSO_Phoenix_Trip_Service();
         $existing_active_trip = $service->get_active_trip();
         $trip_id = $service->start_trip($boat_id);
+        $active_trip = $service->get_active_trip();
 
         if ($trip_id <= 0) {
             wp_send_json_error(array('message' => 'Kon route niet starten.'), 500);
@@ -42,6 +43,7 @@ class BSO_Phoenix_Ajax
             array(
                 'trip_id' => $trip_id,
                 'already_active' => is_array($existing_active_trip) && ! empty($existing_active_trip['id']),
+                'started_at' => is_array($active_trip) && ! empty($active_trip['started_at']) ? (string) $active_trip['started_at'] : null,
             )
         );
     }
@@ -90,6 +92,8 @@ class BSO_Phoenix_Ajax
     {
 		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
+        $service = new BSO_Phoenix_Trip_Service();
+
         if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_stop_trip', array(
             'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
             'trip_id' => (int) ($_POST['trip_id'] ?? 0),
@@ -99,10 +103,14 @@ class BSO_Phoenix_Ajax
 
         $trip_id = isset($_POST['trip_id']) ? (int) $_POST['trip_id'] : 0;
         if ($trip_id <= 0) {
-            wp_send_json_error(array('message' => 'Ongeldige trip_id.'), 400);
+            $active_trip = $service->get_active_trip();
+            if (! is_array($active_trip) || empty($active_trip['id'])) {
+                wp_send_json_error(array('message' => 'Geen actieve route om te stoppen.'), 409);
+            }
+
+            $trip_id = (int) $active_trip['id'];
         }
 
-        $service = new BSO_Phoenix_Trip_Service();
         $stopped = $service->stop_trip($trip_id);
 
         if (! $stopped) {

@@ -4,6 +4,7 @@
  * Description: Logboek en route-app voor de motorboot Phoenix.
  * Version: 1.1.1
  * Author: Byteway Software Ontwikkeling
+ * Requires PHP: 7.1
  * Text Domain: bso-phoenix
  * Domain Path: /languages
  */
