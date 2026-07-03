@@ -162,6 +162,7 @@ Meer details staan in:
 - [Functional Design](document/Functional_Design.md)
 - [Technical Design](document/Technical_Design.md)
 - [Installatie en Acceptatietest Stap 7](document/Installatie_En_Acceptatietest_Stap7.md)
+- [Acceptatietest Run Template Stap 7](document/Acceptatietest_Run_Template_Stap7.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
 - [Release Notes v1.1.0](document/Release_Notes_1.1.0.md)
 - [Release Notes v1.1.1](document/Release_Notes_1.1.1.md)
