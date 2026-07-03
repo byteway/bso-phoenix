@@ -22,6 +22,7 @@ require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-trip-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-log-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-todo-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-cost-service.php';
+require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-boat-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-ajax.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-log-ajax.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-todo-ajax.php';
@@ -30,6 +31,7 @@ require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-admin-page.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-log-admin.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-todo-admin.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-cost-admin.php';
+require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-boat-admin.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-frontend.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-plugin.php';
 

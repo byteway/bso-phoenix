@@ -32,6 +32,9 @@ class BSO_Phoenix_Plugin
 
             $cost_admin = new BSO_Phoenix_Cost_Admin();
             $cost_admin->init();
+
+            $boat_admin = new BSO_Phoenix_Boat_Admin();
+            $boat_admin->init();
         }
 
         $frontend = new BSO_Phoenix_Frontend();
