@@ -264,11 +264,18 @@
             }
 
             state.activeTripId = result.data.trip_id;
-            state.routePoints = [];
-            renderRoute([]);
             setStatus('Actief');
             setMapTrip('Trip #' + state.activeTripId + ' (actief)');
-            setFeedback('Route gestart. GPS tracking is actief.');
+
+            if (result.data.already_active) {
+                loadTripRoute(state.activeTripId);
+                setFeedback('Bestaande actieve route hervat. GPS tracking blijft actief.');
+            } else {
+                state.routePoints = [];
+                renderRoute([]);
+                setFeedback('Route gestart. GPS tracking is actief.');
+            }
+
             startGeolocation();
         }).catch(function () {
             setFeedback('Start route mislukt. Controleer sessie of permissies.');
