@@ -45,6 +45,8 @@ class BSO_Phoenix_Reports_Admin
         $todos = $todo_service->get_todos('', '', 1000);
 
         $report = $this->build_report($trips, $costs, $logs, $todos, $date_from, $date_to);
+        $comparison = $this->build_period_comparison($trip_service, $cost_service, $log_service, $todo_service, $date_from, $date_to);
+        $monthly_totals = $this->build_monthly_totals($trips, $costs);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Rapportages', 'bso-phoenix') . '</h1>';
@@ -81,6 +83,32 @@ class BSO_Phoenix_Reports_Admin
         $this->render_stat_card(__('Logboekitems', 'bso-phoenix'), (string) $report['log_count']);
         $this->render_stat_card(__('Open taken', 'bso-phoenix'), (string) $report['todo_open_count']);
         echo '</div>';
+
+        echo '<h2>' . esc_html__('Periodevergelijking', 'bso-phoenix') . '</h2>';
+        echo '<table class="widefat striped" style="max-width:880px;margin-bottom:24px;">';
+        echo '<thead><tr><th>' . esc_html__('Metric', 'bso-phoenix') . '</th><th>' . esc_html__('Huidige periode', 'bso-phoenix') . '</th><th>' . esc_html__('Vorige periode', 'bso-phoenix') . '</th></tr></thead><tbody>';
+        echo '<tr><td>' . esc_html__('Tochten', 'bso-phoenix') . '</td><td>' . esc_html((string) $comparison['current']['trip_count']) . '</td><td>' . esc_html((string) $comparison['previous']['trip_count']) . '</td></tr>';
+        echo '<tr><td>' . esc_html__('Afstand', 'bso-phoenix') . '</td><td>' . esc_html($settings_service->format_distance($comparison['current']['distance_km'], 2)) . '</td><td>' . esc_html($settings_service->format_distance($comparison['previous']['distance_km'], 2)) . '</td></tr>';
+        echo '<tr><td>' . esc_html__('Kosten', 'bso-phoenix') . '</td><td>' . esc_html($settings_service->format_money($comparison['current']['cost_total'])) . '</td><td>' . esc_html($settings_service->format_money($comparison['previous']['cost_total'])) . '</td></tr>';
+        echo '<tr><td>' . esc_html__('Logboekitems', 'bso-phoenix') . '</td><td>' . esc_html((string) $comparison['current']['log_count']) . '</td><td>' . esc_html((string) $comparison['previous']['log_count']) . '</td></tr>';
+        echo '</tbody></table>';
+
+        echo '<h2>' . esc_html__('Maandtotalen', 'bso-phoenix') . '</h2>';
+        if (empty($monthly_totals)) {
+            echo '<p>' . esc_html__('Geen maandtotalen beschikbaar voor de huidige selectie.', 'bso-phoenix') . '</p>';
+        } else {
+            echo '<table class="widefat striped" style="max-width:880px;margin-bottom:24px;">';
+            echo '<thead><tr><th>' . esc_html__('Maand', 'bso-phoenix') . '</th><th>' . esc_html__('Tochten', 'bso-phoenix') . '</th><th>' . esc_html__('Afstand', 'bso-phoenix') . '</th><th>' . esc_html__('Kosten', 'bso-phoenix') . '</th></tr></thead><tbody>';
+            foreach ($monthly_totals as $month => $month_data) {
+                echo '<tr>';
+                echo '<td>' . esc_html($month) . '</td>';
+                echo '<td>' . esc_html((string) $month_data['trip_count']) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_distance($month_data['distance_km'], 2)) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_money($month_data['cost_total'])) . '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
 
         echo '<h2>' . esc_html__('Kostensoorten', 'bso-phoenix') . '</h2>';
         if (empty($report['costs_by_type'])) {
@@ -222,6 +250,109 @@ class BSO_Phoenix_Reports_Admin
             'date_from' => $date_from,
             'date_to' => $date_to,
         );
+    }
+
+    private function build_period_comparison(BSO_Phoenix_Trip_Service $trip_service, BSO_Phoenix_Cost_Service $cost_service, BSO_Phoenix_Log_Service $log_service, BSO_Phoenix_Todo_Service $todo_service, string $date_from, string $date_to): array
+    {
+        $current = $this->build_report(
+            $trip_service->get_trips_by_date_range($date_from, $date_to, '', 1000),
+            $cost_service->get_costs($date_from, $date_to, '', 1000),
+            $log_service->get_logs($date_from, $date_to, 1000),
+            $todo_service->get_todos('', '', 1000),
+            $date_from,
+            $date_to
+        );
+
+        if ($date_from === '' || $date_to === '') {
+            return array(
+                'current' => $current,
+                'previous' => array(
+                    'trip_count' => 0,
+                    'distance_km' => 0.0,
+                    'cost_total' => 0.0,
+                    'log_count' => 0,
+                ),
+            );
+        }
+
+        $from_ts = strtotime($date_from . ' 00:00:00');
+        $to_ts = strtotime($date_to . ' 00:00:00');
+        if ($from_ts === false || $to_ts === false || $to_ts < $from_ts) {
+            return array(
+                'current' => $current,
+                'previous' => array(
+                    'trip_count' => 0,
+                    'distance_km' => 0.0,
+                    'cost_total' => 0.0,
+                    'log_count' => 0,
+                ),
+            );
+        }
+
+        $period_days = (int) floor(($to_ts - $from_ts) / DAY_IN_SECONDS) + 1;
+        $previous_to_ts = $from_ts - DAY_IN_SECONDS;
+        $previous_from_ts = $previous_to_ts - (($period_days - 1) * DAY_IN_SECONDS);
+
+        $previous_from = gmdate('Y-m-d', $previous_from_ts);
+        $previous_to = gmdate('Y-m-d', $previous_to_ts);
+
+        $previous = $this->build_report(
+            $trip_service->get_trips_by_date_range($previous_from, $previous_to, '', 1000),
+            $cost_service->get_costs($previous_from, $previous_to, '', 1000),
+            $log_service->get_logs($previous_from, $previous_to, 1000),
+            $todo_service->get_todos('', '', 1000),
+            $previous_from,
+            $previous_to
+        );
+
+        return array(
+            'current' => $current,
+            'previous' => $previous,
+        );
+    }
+
+    private function build_monthly_totals(array $trips, array $costs): array
+    {
+        $months = array();
+
+        foreach ($trips as $trip) {
+            if (empty($trip['started_at'])) {
+                continue;
+            }
+
+            $month = substr((string) $trip['started_at'], 0, 7);
+            if (! isset($months[$month])) {
+                $months[$month] = array(
+                    'trip_count' => 0,
+                    'distance_km' => 0.0,
+                    'cost_total' => 0.0,
+                );
+            }
+
+            $months[$month]['trip_count']++;
+            $months[$month]['distance_km'] += isset($trip['distance_km']) ? (float) $trip['distance_km'] : 0.0;
+        }
+
+        foreach ($costs as $cost) {
+            if (empty($cost['cost_date'])) {
+                continue;
+            }
+
+            $month = substr((string) $cost['cost_date'], 0, 7);
+            if (! isset($months[$month])) {
+                $months[$month] = array(
+                    'trip_count' => 0,
+                    'distance_km' => 0.0,
+                    'cost_total' => 0.0,
+                );
+            }
+
+            $months[$month]['cost_total'] += isset($cost['amount']) ? (float) $cost['amount'] : 0.0;
+        }
+
+        krsort($months);
+
+        return $months;
     }
 
     private function render_stat_card(string $label, string $value): void
