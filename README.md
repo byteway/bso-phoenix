@@ -87,11 +87,26 @@ Gebruik de aparte formulieren voor onderhoudstaken en kostenregistratie.
 
 ```text
 bso-phoenix/
+├── admin/
+│   └── class-phoenix-admin-page.php
+├── assets/
+│   ├── css/
+│   │   └── phoenix-frontend.css
+│   └── js/
+│       └── phoenix-frontend.js
 ├── document/
 │   ├── Functional_Design.md
 │   └── Technical_Design.md
+├── includes/
+│   ├── class-phoenix-db.php
+│   ├── class-phoenix-frontend.php
+│   ├── class-phoenix-plugin.php
+│   └── class-phoenix-trip-service.php
+├── templates/
+│   └── frontend-dashboard.php
+├── bso-phoenix.php
 ├── README.md
-└── (plugin code to be added)
+└── uninstall.php
 ```
 
 ## MVP Status en Roadmap
