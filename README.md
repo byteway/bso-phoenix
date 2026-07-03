@@ -134,6 +134,7 @@ Meer details staan in:
 
 - [Functional Design](document/Functional_Design.md)
 - [Technical Design](document/Technical_Design.md)
+- [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
 
 ## Contributing
 
