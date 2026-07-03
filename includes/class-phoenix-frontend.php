@@ -35,6 +35,7 @@ class BSO_Phoenix_Frontend
             array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('bso_phoenix_gps'),
+                'logNonce' => wp_create_nonce('bso_phoenix_log'),
                 'defaultBoatId' => 1,
             )
         );

@@ -133,6 +133,61 @@
         });
     }
 
+    function setLogFeedback(text) {
+        var node = document.querySelector('[data-phoenix-log-feedback]');
+        if (!node) {
+            return;
+        }
+        node.textContent = text;
+    }
+
+    function handleLogSubmit(event) {
+        event.preventDefault();
+
+        var textNode = document.querySelector('[data-phoenix-log-text]');
+        var text = textNode ? textNode.value.trim() : '';
+
+        if (!text) {
+            setLogFeedback('Vul een notitie in voor het opslaan.');
+            return;
+        }
+
+        if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
+            setLogFeedback('Configuratie ontbreekt.');
+            return;
+        }
+
+        ajaxRequest('bso_phoenix_create_log', {
+            nonce: window.bsoPhoenix.logNonce || '',
+            entry_text: text,
+            boat_id: window.bsoPhoenix.defaultBoatId || 1,
+            trip_id: state.activeTripId || '',
+        }).then(function (result) {
+            if (!result || !result.success) {
+                setLogFeedback('Opslaan mislukt.');
+                return;
+            }
+
+            if (textNode) {
+                textNode.value = '';
+            }
+            setLogFeedback('Notitie opgeslagen.');
+        }).catch(function () {
+            setLogFeedback('Opslaan mislukt. Controleer verbinding.');
+        });
+    }
+
+    document.addEventListener('submit', function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        if (target.closest('[data-phoenix-log-form]')) {
+            handleLogSubmit(event);
+        }
+    });
+
     document.addEventListener('click', function (event) {
         var target = event.target;
         if (!(target instanceof Element)) {

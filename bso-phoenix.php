@@ -19,8 +19,11 @@ define('BSO_PHOENIX_URL', plugin_dir_url(__FILE__));
 
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-db.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-trip-service.php';
+require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-log-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-ajax.php';
+require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-log-ajax.php';
 require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-admin-page.php';
+require_once BSO_PHOENIX_DIR . 'admin/class-phoenix-log-admin.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-frontend.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-plugin.php';
 

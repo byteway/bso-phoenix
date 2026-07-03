@@ -22,8 +22,12 @@ if (! defined('ABSPATH')) {
         </article>
 
         <article class="phoenix-card">
-            <h3>Captain's log</h3>
-            <p>Dagnotities en foto's worden hier gekoppeld aan de tocht.</p>
+            <h3><?php esc_html_e("Captain's log", 'bso-phoenix'); ?></h3>
+            <form data-phoenix-log-form style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <textarea data-phoenix-log-text rows="3" placeholder="<?php esc_attr_e('Notitie...', 'bso-phoenix'); ?>" style="width:100%;resize:vertical;"></textarea>
+                <button type="submit" class="phoenix-btn"><?php esc_html_e('Opslaan', 'bso-phoenix'); ?></button>
+            </form>
+            <p data-phoenix-log-feedback style="margin-top:8px;font-size:13px;"></p>
         </article>
 
         <article class="phoenix-card">
