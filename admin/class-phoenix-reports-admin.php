@@ -47,6 +47,8 @@ class BSO_Phoenix_Reports_Admin
         $report = $this->build_report($trips, $costs, $logs, $todos, $date_from, $date_to);
         $comparison = $this->build_period_comparison($trip_service, $cost_service, $log_service, $todo_service, $date_from, $date_to);
         $monthly_totals = $this->build_monthly_totals($trips, $costs);
+        $top_costs = $this->build_top_costs($costs);
+        $top_suppliers = $this->build_top_suppliers($costs);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Rapportages', 'bso-phoenix') . '</h1>';
@@ -124,6 +126,47 @@ class BSO_Phoenix_Reports_Admin
             }
             echo '</tbody></table>';
         }
+
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start;margin-bottom:24px;">';
+
+        echo '<section>';
+        echo '<h2>' . esc_html__('Top kostenposten', 'bso-phoenix') . '</h2>';
+        if (empty($top_costs)) {
+            echo '<p>' . esc_html__('Geen kostenposten gevonden in deze periode.', 'bso-phoenix') . '</p>';
+        } else {
+            echo '<table class="widefat striped">';
+            echo '<thead><tr><th>' . esc_html__('Datum', 'bso-phoenix') . '</th><th>' . esc_html__('Type', 'bso-phoenix') . '</th><th>' . esc_html__('Leverancier', 'bso-phoenix') . '</th><th>' . esc_html__('Bedrag', 'bso-phoenix') . '</th></tr></thead><tbody>';
+            foreach ($top_costs as $cost) {
+                echo '<tr>';
+                echo '<td>' . esc_html((string) $cost['cost_date']) . '</td>';
+                echo '<td>' . esc_html($this->label_cost_type((string) $cost['cost_type'])) . '</td>';
+                echo '<td>' . esc_html($cost['supplier'] !== '' ? (string) $cost['supplier'] : '-') . '</td>';
+                echo '<td>' . esc_html($settings_service->format_money((float) $cost['amount'], (string) $cost['currency'])) . '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</section>';
+
+        echo '<section>';
+        echo '<h2>' . esc_html__('Grootste leveranciers', 'bso-phoenix') . '</h2>';
+        if (empty($top_suppliers)) {
+            echo '<p>' . esc_html__('Geen leveranciersdata gevonden in deze periode.', 'bso-phoenix') . '</p>';
+        } else {
+            echo '<table class="widefat striped">';
+            echo '<thead><tr><th>' . esc_html__('Leverancier', 'bso-phoenix') . '</th><th>' . esc_html__('Transacties', 'bso-phoenix') . '</th><th>' . esc_html__('Totaal', 'bso-phoenix') . '</th></tr></thead><tbody>';
+            foreach ($top_suppliers as $supplier) {
+                echo '<tr>';
+                echo '<td>' . esc_html($supplier['supplier']) . '</td>';
+                echo '<td>' . esc_html((string) $supplier['count']) . '</td>';
+                echo '<td>' . esc_html($settings_service->format_money((float) $supplier['total'])) . '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</section>';
+
+        echo '</div>';
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start;">';
 
@@ -353,6 +396,44 @@ class BSO_Phoenix_Reports_Admin
         krsort($months);
 
         return $months;
+    }
+
+    private function build_top_costs(array $costs): array
+    {
+        usort($costs, function ($left, $right) {
+            return ((float) ($right['amount'] ?? 0)) <=> ((float) ($left['amount'] ?? 0));
+        });
+
+        return array_slice($costs, 0, 8);
+    }
+
+    private function build_top_suppliers(array $costs): array
+    {
+        $suppliers = array();
+
+        foreach ($costs as $cost) {
+            $supplier = trim((string) ($cost['supplier'] ?? ''));
+            if ($supplier === '') {
+                continue;
+            }
+
+            if (! isset($suppliers[$supplier])) {
+                $suppliers[$supplier] = array(
+                    'supplier' => $supplier,
+                    'count' => 0,
+                    'total' => 0.0,
+                );
+            }
+
+            $suppliers[$supplier]['count']++;
+            $suppliers[$supplier]['total'] += (float) ($cost['amount'] ?? 0);
+        }
+
+        usort($suppliers, function ($left, $right) {
+            return ((float) ($right['total'] ?? 0)) <=> ((float) ($left['total'] ?? 0));
+        });
+
+        return array_slice($suppliers, 0, 8);
     }
 
     private function render_stat_card(string $label, string $value): void
