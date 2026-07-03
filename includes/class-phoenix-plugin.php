@@ -8,6 +8,9 @@ class BSO_Phoenix_Plugin
 {
     public function init(): void
     {
+        $ajax = new BSO_Phoenix_Ajax();
+        $ajax->init();
+
         if (is_admin()) {
             $admin = new BSO_Phoenix_Admin_Page();
             $admin->init();

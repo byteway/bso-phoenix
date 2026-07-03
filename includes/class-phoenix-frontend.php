@@ -28,6 +28,16 @@ class BSO_Phoenix_Frontend
             BSO_PHOENIX_VERSION,
             true
         );
+
+        wp_localize_script(
+            'bso-phoenix-frontend',
+            'bsoPhoenix',
+            array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('bso_phoenix_gps'),
+                'defaultBoatId' => 1,
+            )
+        );
     }
 
     public function render_dashboard_shortcode(array $atts = array()): string
