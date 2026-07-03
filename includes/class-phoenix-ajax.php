@@ -18,6 +18,13 @@ class BSO_Phoenix_Ajax
     {
 		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_start_trip', array(
+            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
+            'boat_id' => (int) ($_POST['boat_id'] ?? 1),
+        ), 12)) {
+            wp_send_json_error(array('message' => 'Dubbele start-aanvraag gedetecteerd. Wacht even en vernieuw de status.'), 409);
+        }
+
         $boat_id = isset($_POST['boat_id']) ? (int) $_POST['boat_id'] : 1;
         if ($boat_id <= 0) {
             wp_send_json_error(array('message' => 'Ongeldige boat_id.'), 400);
@@ -60,11 +67,20 @@ class BSO_Phoenix_Ajax
         $accuracy = isset($_POST['accuracy']) ? (float) $_POST['accuracy'] : null;
         $recorded_at = $this->parse_recorded_at(isset($_POST['recorded_at']) ? (string) $_POST['recorded_at'] : '');
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_trackpoint', array(
+            'trip_id' => $trip_id,
+            'latitude' => round((float) $latitude, 6),
+            'longitude' => round((float) $longitude, 6),
+            'recorded_at' => (string) ($recorded_at ?: ''),
+        ), 15)) {
+            wp_send_json_success(array('saved' => true, 'duplicate' => true));
+        }
+
         $service = new BSO_Phoenix_Trip_Service();
         $saved = $service->add_trackpoint($trip_id, $latitude, $longitude, $altitude, $speed, $accuracy, $recorded_at);
 
         if (! $saved) {
-            wp_send_json_error(array('message' => 'Kon trackpoint niet opslaan.'), 500);
+			wp_send_json_error(array('message' => 'Trackpoint geweigerd: trip bestaat niet of is niet actief.'), 409);
         }
 
         wp_send_json_success(array('saved' => true));
@@ -73,6 +89,13 @@ class BSO_Phoenix_Ajax
     public function stop_trip(): void
     {
 		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
+
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_stop_trip', array(
+            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
+            'trip_id' => (int) ($_POST['trip_id'] ?? 0),
+        ), 12)) {
+            wp_send_json_error(array('message' => 'Dubbele stop-aanvraag gedetecteerd. Controleer of de trip al is afgerond.'), 409);
+        }
 
         $trip_id = isset($_POST['trip_id']) ? (int) $_POST['trip_id'] : 0;
         if ($trip_id <= 0) {

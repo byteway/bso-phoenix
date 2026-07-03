@@ -17,6 +17,15 @@ class BSO_Phoenix_Log_Ajax
     {
 		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_WRITE);
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_log', array(
+            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
+            'entry_text' => sanitize_text_field((string) ($_POST['entry_text'] ?? '')),
+            'log_date' => sanitize_text_field((string) ($_POST['log_date'] ?? '')),
+            'log_time' => sanitize_text_field((string) ($_POST['log_time'] ?? '')),
+        ), 20)) {
+            wp_send_json_error(array('message' => 'Dubbele logboekaanvraag gedetecteerd. Controleer of het item al is opgeslagen.'), 409);
+        }
+
         $entry_text = isset($_POST['entry_text']) ? wp_kses_post((string) $_POST['entry_text']) : '';
         $boat_id = isset($_POST['boat_id']) ? (int) $_POST['boat_id'] : 1;
         $trip_id = isset($_POST['trip_id']) && (int) $_POST['trip_id'] > 0 ? (int) $_POST['trip_id'] : null;
@@ -29,6 +38,13 @@ class BSO_Phoenix_Log_Ajax
 
         $log_date = $this->normalize_date($log_date);
         $log_time = $this->normalize_time($log_time);
+
+        if ($log_date === null) {
+            wp_send_json_error(array('message' => 'Ongeldige logdatum. Gebruik een bestaande datum binnen de toegestane range.'), 400);
+        }
+        if ($log_time !== null && $log_time === '') {
+            wp_send_json_error(array('message' => 'Ongeldige logtijd. Gebruik HH:MM of HH:MM:SS.'), 400);
+        }
 
         $service = new BSO_Phoenix_Log_Service();
         $log_id = $service->create_log($boat_id, $entry_text, $trip_id, $log_date, $log_time);
@@ -119,19 +135,17 @@ class BSO_Phoenix_Log_Ajax
 
     private function normalize_date(string $value): ?string
     {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return null;
-        }
-
-        return $value;
+        $normalized = BSO_Phoenix_Hardening::normalize_date($value);
+        return $normalized !== '' ? $normalized : null;
     }
 
     private function normalize_time(string $value): ?string
     {
-        if (! preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value)) {
+        if ($value === '') {
             return null;
         }
 
-        return substr_count($value, ':') === 1 ? $value . ':00' : $value;
+        $normalized = BSO_Phoenix_Hardening::normalize_time($value);
+        return $normalized !== null ? $normalized : '';
     }
 }

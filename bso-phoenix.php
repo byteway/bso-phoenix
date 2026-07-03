@@ -25,6 +25,7 @@ require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-cost-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-boat-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-settings-service.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-access.php';
+require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-hardening.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-ajax.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-log-ajax.php';
 require_once BSO_PHOENIX_DIR . 'includes/class-phoenix-todo-ajax.php';

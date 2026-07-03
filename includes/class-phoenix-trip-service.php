@@ -175,6 +175,11 @@ class BSO_Phoenix_Trip_Service
     {
         global $wpdb;
 
+		$trip = $this->get_trip_by_id($trip_id);
+		if (! is_array($trip) || ($trip['status'] ?? '') !== 'active') {
+			return false;
+		}
+
         $table = $wpdb->prefix . 'phoenix_trackpoints';
 
         $inserted = $wpdb->insert(

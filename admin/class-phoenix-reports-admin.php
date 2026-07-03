@@ -691,11 +691,7 @@ class BSO_Phoenix_Reports_Admin
 
     private function normalize_date(string $value): string
     {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return '';
-        }
-
-        return $value;
+		return BSO_Phoenix_Hardening::normalize_date($value);
     }
 
     private function format_datetime(string $value): string

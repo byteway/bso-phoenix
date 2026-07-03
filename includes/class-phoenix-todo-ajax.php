@@ -17,6 +17,14 @@ class BSO_Phoenix_Todo_Ajax
     {
 		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_todo', array(
+            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
+            'title' => sanitize_text_field((string) ($_POST['title'] ?? '')),
+            'due_date' => sanitize_text_field((string) ($_POST['due_date'] ?? '')),
+        ), 20)) {
+            wp_send_json_error(array('message' => 'Dubbele TODO-aanvraag gedetecteerd. Controleer of de taak al bestaat.'), 409);
+        }
+
         $title = isset($_POST['title']) ? sanitize_text_field((string) $_POST['title']) : '';
         $description = isset($_POST['description']) ? sanitize_textarea_field((string) $_POST['description']) : '';
         $priority = isset($_POST['priority']) ? sanitize_key((string) $_POST['priority']) : 'normal';
@@ -28,6 +36,10 @@ class BSO_Phoenix_Todo_Ajax
         }
 
         $due_date = $this->normalize_date($due_date);
+
+        if ($due_date === '') {
+            wp_send_json_error(array('message' => 'Ongeldige einddatum. Gebruik een bestaande datum binnen de toegestane range.'), 400);
+        }
 
         $service = new BSO_Phoenix_Todo_Service();
         $todo_id = $service->create_todo($boat_id, $title, $description, $priority, $due_date);
@@ -91,10 +103,11 @@ class BSO_Phoenix_Todo_Ajax
 
     private function normalize_date(string $value): ?string
     {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+        if ($value === '') {
             return null;
         }
 
-        return $value;
+        $normalized = BSO_Phoenix_Hardening::normalize_date($value);
+        return $normalized !== '' ? $normalized : '';
     }
 }

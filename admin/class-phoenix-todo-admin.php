@@ -67,6 +67,12 @@ class BSO_Phoenix_Todo_Admin
         if (isset($_GET['deleted'])) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Taak verwijderd.', 'bso-phoenix') . '</p></div>';
         }
+        if (isset($_GET['duplicate'])) {
+            echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Dubbele submit gedetecteerd. De tweede aanvraag is overgeslagen.', 'bso-phoenix') . '</p></div>';
+        }
+        if (isset($_GET['error']) && $_GET['error'] === 'invalid_date') {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Ongeldige datum ingevoerd. Gebruik een bestaande datum binnen de toegestane range.', 'bso-phoenix') . '</p></div>';
+        }
 
         $form_action = is_array($edit_todo) ? 'bso_phoenix_update_todo' : 'bso_phoenix_save_todo';
         $form_nonce = $form_action . (is_array($edit_todo) ? '_' . $edit_id : '');
@@ -201,6 +207,21 @@ class BSO_Phoenix_Todo_Admin
             exit;
         }
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('admin_save_todo', array(
+            'title' => (string) $title,
+            'description' => (string) $description,
+            'priority' => (string) $priority,
+            'due_date' => (string) ($due_date ?? ''),
+        ), 15)) {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-todo&saved=1&duplicate=1'));
+            exit;
+        }
+
+        if ($due_date !== null && $due_date !== '' && BSO_Phoenix_Hardening::normalize_date($due_date) === '') {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-todo&error=invalid_date'));
+            exit;
+        }
+
         $service = new BSO_Phoenix_Todo_Service();
         $service->create_todo(1, $title, $description, $priority, $due_date ?: null);
 
@@ -229,6 +250,23 @@ class BSO_Phoenix_Todo_Admin
 
         if (trim($title) === '') {
             wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-todo&edit=' . $todo_id . '&error=empty'));
+            exit;
+        }
+
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('admin_update_todo', array(
+            'todo_id' => $todo_id,
+            'title' => (string) $title,
+            'description' => (string) $description,
+            'priority' => (string) $priority,
+            'status' => (string) $status,
+            'due_date' => (string) ($due_date ?? ''),
+        ), 15)) {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-todo&saved=1&duplicate=1'));
+            exit;
+        }
+
+        if ($due_date !== null && $due_date !== '' && BSO_Phoenix_Hardening::normalize_date($due_date) === '') {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-todo&edit=' . $todo_id . '&error=invalid_date'));
             exit;
         }
 

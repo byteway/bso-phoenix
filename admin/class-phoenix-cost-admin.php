@@ -66,6 +66,12 @@ class BSO_Phoenix_Cost_Admin
         if (isset($_GET['deleted'])) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Kostenpost verwijderd.', 'bso-phoenix') . '</p></div>';
         }
+        if (isset($_GET['duplicate'])) {
+            echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Dubbele submit gedetecteerd. De tweede aanvraag is overgeslagen.', 'bso-phoenix') . '</p></div>';
+        }
+        if (isset($_GET['error']) && $_GET['error'] === 'invalid') {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Ongeldige invoer. Controleer bedrag en datum.', 'bso-phoenix') . '</p></div>';
+        }
 
         // Summary cards
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0 20px;">';
@@ -202,6 +208,16 @@ class BSO_Phoenix_Cost_Admin
             exit;
         }
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('admin_save_cost', array(
+            'cost_type' => (string) $cost_type,
+            'amount' => (string) $amount,
+            'cost_date' => (string) $cost_date,
+            'supplier' => (string) $supplier,
+        ), 15)) {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-costs&saved=1&duplicate=1'));
+            exit;
+        }
+
         $service = new BSO_Phoenix_Cost_Service();
         $currency = (new BSO_Phoenix_Settings_Service())->get_currency_code();
         $service->create_cost(1, $cost_type, $amount, $cost_date, $currency, $supplier, $notes, null);
@@ -231,6 +247,17 @@ class BSO_Phoenix_Cost_Admin
 
         if ($amount <= 0 || $cost_date === '') {
             wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-costs&edit=' . $cost_id . '&error=invalid'));
+            exit;
+        }
+
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('admin_update_cost', array(
+            'cost_id' => $cost_id,
+            'cost_type' => (string) $cost_type,
+            'amount' => (string) $amount,
+            'cost_date' => (string) $cost_date,
+            'supplier' => (string) $supplier,
+        ), 15)) {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-costs&saved=1&duplicate=1'));
             exit;
         }
 
@@ -316,10 +343,6 @@ class BSO_Phoenix_Cost_Admin
 
     private function normalize_date(string $value): string
     {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return '';
-        }
-
-        return $value;
+		return BSO_Phoenix_Hardening::normalize_date($value);
     }
 }

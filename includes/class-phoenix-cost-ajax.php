@@ -15,6 +15,15 @@ class BSO_Phoenix_Cost_Ajax
     {
 		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_cost', array(
+            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
+            'amount' => sanitize_text_field((string) ($_POST['amount'] ?? '')),
+            'cost_date' => sanitize_text_field((string) ($_POST['cost_date'] ?? '')),
+            'cost_type' => sanitize_key((string) ($_POST['cost_type'] ?? 'other')),
+        ), 20)) {
+            wp_send_json_error(array('message' => 'Dubbele kostenaanvraag gedetecteerd. Controleer of de post al is opgeslagen.'), 409);
+        }
+
         $cost_type = isset($_POST['cost_type']) ? sanitize_key((string) $_POST['cost_type']) : 'other';
         $amount_raw = isset($_POST['amount']) ? (string) $_POST['amount'] : '';
         $cost_date = isset($_POST['cost_date']) ? sanitize_text_field((string) $_POST['cost_date']) : '';
@@ -28,8 +37,9 @@ class BSO_Phoenix_Cost_Ajax
             wp_send_json_error(array('message' => 'Bedrag moet groter dan 0 zijn.'), 400);
         }
 
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $cost_date)) {
-            wp_send_json_error(array('message' => 'Ongeldige datum.'), 400);
+        $cost_date = BSO_Phoenix_Hardening::normalize_date($cost_date);
+        if ($cost_date === '') {
+            wp_send_json_error(array('message' => 'Ongeldige datum. Gebruik een bestaande datum binnen de toegestane range.'), 400);
         }
 
         $service = new BSO_Phoenix_Cost_Service();

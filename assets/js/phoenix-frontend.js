@@ -552,6 +552,32 @@
         return labels[queueKind] || 'Actie';
     }
 
+    function createRequestUid(scope) {
+        return [
+            scope,
+            String(Date.now()),
+            Math.random().toString(36).slice(2, 10),
+        ].join('_');
+    }
+
+    function extractAjaxError(response, fallback) {
+        if (response && response.data && typeof response.data.message === 'string' && response.data.message.trim() !== '') {
+            return response.data.message;
+        }
+
+        return fallback;
+    }
+
+    function ensureSuccessfulResponse(response, fallback) {
+        if (!response || response.success !== true) {
+            var error = new Error(extractAjaxError(response, fallback || 'Verzoek mislukt.'));
+            error.isServerError = true;
+            throw error;
+        }
+
+        return response;
+    }
+
     function formatQueueTime(timestamp) {
         var date = new Date(timestamp);
         if (Number.isNaN(date.getTime())) {
@@ -737,7 +763,13 @@
             });
         }
 
-        return requestJson(action, payload, nonceValue).catch(function () {
+        return requestJson(action, payload, nonceValue).then(function (response) {
+            return ensureSuccessfulResponse(response, 'Verzoek afgewezen door server.');
+        }).catch(function (error) {
+            if (error && error.isServerError) {
+                throw error;
+            }
+
             return queueRequest({
                 queueKind: queueKind,
                 transport: 'json',
@@ -766,7 +798,13 @@
             });
         }
 
-        return buildFormDataRequest(action, nonceValue, payload, files).catch(function () {
+        return buildFormDataRequest(action, nonceValue, payload, files).then(function (response) {
+            return ensureSuccessfulResponse(response, 'Verzoek afgewezen door server.');
+        }).catch(function (error) {
+            if (error && error.isServerError) {
+                throw error;
+            }
+
             return queueRequest({
                 queueKind: queueKind,
                 transport: 'form',
@@ -968,7 +1006,9 @@
     }
 
     function ajaxRequest(action, payload) {
-        return requestJson(action, payload, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '');
+        return requestJson(action, payload, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '').then(function (response) {
+            return ensureSuccessfulResponse(response, 'Verzoek afgewezen door server.');
+        });
     }
 
     function sendTrackpoint(position) {
@@ -988,12 +1028,13 @@
             speed: coords.speed ? coords.speed * 3.6 : null,
             accuracy: coords.accuracy,
             recorded_at: Date.now(),
+            request_uid: createRequestUid('trackpoint'),
         }, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '', 'trackpoint', 'queued').catch(function (error) {
             if (error && error.message === 'queued') {
                 setFeedback('Geen verbinding. Trackpoint lokaal opgeslagen voor latere synchronisatie.');
                 return;
             }
-            setFeedback('Trackpoint opslaan mislukt. Controleer verbinding.');
+            setFeedback(error && error.message ? error.message : 'Trackpoint opslaan mislukt. Controleer verbinding.');
         });
     }
 
@@ -1047,6 +1088,7 @@
 
         ajaxRequest('bso_phoenix_start_trip', {
             boat_id: window.bsoPhoenix && window.bsoPhoenix.defaultBoatId ? window.bsoPhoenix.defaultBoatId : 1,
+            request_uid: createRequestUid('start_trip'),
         }).then(function (result) {
             if (!result || !result.success) {
                 setFeedback('Start route mislukt.');
@@ -1071,8 +1113,8 @@
             updateLiveStats();
             startGeolocation();
             flushQueuedRequests();
-        }).catch(function () {
-            setFeedback('Start route mislukt. Controleer sessie of permissies.');
+        }).catch(function (error) {
+            setFeedback(error && error.message ? error.message : 'Start route mislukt. Controleer sessie of permissies.');
         });
     }
 
@@ -1089,6 +1131,7 @@
 
         ajaxRequest('bso_phoenix_stop_trip', {
             trip_id: state.activeTripId,
+            request_uid: createRequestUid('stop_trip'),
         }).then(function (result) {
             if (!result || !result.success) {
                 setFeedback('Stop route mislukt.');
@@ -1102,8 +1145,8 @@
             setStatus('Gestopt');
             setFeedback('Route gestopt en opgeslagen.');
             resetLiveStats();
-        }).catch(function () {
-            setFeedback('Stop route mislukt. Controleer verbinding.');
+        }).catch(function (error) {
+            setFeedback(error && error.message ? error.message : 'Stop route mislukt. Controleer verbinding.');
         });
     }
 
@@ -1150,6 +1193,7 @@
             entry_text: text,
             boat_id: String(window.bsoPhoenix.defaultBoatId || 1),
             trip_id: String(state.activeTripId || ''),
+            request_uid: createRequestUid('create_log'),
         }, window.bsoPhoenix.logNonce || '', buildQueuedFiles(orderedPhotos), 'log', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setLogFeedback('Opslaan mislukt.');
@@ -1180,7 +1224,7 @@
                 setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.');
                 return;
             }
-            setLogFeedback('Opslaan mislukt. Controleer verbinding.');
+            setLogFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
         });
     }
 
@@ -1238,6 +1282,7 @@
             cost_date: cost_date,
             boat_id: window.bsoPhoenix.defaultBoatId || 1,
             trip_id: state.activeTripId || '',
+            request_uid: createRequestUid('create_cost'),
         }, window.bsoPhoenix.costNonce || '', 'cost', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setCostFeedback('Opslaan mislukt.');
@@ -1257,7 +1302,7 @@
                 setCostFeedback('Geen verbinding. Kostenpost lokaal in wachtrij geplaatst.');
                 return;
             }
-            setCostFeedback('Opslaan mislukt. Controleer verbinding.');
+            setCostFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
         });
     }
 
@@ -1289,6 +1334,7 @@
             title: title,
             priority: priority,
             boat_id: window.bsoPhoenix.defaultBoatId || 1,
+            request_uid: createRequestUid('create_todo'),
         }, window.bsoPhoenix.todoNonce || '', 'todo', 'queued').then(function (result) {
             if (!result || !result.success) {
                 setTodoFeedback('Opslaan mislukt.');
@@ -1308,7 +1354,7 @@
                 setTodoFeedback('Geen verbinding. Taak lokaal in wachtrij geplaatst.');
                 return;
             }
-            setTodoFeedback('Opslaan mislukt. Controleer verbinding.');
+            setTodoFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
         });
     }
 

@@ -51,6 +51,12 @@ class BSO_Phoenix_Log_Admin
         if (isset($_GET['deleted'])) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Logboekitem verwijderd.', 'bso-phoenix') . '</p></div>';
         }
+        if (isset($_GET['duplicate'])) {
+            echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Dubbele submit gedetecteerd. De tweede aanvraag is overgeslagen.', 'bso-phoenix') . '</p></div>';
+        }
+        if (isset($_GET['error']) && $_GET['error'] === 'invalid_date') {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Ongeldige datum ingevoerd. Gebruik een bestaande datum binnen de toegestane range.', 'bso-phoenix') . '</p></div>';
+        }
         if (isset($_GET['photo_saved'])) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Fotobijschrift opgeslagen.', 'bso-phoenix') . '</p></div>';
         }
@@ -156,8 +162,22 @@ class BSO_Phoenix_Log_Admin
             exit;
         }
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('admin_save_log', array(
+            'entry_text' => sanitize_text_field($entry_text),
+            'log_date' => (string) $log_date,
+            'log_time' => (string) $log_time,
+        ), 15)) {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-log&saved=1&duplicate=1'));
+            exit;
+        }
+
         $log_date = $this->normalize_date($log_date);
         $log_time = $log_time !== '' ? sanitize_text_field($log_time) : null;
+
+        if ($log_date === '') {
+            wp_safe_redirect(admin_url('admin.php?page=bso-phoenix-log&error=invalid_date'));
+            exit;
+        }
 
         $service = new BSO_Phoenix_Log_Service();
         $log_id = $service->create_log(1, $entry_text, null, $log_date, $log_time);
@@ -191,11 +211,7 @@ class BSO_Phoenix_Log_Admin
 
     private function normalize_date(string $value): string
     {
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return '';
-        }
-
-        return $value;
+		return BSO_Phoenix_Hardening::normalize_date($value);
     }
 
     public function handle_update_log_photo_caption(): void

@@ -215,16 +215,7 @@ class BSO_Phoenix_Admin_Page
             return '';
         }
 
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return '';
-        }
-
-        $timestamp = strtotime($value . ' 00:00:00');
-        if ($timestamp === false) {
-            return '';
-        }
-
-        return gmdate('Y-m-d', $timestamp);
+		return BSO_Phoenix_Hardening::normalize_date($value);
     }
 
     private function normalize_status_input(string $value): string
