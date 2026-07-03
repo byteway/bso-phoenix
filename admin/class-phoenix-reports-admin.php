@@ -626,6 +626,12 @@ class BSO_Phoenix_Reports_Admin
         $logs = $log_service->get_logs($date_from, $date_to, 1000);
         $todos = $todo_service->get_todos('', '', 1000);
         $report = $this->build_report($trips, $costs, $logs, $todos, $date_from, $date_to);
+        $comparison = $this->build_period_comparison($trip_service, $cost_service, $log_service, $todo_service, $date_from, $date_to);
+        $monthly_totals = $this->build_monthly_totals($trips, $costs);
+        $monthly_cost_breakdown = $this->build_monthly_cost_breakdown($costs);
+        $busiest_trip_days = $this->build_busiest_trip_days($trips);
+        $top_costs = $this->build_top_costs($costs);
+        $top_suppliers = $this->build_top_suppliers($costs);
 
         $filename = 'phoenix-report-' . gmdate('Ymd-His') . '.csv';
 
@@ -653,6 +659,65 @@ class BSO_Phoenix_Reports_Admin
 
         foreach ($report['todos_by_status'] as $status => $count) {
             fputcsv($output, array('todo_status_' . $status, (string) $count));
+        }
+
+        fputcsv($output, array());
+        fputcsv($output, array('comparison_metric', 'current_period', 'previous_period'));
+        fputcsv($output, array('trip_count', (string) $comparison['current']['trip_count'], (string) $comparison['previous']['trip_count']));
+        fputcsv($output, array('distance', $settings_service->format_distance($comparison['current']['distance_km'], 2), $settings_service->format_distance($comparison['previous']['distance_km'], 2)));
+        fputcsv($output, array('cost_total', $settings_service->format_money($comparison['current']['cost_total']), $settings_service->format_money($comparison['previous']['cost_total'])));
+        fputcsv($output, array('log_count', (string) $comparison['current']['log_count'], (string) $comparison['previous']['log_count']));
+
+        fputcsv($output, array());
+        fputcsv($output, array('monthly_total_month', 'trip_count', 'distance', 'cost_total'));
+        foreach ($monthly_totals as $month => $month_data) {
+            fputcsv($output, array(
+                $month,
+                (string) $month_data['trip_count'],
+                $settings_service->format_distance($month_data['distance_km'], 2),
+                $settings_service->format_money($month_data['cost_total']),
+            ));
+        }
+
+        fputcsv($output, array());
+        fputcsv($output, array('monthly_cost_breakdown_month', 'cost_type', 'total'));
+        foreach ($monthly_cost_breakdown as $row) {
+            fputcsv($output, array(
+                (string) $row['month'],
+                (string) $row['cost_type'],
+                $settings_service->format_money((float) $row['total']),
+            ));
+        }
+
+        fputcsv($output, array());
+        fputcsv($output, array('top_cost_date', 'cost_type', 'supplier', 'amount'));
+        foreach ($top_costs as $cost) {
+            fputcsv($output, array(
+                (string) $cost['cost_date'],
+                (string) $cost['cost_type'],
+                (string) $cost['supplier'],
+                $settings_service->format_money((float) $cost['amount'], (string) $cost['currency']),
+            ));
+        }
+
+        fputcsv($output, array());
+        fputcsv($output, array('top_supplier', 'transactions', 'total'));
+        foreach ($top_suppliers as $supplier) {
+            fputcsv($output, array(
+                (string) $supplier['supplier'],
+                (string) $supplier['count'],
+                $settings_service->format_money((float) $supplier['total']),
+            ));
+        }
+
+        fputcsv($output, array());
+        fputcsv($output, array('busiest_day', 'trip_count', 'distance'));
+        foreach ($busiest_trip_days as $day) {
+            fputcsv($output, array(
+                (string) $day['date'],
+                (string) $day['trip_count'],
+                $settings_service->format_distance((float) $day['distance_km'], 2),
+            ));
         }
 
         fclose($output);
