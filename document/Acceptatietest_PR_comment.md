@@ -23,16 +23,26 @@
 2. Synchronisatie wordt correct hervat na reconnect.
 3. Geen regressie waargenomen in bestaande frontend submitflow tijdens deze tests.
 
-## Openstaande checks voor definitieve GO
+## Aanvullende checks (PASS)
 
 1. Foutpadtest foto-upload na reconnect
 - Doel: verifiëren dat logtekst behouden blijft bij fotofout.
 - Expected: losse `log_photo` retry-entry ontstaat in de wachtrij.
+- Resultaat: PASS
+- Observatie: logtekst bleef behouden; aparte `log_photo` retry-entry werd correct aangemaakt en verwerkbaar.
 
 2. Retry-limiettest
 - Doel: verifiëren dat attempts/status correct oplopen.
 - Expected: item wordt na max retries niet automatisch opnieuw verwerkt.
+- Resultaat: PASS
+- Observatie: attempts/status liepen correct op; item stopte automatisch met retrypogingen na bereiken van limiet.
 
-## Tussenconclusie
+## Eindconclusie
 
-Story 1 is functioneel bevestigd op de primaire flow (offline queue -> online sync) en klaar voor afronding na de twee resterende foutpadchecks.
+Story 1 is volledig gevalideerd en heeft een definitieve GO-status:
+
+- Primaire flow (offline queue -> online sync): PASS
+- Foutpad foto-upload na reconnect: PASS
+- Retry-limietgedrag: PASS
+
+Geen regressies waargenomen tijdens de uitgevoerde checks.
