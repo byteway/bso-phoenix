@@ -1,48 +1,80 @@
-# PR Testevidence - Story 1 (Offline log queue + foto-retry)
+# Handmatige acceptatiecheck Story 2 (caption + sortering bestaande logfoto's)
 
-## Context
+## Scope
 
-- Story 4 is afgerond en geaccepteerd (PASS).
-- Deze update rapporteert de voortgang van Story 1.
+- Bestaande logfoto's kunnen een bijschrift krijgen/bijwerken
+- Bestaande logfoto's kunnen omhoog/omlaag worden gesorteerd
+- Wijzigingen worden server-side opgeslagen en blijven na refresh zichtbaar
+- Lightbox en galerijweergave tonen bijgewerkte captions en volgorde
 
-## Uitgevoerde tests (PASS)
+## Testomgeving
 
-1. Offline log met foto aanmaken
-- Stap: device offline gezet, captain's log met foto ingestuurd.
-- Resultaat: PASS
-- Observatie: actie correct in wachtrij geplaatst.
+- Desktop browser (Chrome/Edge)
+- Tablet (Samsung Tab S5 of vergelijkbaar)
+- Ingelogd als gebruiker met schrijfrechten
 
-2. Online terugkomen en synchronisatie starten
-- Stap: device online gezet, synchronisatie gestart.
-- Resultaat: PASS
-- Observatie: wachtrijverwerking start correct en log wordt gesynchroniseerd.
+## Checklist
 
-## Gevalideerd gedrag
+1. Bestaande logfoto's zichtbaar in gallery
+- Actie: open frontend dashboard met logs die al foto's bevatten.
+- Expected: bestaande foto's worden getoond in de gallery.
+- Status: PENDING
 
-1. Queue-mechanisme werkt voor offline captains log entries met foto.
-2. Synchronisatie wordt correct hervat na reconnect.
-3. Geen regressie waargenomen in bestaande frontend submitflow tijdens deze tests.
+2. Caption bewerken en opslaan
+- Actie: pas bijschrift aan en klik op `Bewaar`.
+- Expected: succesmelding verschijnt.
+- Expected: nieuw bijschrift blijft zichtbaar na herladen.
+- Status: PENDING
 
-## Aanvullende checks (PASS)
+3. Sortering omhoog
+- Actie: klik op `Omhoog` bij een foto die niet bovenaan staat.
+- Expected: foto schuift één positie omhoog binnen dezelfde log.
+- Expected: aangepaste volgorde blijft behouden na herladen.
+- Status: PENDING
 
-1. Foutpadtest foto-upload na reconnect
-- Doel: verifiëren dat logtekst behouden blijft bij fotofout.
-- Expected: losse `log_photo` retry-entry ontstaat in de wachtrij.
-- Resultaat: PASS
-- Observatie: logtekst bleef behouden; aparte `log_photo` retry-entry werd correct aangemaakt en verwerkbaar.
+4. Sortering omlaag
+- Actie: klik op `Omlaag` bij een foto die niet onderaan staat.
+- Expected: foto schuift één positie omlaag binnen dezelfde log.
+- Expected: aangepaste volgorde blijft behouden na herladen.
+- Status: PENDING
 
-2. Retry-limiettest
-- Doel: verifiëren dat attempts/status correct oplopen.
-- Expected: item wordt na max retries niet automatisch opnieuw verwerkt.
-- Resultaat: PASS
-- Observatie: attempts/status liepen correct op; item stopte automatisch met retrypogingen na bereiken van limiet.
+5. Grensgevallen sortering
+- Actie: controleer bovenste en onderste foto in een log.
+- Expected: `Omhoog` is disabled op de eerste foto.
+- Expected: `Omlaag` is disabled op de laatste foto.
+- Status: PENDING
 
-## Eindconclusie
+6. Lightbox captioncontrole
+- Actie: open foto in lightbox na caption-update.
+- Expected: lightbox toont de bijgewerkte caption.
+- Status: PENDING
 
-Story 1 is volledig gevalideerd en heeft een definitieve GO-status:
+7. Rechtencontrole (read-only)
+- Actie: open dashboard met read-only gebruiker.
+- Expected: caption/sort editor controls zijn niet beschikbaar.
+- Status: PENDING
 
-- Primaire flow (offline queue -> online sync): PASS
-- Foutpad foto-upload na reconnect: PASS
-- Retry-limietgedrag: PASS
+8. Regressiecheck log upload flow
+- Actie: maak een nieuw logitem met foto's en captions.
+- Expected: upload flow blijft werken zoals in Story 1/4.
+- Status: PENDING
 
-Geen regressies waargenomen tijdens de uitgevoerde checks.
+## PR Testevidence (plakbaar)
+
+Story 2 handmatige acceptatiecheck uitgevoerd volgens `document/Acceptatietest_PR_comment.md`.
+
+Resultaten:
+
+- Bestaande logfoto's zichtbaar in gallery: PENDING
+- Caption bewerken en opslaan: PENDING
+- Sortering omhoog: PENDING
+- Sortering omlaag: PENDING
+- Grensgevallen sortering: PENDING
+- Lightbox captioncontrole: PENDING
+- Rechtencontrole (read-only): PENDING
+- Regressiecheck log upload flow: PENDING
+
+Voorlopige conclusie:
+
+Story 2 is technisch geïmplementeerd en klaar voor handmatige validatie.
+Na afronding van bovenstaande checks kan de definitieve GO/NO-GO worden vastgesteld.
