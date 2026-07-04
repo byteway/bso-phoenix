@@ -10,6 +10,7 @@ class BSO_Phoenix_Log_Ajax
     {
         add_action('wp_ajax_bso_phoenix_create_log', array($this, 'create_log'));
         add_action('wp_ajax_bso_phoenix_add_log_photos', array($this, 'add_log_photos'));
+        add_action('wp_ajax_bso_phoenix_update_log_photo', array($this, 'update_log_photo'));
         add_action('wp_ajax_bso_phoenix_delete_log', array($this, 'delete_log'));
         add_action('wp_ajax_bso_phoenix_get_logs', array($this, 'get_logs'));
     }
@@ -139,6 +140,39 @@ class BSO_Phoenix_Log_Ajax
                 'log_id' => $log_id,
                 'attachment_ids' => $attachment_ids,
                 'photos' => $service->get_log_photos($log_id),
+            )
+        );
+    }
+
+    public function update_log_photo(): void
+    {
+		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_WRITE);
+
+        $photo_id = isset($_POST['photo_id']) ? (int) $_POST['photo_id'] : 0;
+        if ($photo_id <= 0) {
+            wp_send_json_error(array('message' => 'Ongeldige photo_id.'), 400);
+        }
+
+        $caption = isset($_POST['caption']) ? sanitize_text_field((string) $_POST['caption']) : '';
+        $sort_order = isset($_POST['sort_order']) && (int) $_POST['sort_order'] > 0 ? (int) $_POST['sort_order'] : null;
+
+        $service = new BSO_Phoenix_Log_Service();
+        $updated = $service->update_photo_details($photo_id, $caption, $sort_order);
+        if (! $updated) {
+            wp_send_json_error(array('message' => 'Kon logfoto niet bijwerken.'), 500);
+        }
+
+        $photo = $service->get_photo_by_id($photo_id);
+        if (! is_array($photo) || empty($photo['log_id'])) {
+            wp_send_json_success(array('updated' => true));
+        }
+
+        wp_send_json_success(
+            array(
+                'updated' => true,
+                'photo_id' => $photo_id,
+                'log_id' => (int) $photo['log_id'],
+                'photos' => $service->get_log_photos((int) $photo['log_id']),
             )
         );
     }
