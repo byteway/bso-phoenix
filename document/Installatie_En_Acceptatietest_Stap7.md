@@ -113,6 +113,10 @@ Gebruik kolommen: **Resultaat** (`PASS`/`FAIL`) en **Bewijs** (screenshot, expor
 | T7-04 | PASS | Screenshots admin TODO en Kosten: records zichtbaar met acties Bewerken/Verwijder, nieuwe invoer opgeslagen | Schrijfrechten voor TODO en kosten bevestigd |
 | T7-05 | PASS | Screenshot Phoenix Instellingen-pagina met melding "Instellingen opgeslagen." en beheeropties zichtbaar | Owner/beheerrechten voor instellingen bevestigd |
 | T7-06 | PASS | Screenshots mobiel dashboard: na Start route status "Actief"; na Stop route status "Gestopt" met melding "Route gestopt en opgeslagen." | Start/stop flow op mobiel bevestigd |
+| T7-07 | PASS | Productietest Samsung Tablet S5: route gestart tijdens verplaatsen (tuin-huis-straat), daarna route opgeslagen; rapportage toont afstand/snelheid | Trackpointregistratie tijdens actieve route bevestigd |
+| T7-08 | PASS | Meerdere start/stop-cycli uitgevoerd; na stop geen ongewenste extra routegroei of actieve status in rapportage | Trackpointverwerking alleen binnen actieve trip bevestigd |
+| T7-09 | PASS | Screenshot rapportages/admin: tochten vastgelegd met afstand en gemiddelde snelheid na stop | Stop verwerkt en metrics opgeslagen |
+| T7-10 | PASS | Bij tweede start tijdens actieve route verschijnt melding "Er is al een actieve route."; herhaalde start/stop-tests blijven stabiel | Duplicate startpreventie bevestigd, geen dubbele actieve trip |
 | ... |  |  |  |
 
 ## 7. Exit Criteria (Go/No-Go)

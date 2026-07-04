@@ -41,10 +41,10 @@ Vul per testregel in:
 | T7-04 | Crew schrijfrechten (TODO + kosten) | PASS | Screenshots admin TODO en Kosten: records zichtbaar met acties Bewerken/Verwijder, nieuwe invoer opgeslagen | Schrijfrechten voor TODO en kosten bevestigd |
 | T7-05 | Owner beheerrechten (instellingen/boot) | PASS | Screenshot Phoenix Instellingen-pagina met melding "Instellingen opgeslagen." en beheeropties zichtbaar | Owner/beheerrechten voor instellingen bevestigd |
 | T7-06 | Start trip mobiel | PASS | Screenshots mobiel dashboard: na Start route status "Actief"; na Stop route status "Gestopt" met melding "Route gestopt en opgeslagen." | Start/stop flow op mobiel bevestigd |
-| T7-07 | Trackpoints tijdens actieve trip |  |  |  |
-| T7-08 | Trackpoint buiten actieve trip wordt geweigerd |  |  |  |
-| T7-09 | Stop trip en metrics |  |  |  |
-| T7-10 | Duplicate start/stop preventie |  |  |  |
+| T7-07 | Trackpoints tijdens actieve trip | PASS | Productietest Samsung Tablet S5: route gestart tijdens verplaatsen (tuin-huis-straat), daarna route opgeslagen; rapportage toont afstand/snelheid | Trackpointregistratie tijdens actieve route bevestigd |
+| T7-08 | Trackpoint buiten actieve trip wordt geweigerd | PASS | Meerdere start/stop-cycli uitgevoerd; na stop geen ongewenste extra routegroei of actieve status in rapportage | Trackpointverwerking alleen binnen actieve trip bevestigd |
+| T7-09 | Stop trip en metrics | PASS | Screenshot rapportages/admin: tochten vastgelegd met afstand en gemiddelde snelheid na stop | Stop verwerkt en metrics opgeslagen |
+| T7-10 | Duplicate start/stop preventie | PASS | Bij tweede start tijdens actieve route verschijnt melding "Er is al een actieve route."; herhaalde start/stop-tests blijven stabiel | Duplicate startpreventie bevestigd, geen dubbele actieve trip |
 | T7-11 | Log met meerdere foto's + captions |  |  |  |
 | T7-12 | Frontend galerij met bestaande logfoto's |  |  |  |
 | T7-13 | Lightbox grote preview + navigatie |  |  |  |
