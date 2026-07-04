@@ -231,6 +231,12 @@ De gebruiker kan per dag een captain's log vastleggen.
 - toevoegen van meerdere foto’s aan een log
 - datum en tijd automatisch vastleggen
 
+### Beheeracties in admin
+
+- een **Verwijder alles**-actie voor captain's log-items
+- verplichte bevestigingsstap voordat alles wordt verwijderd
+- duidelijke succes/foutmelding na uitvoering
+
 ### Veldenset
 
 | Veld | Omschrijving |
@@ -292,6 +298,12 @@ In een apart formulier kunnen onderhoudsklussen en andere taken voor de boot wor
 - prioriteitsindicatie geven
 - overzicht van open en afgeronde TODO’s
 
+### Beheeracties in admin
+
+- een **Verwijder alles**-actie voor TODO-items
+- verplichte bevestigingsstap voordat alles wordt verwijderd
+- duidelijke terugkoppeling over aantal verwijderde taken
+
 ### Statussen
 
 De statuswaarden zijn vooraf gedefinieerd.
@@ -344,6 +356,12 @@ In een apart formulier kan inzicht worden verkregen in kosten.
 - kosten koppelen aan datum of tocht
 - overzichten tonen per periode
 
+### Registratieregel voor meerdere kosten op dezelfde dag
+
+- per datum mogen **meerdere kostenposten van hetzelfde type** worden opgeslagen
+- registratie wordt alleen geblokkeerd bij echte dubbele submit (zelfde actie direct opnieuw), niet op basis van type+datum alleen
+- overzichten en rapportages tonen alle afzonderlijke kostenregels
+
 ### Gebruik
 
 De kostenmodule ondersteunt inzicht in:
@@ -366,6 +384,7 @@ Het dashboard is de centrale app-pagina voor de gebruiker.
 - of de boot nu vaart of niet
 - of een tocht actief is
 - live preview van de GPX-kaart
+- schakeloptie tussen compacte kaartweergave en schermvullende live view
 - waarschuwing wanneer tanken nodig is
 - korte samenvatting van de laatste tocht
 - bootstatus en basisgegevens
