@@ -1,78 +1,38 @@
-# Handmatige acceptatiecheck Story 4 (frontend feedback component)
+# PR Testevidence - Story 1 (Offline log queue + foto-retry)
 
-## Scope
+## Context
 
-- Uniforme feedbacktypes: `success`, `info`, `warning`, `error`
-- Banner- en toastgedrag
-- Queueing van meldingen
-- Koppeling met log, TODO, kosten, route en offline wachtrij
+- Story 4 is afgerond en geaccepteerd (PASS).
+- Deze update rapporteert de voortgang van Story 1.
 
-## Testomgeving
+## Uitgevoerde tests (PASS)
 
-- Desktop browser (Chrome/Edge)
-- Tablet (Samsung Tab S5 of vergelijkbaar)
-- Test met online en offline netwerkstatus
+1. Offline log met foto aanmaken
+- Stap: device offline gezet, captain's log met foto ingestuurd.
+- Resultaat: PASS
+- Observatie: actie correct in wachtrij geplaatst.
 
-## Checks
+2. Online terugkomen en synchronisatie starten
+- Stap: device online gezet, synchronisatie gestart.
+- Resultaat: PASS
+- Observatie: wachtrijverwerking start correct en log wordt gesynchroniseerd.
 
-1. Route starten (online)
-- Actie: klik op `Start route`.
-- Expected: succesmelding zichtbaar als banner en toast.
-- Expected: status verandert naar `Actief`.
+## Gevalideerd gedrag
 
-2. Route stoppen
-- Actie: klik op `Stop route`.
-- Expected: succesmelding zichtbaar als banner en toast.
-- Expected: status verandert naar `Gestopt`.
+1. Queue-mechanisme werkt voor offline captains log entries met foto.
+2. Synchronisatie wordt correct hervat na reconnect.
+3. Geen regressie waargenomen in bestaande frontend submitflow tijdens deze tests.
 
-3. Captain's log validatie
-- Actie: laat notitie leeg en klik op `Opslaan`.
-- Expected: warningmelding (geen successmelding).
-- Actie: vul notitie in en sla op.
-- Expected: successmelding voor opgeslagen notitie.
+## Openstaande checks voor definitieve GO
 
-4. TODO validatie en succes
-- Actie: laat titel leeg en verstuur.
-- Expected: warningmelding.
-- Actie: vul titel in en verstuur.
-- Expected: successmelding `Taak toegevoegd`.
+1. Foutpadtest foto-upload na reconnect
+- Doel: verifiëren dat logtekst behouden blijft bij fotofout.
+- Expected: losse `log_photo` retry-entry ontstaat in de wachtrij.
 
-5. Kosten validatie en succes
-- Actie: vul ongeldig bedrag of lege datum in.
-- Expected: warningmelding.
-- Actie: vul geldig bedrag + datum in en verstuur.
-- Expected: successmelding `Kostenpost opgeslagen`.
+2. Retry-limiettest
+- Doel: verifiëren dat attempts/status correct oplopen.
+- Expected: item wordt na max retries niet automatisch opnieuw verwerkt.
 
-6. Offline gedrag (queue)
-- Actie: zet device offline.
-- Actie: verstuur log/TODO/kosten.
-- Expected: warningmelding dat actie in wachtrij is geplaatst.
-- Expected: sync-banner toont offline status.
+## Tussenconclusie
 
-7. Terug online + synchronisatie
-- Actie: zet device weer online.
-- Expected: infomelding dat synchronisatie start.
-- Actie: klik op `Probeer alles opnieuw`.
-- Expected: succes/foutmeldingen per queue-actie; queue wordt bijgewerkt.
-
-8. Queue remove en retry single
-- Actie: verwijder 1 wachtrij-item.
-- Expected: success toast `Actie verwijderd uit wachtrij`.
-- Actie: probeer 1 specifiek item opnieuw.
-- Expected: success- of error-toast met correcte status.
-
-9. Toast queue limiet
-- Actie: trigger snel meerdere acties achter elkaar.
-- Expected: maximaal beperkte set tegelijk zichtbaar.
-- Expected: oudere toasts verdwijnen automatisch; nieuwe volgen in queue-volgorde.
-
-10. Responsive controle
-- Actie: herhaal kernflows op tablet.
-- Expected: feedbackblokken blijven leesbaar en overlappen primaire acties niet.
-
-## Acceptatiecriteria (GO)
-
-- Alle kernacties tonen consistente typefeedback.
-- Geen regressie in bestaande submit-flows.
-- Offline/online feedback blijft correct en duidelijk.
-- Desktop + tablet gedrag is functioneel en bruikbaar.
+Story 1 is functioneel bevestigd op de primaire flow (offline queue -> online sync) en klaar voor afronding na de twee resterende foutpadchecks.
