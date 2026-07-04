@@ -11,6 +11,7 @@ class BSO_Phoenix_Admin_Page
         add_action('admin_menu', array($this, 'register_menu'));
         add_action('admin_post_bso_phoenix_export_trips_csv', array($this, 'handle_export_trips_csv'));
         add_action('admin_post_bso_phoenix_export_trip_trackpoints', array($this, 'handle_export_trip_trackpoints'));
+        add_action('admin_post_bso_phoenix_bulk_delete_trips', array($this, 'handle_bulk_delete_trips'));
     }
 
     public function register_menu(): void
@@ -45,11 +46,29 @@ class BSO_Phoenix_Admin_Page
         $recent_trips = $service->get_trips_by_date_range($date_from, $date_to, $status, 50);
         $distance_unit = $settings_service->get_distance_unit();
         $speed_unit = $settings_service->get_speed_unit();
+        $can_delete_trips = current_user_can(BSO_PHOENIX_CAP_WRITE);
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Phoenix Logboek', 'bso-phoenix') . '</h1>';
 
         echo '<p>' . esc_html__('Overzicht van route-activiteit op basis van de huidige GPS-loggegevens.', 'bso-phoenix') . '</p>';
+
+        if (isset($_GET['bulk_deleted'])) {
+            $deleted_count = max(0, (int) $_GET['bulk_deleted']);
+            $failed_count = isset($_GET['bulk_failed']) ? max(0, (int) $_GET['bulk_failed']) : 0;
+            if ($deleted_count > 0) {
+                echo '<div class="notice notice-success is-dismissible"><p>'
+                    . esc_html(sprintf(__('Bulkverwijdering voltooid: %d tocht(en) verwijderd.', 'bso-phoenix'), $deleted_count));
+                if ($failed_count > 0) {
+                    echo ' ' . esc_html(sprintf(__('Niet verwijderd: %d.', 'bso-phoenix'), $failed_count));
+                }
+                echo '</p></div>';
+            } elseif ($failed_count > 0) {
+                echo '<div class="notice notice-warning is-dismissible"><p>'
+                    . esc_html(sprintf(__('Geen tochten verwijderd. Mislukt: %d.', 'bso-phoenix'), $failed_count))
+                    . '</p></div>';
+            }
+        }
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0 20px;">';
         $this->render_stat_card(__('Totaal tochten', 'bso-phoenix'), (string) $summary['total_trips']);
@@ -98,8 +117,28 @@ class BSO_Phoenix_Admin_Page
             return;
         }
 
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" data-phoenix-admin-bulk-form>';
+        echo '<input type="hidden" name="action" value="bso_phoenix_bulk_delete_trips" />';
+        echo '<input type="hidden" name="date_from" value="' . esc_attr($date_from) . '" />';
+        echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
+        echo '<input type="hidden" name="status" value="' . esc_attr($status) . '" />';
+        wp_nonce_field('bso_phoenix_bulk_delete_trips', 'bso_phoenix_bulk_delete_nonce');
+
+        echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;">';
+        echo '<button type="button" class="button" data-phoenix-admin-select-all>' . esc_html__('Selecteer alles', 'bso-phoenix') . '</button>';
+        echo '<button type="button" class="button" data-phoenix-admin-select-none>' . esc_html__('Deselecteer alles', 'bso-phoenix') . '</button>';
+        echo '<button type="button" class="button" data-phoenix-admin-select-invert>' . esc_html__('Selectie omkeren', 'bso-phoenix') . '</button>';
+        if ($can_delete_trips) {
+            echo '<button type="submit" class="button button-secondary" data-phoenix-admin-delete-selected>' . esc_html__('Verwijder geselecteerde tochten', 'bso-phoenix') . '</button>';
+        } else {
+            echo '<span style="font-size:12px;color:#50575e;">' . esc_html__('Alleen-lezen rechten: bulk verwijderen is uitgeschakeld.', 'bso-phoenix') . '</span>';
+        }
+        echo '<span style="font-size:12px;color:#50575e;" data-phoenix-admin-selection-count>0 geselecteerd</span>';
+        echo '</div>';
+
         echo '<table class="widefat striped">';
         echo '<thead><tr>';
+        echo '<th><input type="checkbox" data-phoenix-admin-select-toggle aria-label="' . esc_attr__('Selecteer alle zichtbare tochten', 'bso-phoenix') . '" /></th>';
         echo '<th>' . esc_html__('Trip', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Start', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Einde', 'bso-phoenix') . '</th>';
@@ -111,19 +150,39 @@ class BSO_Phoenix_Admin_Page
         echo '</tr></thead><tbody>';
 
         foreach ($recent_trips as $trip) {
+            $trip_id = (int) $trip['id'];
             echo '<tr>';
-            echo '<td>#' . esc_html((string) $trip['id']) . '</td>';
+            echo '<td><input type="checkbox" name="trip_ids[]" value="' . esc_attr((string) $trip_id) . '" data-phoenix-admin-trip-checkbox /></td>';
+            echo '<td>#' . esc_html((string) $trip_id) . '</td>';
             echo '<td>' . esc_html($this->format_datetime((string) $trip['started_at'])) . '</td>';
             echo '<td>' . esc_html($this->format_datetime((string) $trip['ended_at'])) . '</td>';
             echo '<td>' . esc_html((string) $trip['status']) . '</td>';
             echo '<td>' . esc_html($settings_service->format_distance((float) $trip['distance_km'], 2)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float) $trip['duration_minutes'], 1)) . '</td>';
             echo '<td>' . esc_html($settings_service->format_speed((float) $trip['average_speed_kmh'], 2)) . '</td>';
-            echo '<td>' . $this->render_trip_export_links((int) $trip['id']) . '</td>';
+            echo '<td>' . $this->render_trip_export_links($trip_id) . '</td>';
             echo '</tr>';
         }
 
         echo '</tbody></table>';
+        echo '</form>';
+
+        echo '<script>';
+        echo '(function(){';
+        echo 'var form=document.querySelector("[data-phoenix-admin-bulk-form]");if(!form){return;}';
+        echo 'var checkboxes=function(){return Array.prototype.slice.call(form.querySelectorAll("[data-phoenix-admin-trip-checkbox]"));};';
+        echo 'var countNode=form.querySelector("[data-phoenix-admin-selection-count]");';
+        echo 'var toggle=form.querySelector("[data-phoenix-admin-select-toggle]");';
+        echo 'var update=function(){var selected=checkboxes().filter(function(cb){return cb.checked;}).length;if(countNode){countNode.textContent=selected+" geselecteerd";}if(toggle){var all=checkboxes();toggle.checked=all.length>0&&selected===all.length;toggle.indeterminate=selected>0&&selected<all.length;}};';
+        echo 'form.addEventListener("change",function(event){var target=event.target;if(!target){return;}if(target.matches("[data-phoenix-admin-trip-checkbox]")||target.matches("[data-phoenix-admin-select-toggle]")){if(target.matches("[data-phoenix-admin-select-toggle]")){checkboxes().forEach(function(cb){cb.checked=target.checked;});}update();}});';
+        echo 'var bind=function(selector,handler){var node=form.querySelector(selector);if(node){node.addEventListener("click",handler);}};';
+        echo 'bind("[data-phoenix-admin-select-all]",function(){checkboxes().forEach(function(cb){cb.checked=true;});update();});';
+        echo 'bind("[data-phoenix-admin-select-none]",function(){checkboxes().forEach(function(cb){cb.checked=false;});update();});';
+        echo 'bind("[data-phoenix-admin-select-invert]",function(){checkboxes().forEach(function(cb){cb.checked=!cb.checked;});update();});';
+        echo 'form.addEventListener("submit",function(event){var selected=checkboxes().filter(function(cb){return cb.checked;});if(!selected.length){event.preventDefault();window.alert("Selecteer minimaal 1 tocht om te verwijderen.");return;}if(!window.confirm("Weet je zeker dat je de geselecteerde tochten wilt verwijderen?")){event.preventDefault();}});';
+        echo 'update();';
+        echo '})();';
+        echo '</script>';
         echo '</div>';
     }
 
@@ -260,6 +319,54 @@ class BSO_Phoenix_Admin_Page
         }
 
         $this->download_trackpoints_csv($trip_id, $points);
+    }
+
+    public function handle_bulk_delete_trips(): void
+    {
+        if (! current_user_can(BSO_PHOENIX_CAP_WRITE)) {
+            wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_bulk_delete_trips', 'bso_phoenix_bulk_delete_nonce');
+
+        $date_from = $this->normalize_date_input(isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '');
+        $date_to = $this->normalize_date_input(isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '');
+        $status = $this->normalize_status_input(isset($_POST['status']) ? sanitize_text_field((string) $_POST['status']) : '');
+
+        $trip_ids = isset($_POST['trip_ids']) && is_array($_POST['trip_ids'])
+            ? array_values(array_unique(array_filter(array_map('intval', wp_unslash($_POST['trip_ids'])), function ($id) {
+                return $id > 0;
+            })))
+            : array();
+
+        $deleted_count = 0;
+        $failed_count = 0;
+
+        if (! empty($trip_ids)) {
+            $service = new BSO_Phoenix_Trip_Service();
+            foreach ($trip_ids as $trip_id) {
+                if ($service->delete_trip_with_related_data((int) $trip_id)) {
+                    $deleted_count++;
+                } else {
+                    $failed_count++;
+                }
+            }
+        }
+
+        $redirect_url = add_query_arg(
+            array(
+                'page' => 'bso-phoenix',
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'status' => $status,
+                'bulk_deleted' => $deleted_count,
+                'bulk_failed' => $failed_count,
+            ),
+            admin_url('admin.php')
+        );
+
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     private function render_trip_export_links(int $trip_id): string

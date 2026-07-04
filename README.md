@@ -32,6 +32,8 @@ WordPress-plugin voor de Phoenix: een app-achtige dashboardomgeving voor varen, 
 - Recente tochtsamenvattingen met directe GPX-download
 - TODO-beheer met status en prioriteit
 - Kostenbeheer per type, leverancier en periode
+- Bulkselectie met verwijderen in admin voor Recente tochten
+- Bulkselectie met verwijderen in frontend voor TODO en kosten (schrijfrechten vereist)
 - Rapportages met trends, vergelijkingen en exports
 - Exportpakket vanuit Rapportages als ZIP met:
 	- `README.txt`
@@ -95,6 +97,7 @@ Voorbeeld:
 4. Voeg logregels/foto's toe en pas captions/sortering aan indien nodig.
 5. Beheer TODO's en kosten.
 6. Exporteer in admin rapportages als CSV of ZIP-pakket.
+7. Gebruik bulkacties om meerdere recente tochten, TODO-items of kostenposten in 1 keer te selecteren en verwijderen.
 
 ## AJAX API
 
@@ -126,7 +129,10 @@ De plugin gebruikt geen publieke WordPress REST-routes, maar geauthenticeerde ad
 | `bso_phoenix_create_todo` | TODO aanmaken | `bso_phoenix_todo` | `bso_phoenix_write` |
 | `bso_phoenix_update_todo_status` | TODO status wijzigen | `bso_phoenix_todo` | `bso_phoenix_write` |
 | `bso_phoenix_get_todos` | TODO lijst ophalen | `bso_phoenix_todo` | `bso_phoenix_read` |
+| `bso_phoenix_delete_todos` | Geselecteerde TODO-items verwijderen | `bso_phoenix_todo` | `bso_phoenix_write` |
 | `bso_phoenix_create_cost` | Kostenregel opslaan | `bso_phoenix_cost` | `bso_phoenix_write` |
+| `bso_phoenix_get_costs` | Kostenlijst ophalen | `bso_phoenix_cost` | `bso_phoenix_read` |
+| `bso_phoenix_delete_costs` | Geselecteerde kostenposten verwijderen | `bso_phoenix_cost` | `bso_phoenix_write` |
 
 ### Voorbeeldrespons `bso_phoenix_get_trip_summaries`
 
@@ -206,10 +212,10 @@ bso-phoenix/
 - [x] Story 3: recente tochtsamenvatting + directe GPX-download
 - [x] Story 4: uniforme frontend actiefeedback en meldingen
 - [x] Story 5: rapportage exportpakket als ZIP (CSV + GPX + metadata)
+- [x] Story 6: bulkselectie + bulkverwijderen voor Recente tochten (admin), TODO en kosten (frontend)
 
 ### Planned / ready for development
 
-- [ ] Bulkacties voor TODO en kosten in frontend
 - [ ] Verdere hardening van import/export validatie en foutrapportage
 - [ ] Release notes voor formele v1.2.0 versie-tag
 
@@ -218,6 +224,8 @@ bso-phoenix/
 - [Functional Design](document/Functional_Design.md)
 - [Technical Design](document/Technical_Design.md)
 - [Roadmap v1.2.0](document/Roadmap_v1.2.0.md)
+- [User Story: Bulkacties Selectie en Verwijderen](document/User_Story_Bulkacties_Selectie_En_Verwijderen.md)
+- [Testplan: Bulkacties Recente tochten TODO Kosten](document/Testplan_Bulkacties_Recente_Tochten_TODO_Kosten.md)
 - [Dagafsluiting 2026-07-04](document/Dagafsluiting_2026-07-04.md)
 - [Acceptatietest Story 5 / PR comment](document/Acceptatietest_PR_comment.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)

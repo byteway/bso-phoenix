@@ -24,6 +24,7 @@
 12. [Overzichten en rapportages](#12-overzichten-en-rapportages)
 13. [Gebruikersrollen en toegang](#13-gebruikersrollen-en-toegang)
 14. [Functionele grenzen en aannames](#14-functionele-grenzen-en-aannames)
+15. [Bulkacties selectie en verwijderen](#15-bulkacties-selectie-en-verwijderen)
 
 ---
 
@@ -472,6 +473,47 @@ De app moet verschillende samenvattingen kunnen genereren.
 - de gebruiker geeft eventueel een gemiddeld brandstofverbruik op
 - de app heeft toegang tot datum, tijd en locatiegegevens
 - foto's worden via mobiele of tabletinterface toegevoegd
+
+---
+
+## 15. Bulkacties selectie en verwijderen
+
+### User story
+
+- Als beheerder wil ik in admin bij Recente tochten meerdere regels kunnen selecteren met checkboxes, zodat ik in 1 keer kan verwijderen.
+- Als geautoriseerde gebruiker wil ik in de frontend hetzelfde selectiegedrag voor TODO en kosten, zodat foutief ingevoerde items snel gecorrigeerd kunnen worden.
+
+### Scope
+
+- Admin: bulkselectie en bulk verwijderen voor Recente tochten.
+- Frontend: bulkselectie en bulk verwijderen voor TODO-items en kostenposten.
+- Selectieacties in alle schermen:
+	- Selecteer alles
+	- Deselecteer alles
+	- Selectie omkeren
+
+### Functioneel gedrag
+
+1. Gebruiker zet checkboxes op 1 of meerdere items.
+2. Gebruiker kan selectie direct aanpassen met selectieknoppen.
+3. Bij verwijderen wordt om bevestiging gevraagd.
+4. Alleen geselecteerde records worden verwijderd.
+5. Na verwerking wordt succes/foutmelding getoond en lijst ververst.
+
+### Toegang en rechten
+
+- Lezen (`bso_phoenix_read`): mag lijsten en selectie zien.
+- Schrijven (`bso_phoenix_write`): mag bulk verwijderen uitvoeren.
+- Zonder schrijfrechten wordt delete geblokkeerd met duidelijke melding.
+
+### Acceptatiecriteria
+
+- Bulkselectie werkt consistent in admin Recente tochten.
+- Bulkselectie werkt consistent in frontend TODO en kosten.
+- Omkeren van selectie werkt op basis van huidige zichtbare selectie.
+- Verwijderen zonder selectie wordt geblokkeerd met melding.
+- Verwijderen zonder voldoende rechten wordt geblokkeerd.
+- Na verwijderen zijn de verwijderde records niet meer zichtbaar in de lijst.
 
 ---
 

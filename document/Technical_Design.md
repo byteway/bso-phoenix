@@ -24,6 +24,7 @@
 12. [Beveiliging, privacy en operationele aspecten](#12-beveiliging-privacy-en-operationele-aspecten)
 13. [Known Implementation Caveats](#13-known-implementation-caveats)
 14. [Roadmap](#14-roadmap)
+15. [Bulkacties architectuur](#15-bulkacties-architectuur)
 
 ---
 
@@ -766,6 +767,70 @@ Impact:
 2. extra validatie van GPS en media
 3. privacy- en toegangsregels aanscherpen
 4. testautomatisering toevoegen
+
+---
+
+## 15. Bulkacties architectuur
+
+### 15.1 Doel
+
+Bulkmutaties ondersteunen voor:
+
+- admin Recente tochten
+- frontend TODO-lijst
+- frontend kostenlijst
+
+met consistente selectie-acties (alles/geen/omkeren) en server-side autorisatie.
+
+### 15.2 Back-end componenten
+
+- `BSO_Phoenix_Admin_Page`
+	- `admin_post_bso_phoenix_bulk_delete_trips`
+	- nonce: `bso_phoenix_bulk_delete_trips`
+	- capability: `bso_phoenix_write`
+- `BSO_Phoenix_Trip_Service`
+	- `delete_trip_with_related_data(int $trip_id)`
+	- verwijdert trackpoints/exports en ontkoppelt `trip_id` bij logs en kosten
+- `BSO_Phoenix_Todo_Ajax`
+	- `wp_ajax_bso_phoenix_delete_todos`
+	- capability: `bso_phoenix_write`
+	- nonce: `bso_phoenix_todo`
+- `BSO_Phoenix_Cost_Ajax`
+	- `wp_ajax_bso_phoenix_get_costs`
+	- `wp_ajax_bso_phoenix_delete_costs`
+	- capabilities: lezen/schrijven conform actie
+	- nonce: `bso_phoenix_cost`
+
+### 15.3 Front-end flow
+
+```mermaid
+flowchart TD
+		A[Gebruiker selecteert checkboxes] --> B{Actie}
+		B -->|Alles| C[Alle zichtbare items checked]
+		B -->|Geen| D[Alle zichtbare items unchecked]
+		B -->|Omkeren| E[Checked state per item omdraaien]
+		B -->|Verwijder selectie| F[Bevestigingsprompt]
+		F -->|Bevestigd| G[AJAX bulk delete]
+		G --> H[Server nonce + capability check]
+		H --> I[Delete per ID]
+		I --> J[Lijst verversen + feedback]
+```
+
+### 15.4 Rechten- en foutafhandeling
+
+- Zonder login: `401`.
+- Zonder capability: `403`.
+- Ongeldige nonce: `403`.
+- Geen geselecteerde IDs: `400`.
+- Per ID delete-fouten worden teruggegeven als `failed_ids`.
+
+### 15.5 Dataconsistentie
+
+Bij verwijderen van trips:
+
+- trackpoints en exports worden fysiek verwijderd
+- gerelateerde logs/kosten blijven behouden maar `trip_id` wordt `NULL`
+- actieve trips worden niet bulk-verwijderd
 
 ---
 

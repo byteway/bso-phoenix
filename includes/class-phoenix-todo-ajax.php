@@ -11,6 +11,7 @@ class BSO_Phoenix_Todo_Ajax
         add_action('wp_ajax_bso_phoenix_create_todo', array($this, 'create_todo'));
         add_action('wp_ajax_bso_phoenix_update_todo_status', array($this, 'update_status'));
         add_action('wp_ajax_bso_phoenix_get_todos', array($this, 'get_todos'));
+        add_action('wp_ajax_bso_phoenix_delete_todos', array($this, 'delete_todos'));
     }
 
     public function create_todo(): void
@@ -96,6 +97,42 @@ class BSO_Phoenix_Todo_Ajax
         $todos = $service->get_todos($status, $priority, 100);
 
         wp_send_json_success(array('todos' => $todos));
+    }
+
+    public function delete_todos(): void
+    {
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
+
+        $raw_ids = isset($_POST['todo_ids']) ? (string) $_POST['todo_ids'] : '';
+        $todo_ids = array_values(array_unique(array_filter(array_map('intval', explode(',', $raw_ids)), function ($id) {
+            return $id > 0;
+        })));
+
+        if (empty($todo_ids)) {
+            wp_send_json_error(array('message' => 'Geen geldige todo_ids ontvangen.'), 400);
+        }
+
+        $service = new BSO_Phoenix_Todo_Service();
+        $deleted_ids = array();
+        $failed_ids = array();
+
+        foreach ($todo_ids as $todo_id) {
+            if ($service->delete_todo((int) $todo_id)) {
+                $deleted_ids[] = (int) $todo_id;
+                continue;
+            }
+
+            $failed_ids[] = (int) $todo_id;
+        }
+
+        wp_send_json_success(
+            array(
+                'deleted_ids' => $deleted_ids,
+                'failed_ids' => $failed_ids,
+                'deleted_count' => count($deleted_ids),
+                'failed_count' => count($failed_ids),
+            )
+        );
     }
 
 	private function guard_request(string $required_cap): void

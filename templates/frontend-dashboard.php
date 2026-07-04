@@ -122,6 +122,21 @@ if (! defined('ABSPATH')) {
                 <button type="submit" class="phoenix-btn"><?php esc_html_e('Taak toevoegen', 'bso-phoenix'); ?></button>
             </form>
             <p class="phoenix-feedback-banner phoenix-feedback-banner--small" data-feedback-type="info" data-phoenix-todo-feedback style="margin-top:8px;"></p>
+
+            <div class="phoenix-bulk-list" data-phoenix-todo-list-wrap>
+                <div class="phoenix-bulk-list__header">
+                    <h4><?php esc_html_e('Openstaande TODO-items', 'bso-phoenix'); ?></h4>
+                    <div class="phoenix-bulk-list__actions">
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-todo-select-all><?php esc_html_e('Alles', 'bso-phoenix'); ?></button>
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-todo-select-none><?php esc_html_e('Geen', 'bso-phoenix'); ?></button>
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-todo-select-invert><?php esc_html_e('Omkeren', 'bso-phoenix'); ?></button>
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-todo-delete-selected><?php esc_html_e('Verwijder selectie', 'bso-phoenix'); ?></button>
+                    </div>
+                </div>
+                <p class="phoenix-bulk-list__empty" data-phoenix-todo-list-empty><?php esc_html_e('Nog geen TODO-items beschikbaar.', 'bso-phoenix'); ?></p>
+                <ul class="phoenix-bulk-list__items" data-phoenix-todo-list></ul>
+                <p class="phoenix-bulk-list__meta" data-phoenix-todo-selection-count>0 geselecteerd</p>
+            </div>
         </article>
 
         <article class="phoenix-card" id="phoenix-cost-card">
@@ -140,6 +155,21 @@ if (! defined('ABSPATH')) {
                 <button type="submit" class="phoenix-btn"><?php esc_html_e('Kostenpost opslaan', 'bso-phoenix'); ?></button>
             </form>
             <p class="phoenix-feedback-banner phoenix-feedback-banner--small" data-feedback-type="info" data-phoenix-cost-feedback style="margin-top:8px;"></p>
+
+            <div class="phoenix-bulk-list" data-phoenix-cost-list-wrap>
+                <div class="phoenix-bulk-list__header">
+                    <h4><?php esc_html_e('Recente kostenposten', 'bso-phoenix'); ?></h4>
+                    <div class="phoenix-bulk-list__actions">
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-cost-select-all><?php esc_html_e('Alles', 'bso-phoenix'); ?></button>
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-cost-select-none><?php esc_html_e('Geen', 'bso-phoenix'); ?></button>
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-cost-select-invert><?php esc_html_e('Omkeren', 'bso-phoenix'); ?></button>
+                        <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-cost-delete-selected><?php esc_html_e('Verwijder selectie', 'bso-phoenix'); ?></button>
+                    </div>
+                </div>
+                <p class="phoenix-bulk-list__empty" data-phoenix-cost-list-empty><?php esc_html_e('Nog geen kostenposten beschikbaar.', 'bso-phoenix'); ?></p>
+                <ul class="phoenix-bulk-list__items" data-phoenix-cost-list></ul>
+                <p class="phoenix-bulk-list__meta" data-phoenix-cost-selection-count>0 geselecteerd</p>
+            </div>
         </article>
     </div>
 

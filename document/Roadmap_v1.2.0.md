@@ -1,12 +1,12 @@
 # Roadmap - v1.2.0
 
 **Plugin:** BSO Phoenix  
-**Roadmap status:** Voorbereid voor uitvoering  
+**Roadmap status:** In uitvoering (Stories 1 t/m 6 op feature branches opgeleverd)  
 **Doelrelease:** v1.2.0
 
 ## Scope
 
-Deze roadmap bevat 5 concrete, gebruikersgerichte verbeteringen voor de volgende feature release.  
+Deze roadmap bevat 6 concrete, gebruikersgerichte verbeteringen voor de volgende feature release.  
 Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere operationele inzichten.
 
 ## 1) Offline Captains Log Queue (incl. foto-upload retry)
@@ -88,6 +88,24 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 - Exportpakket wordt zonder fouten opgebouwd.
 - Inhoud van ZIP correspondeert met gekozen periodefilters.
 
+## 6) Bulkacties selectie + bulk verwijderen
+
+**Gebruikerswaarde**
+- Beheerder en geautoriseerde gebruiker kunnen sneller corrigeren door meerdere records in 1 actie te selecteren en verwijderen.
+
+**v1.2.0 oplevering**
+- Admin `Recente tochten`: checkbox-selectie per rij met `Selecteer alles`, `Deselecteer alles`, `Selectie omkeren`, en `Verwijder geselecteerde tochten`.
+- Frontend `TODO` en `Kosten`: lijstweergave met checkbox-selectie, selectieknoppen en bulk verwijderen.
+- Rechtenafhandeling:
+  - lezen: selectie zichtbaar, geen mutatie
+  - schrijven: bulk verwijderen toegestaan
+
+**Acceptatiecriteria**
+- Bulkselectie werkt voor zichtbare rijen/items.
+- Bulk verwijderen verwijdert alleen geselecteerde IDs.
+- Zonder schrijfrechten wordt verwijderen geblokkeerd.
+- Alle mutaties zijn afgeschermd met capability + nonce checks.
+
 ## Niet in scope voor v1.2.0
 
 - Multi-boat ondersteuning.
@@ -101,6 +119,7 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 3. Logfoto Captions en Sortering
 4. Route Samenvatting per Tocht
 5. Rapportage exportpakket
+6. Bulkacties selectie + verwijderen
 
 ## Definitie van gereed (DoR/DoD)
 

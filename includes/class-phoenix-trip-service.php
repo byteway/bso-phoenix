@@ -141,6 +141,43 @@ class BSO_Phoenix_Trip_Service
         return is_array($row) ? $row : null;
     }
 
+    public function delete_trip_with_related_data(int $trip_id): bool
+    {
+        global $wpdb;
+
+        $trip = $this->get_trip_by_id($trip_id);
+        if (! is_array($trip)) {
+            return false;
+        }
+
+        if (($trip['status'] ?? '') === 'active') {
+            return false;
+        }
+
+        $trackpoints_table = $wpdb->prefix . 'phoenix_trackpoints';
+        $exports_table = $wpdb->prefix . 'phoenix_exports';
+        $logs_table = $wpdb->prefix . 'phoenix_captains_logs';
+        $costs_table = $wpdb->prefix . 'phoenix_costs';
+        $trips_table = $wpdb->prefix . 'phoenix_trips';
+
+        $wpdb->delete($trackpoints_table, array('trip_id' => $trip_id), array('%d'));
+        $wpdb->delete($exports_table, array('trip_id' => $trip_id), array('%d'));
+
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$logs_table} SET trip_id = NULL WHERE trip_id = %d",
+            $trip_id
+        ));
+
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$costs_table} SET trip_id = NULL WHERE trip_id = %d",
+            $trip_id
+        ));
+
+        $deleted = $wpdb->delete($trips_table, array('id' => $trip_id), array('%d'));
+
+        return $deleted !== false && $deleted > 0;
+    }
+
     public function get_trackpoints_for_trip(int $trip_id): array
     {
         global $wpdb;

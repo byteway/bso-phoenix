@@ -18,6 +18,8 @@
         costSubmitInProgress: false,
         feedbackQueue: [],
         feedbackVisibleCount: 0,
+        todoItems: [],
+        costItems: [],
     };
 
     var FEEDBACK_MAX_VISIBLE = 3;
@@ -1859,6 +1861,271 @@
         submitButton.removeAttribute('disabled');
     }
 
+    function requestTodo(action, payload) {
+        var nonceValue = window.bsoPhoenix && window.bsoPhoenix.todoNonce ? window.bsoPhoenix.todoNonce : '';
+
+        return requestJson(action, payload || {}, nonceValue).then(function (response) {
+            return ensureSuccessfulResponse(response, 'TODO-verzoek afgewezen door server.');
+        });
+    }
+
+    function requestCost(action, payload) {
+        var nonceValue = window.bsoPhoenix && window.bsoPhoenix.costNonce ? window.bsoPhoenix.costNonce : '';
+
+        return requestJson(action, payload || {}, nonceValue).then(function (response) {
+            return ensureSuccessfulResponse(response, 'Kosten-verzoek afgewezen door server.');
+        });
+    }
+
+    function listSelectionCount(checkboxSelector) {
+        return document.querySelectorAll(checkboxSelector + ':checked').length;
+    }
+
+    function updateSelectionCount(checkboxSelector, countSelector) {
+        var node = document.querySelector(countSelector);
+        if (!node) {
+            return;
+        }
+
+        node.textContent = String(listSelectionCount(checkboxSelector)) + ' geselecteerd';
+    }
+
+    function toggleSelection(checkboxSelector, mode) {
+        Array.prototype.slice.call(document.querySelectorAll(checkboxSelector)).forEach(function (checkbox) {
+            if (mode === 'all') {
+                checkbox.checked = true;
+                return;
+            }
+
+            if (mode === 'none') {
+                checkbox.checked = false;
+                return;
+            }
+
+            checkbox.checked = !checkbox.checked;
+        });
+    }
+
+    function selectedIds(checkboxSelector) {
+        return Array.prototype.slice.call(document.querySelectorAll(checkboxSelector + ':checked')).map(function (checkbox) {
+            var id = parseInt(checkbox.value, 10);
+            return Number.isFinite(id) ? id : 0;
+        }).filter(function (id) {
+            return id > 0;
+        });
+    }
+
+    function renderTodoList(todos) {
+        var listNode = document.querySelector('[data-phoenix-todo-list]');
+        var emptyNode = document.querySelector('[data-phoenix-todo-list-empty]');
+
+        if (!listNode || !emptyNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+        state.todoItems = Array.isArray(todos) ? todos : [];
+
+        if (!state.todoItems.length) {
+            emptyNode.style.display = '';
+            updateSelectionCount('[data-phoenix-todo-check]', '[data-phoenix-todo-selection-count]');
+            return;
+        }
+
+        emptyNode.style.display = 'none';
+
+        state.todoItems.forEach(function (todo) {
+            var id = parseInt(todo.id, 10);
+            if (!Number.isFinite(id) || id <= 0) {
+                return;
+            }
+
+            var item = document.createElement('li');
+            item.className = 'phoenix-bulk-list__item';
+
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'phoenix-bulk-list__checkbox';
+            checkbox.value = String(id);
+            checkbox.setAttribute('data-phoenix-todo-check', '1');
+
+            var content = document.createElement('div');
+            var title = document.createElement('strong');
+            title.className = 'phoenix-bulk-list__title';
+            title.textContent = (todo.title || 'TODO') + ' (#' + String(id) + ')';
+
+            var detail = document.createElement('span');
+            detail.className = 'phoenix-bulk-list__details';
+            detail.textContent = 'Status: ' + String(todo.status || '-')
+                + ' · Prioriteit: ' + String(todo.priority || '-')
+                + ' · Deadline: ' + String(todo.due_date || '-');
+
+            content.appendChild(title);
+            content.appendChild(detail);
+
+            item.appendChild(checkbox);
+            item.appendChild(content);
+            listNode.appendChild(item);
+        });
+
+        updateSelectionCount('[data-phoenix-todo-check]', '[data-phoenix-todo-selection-count]');
+    }
+
+    function loadTodos() {
+        return requestTodo('bso_phoenix_get_todos', {
+            status: '',
+            priority: '',
+        }).then(function (result) {
+            var todos = result && result.data && Array.isArray(result.data.todos) ? result.data.todos : [];
+            renderTodoList(todos);
+        }).catch(function () {
+            renderTodoList([]);
+        });
+    }
+
+    function renderCostList(costs) {
+        var listNode = document.querySelector('[data-phoenix-cost-list]');
+        var emptyNode = document.querySelector('[data-phoenix-cost-list-empty]');
+
+        if (!listNode || !emptyNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+        state.costItems = Array.isArray(costs) ? costs : [];
+
+        if (!state.costItems.length) {
+            emptyNode.style.display = '';
+            updateSelectionCount('[data-phoenix-cost-check]', '[data-phoenix-cost-selection-count]');
+            return;
+        }
+
+        emptyNode.style.display = 'none';
+
+        state.costItems.forEach(function (cost) {
+            var id = parseInt(cost.id, 10);
+            if (!Number.isFinite(id) || id <= 0) {
+                return;
+            }
+
+            var amount = parseFloat(cost.amount || 0);
+            if (!Number.isFinite(amount)) {
+                amount = 0;
+            }
+
+            var item = document.createElement('li');
+            item.className = 'phoenix-bulk-list__item';
+
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'phoenix-bulk-list__checkbox';
+            checkbox.value = String(id);
+            checkbox.setAttribute('data-phoenix-cost-check', '1');
+
+            var content = document.createElement('div');
+            var title = document.createElement('strong');
+            title.className = 'phoenix-bulk-list__title';
+            title.textContent = String(cost.cost_type || 'cost') + ' · ' + amount.toFixed(2) + ' ' + String(cost.currency || 'EUR');
+
+            var detail = document.createElement('span');
+            detail.className = 'phoenix-bulk-list__details';
+            detail.textContent = 'Datum: ' + String(cost.cost_date || '-')
+                + ' · Leverancier: ' + String(cost.supplier || '-')
+                + ' · ID: #' + String(id);
+
+            content.appendChild(title);
+            content.appendChild(detail);
+
+            item.appendChild(checkbox);
+            item.appendChild(content);
+            listNode.appendChild(item);
+        });
+
+        updateSelectionCount('[data-phoenix-cost-check]', '[data-phoenix-cost-selection-count]');
+    }
+
+    function loadCosts() {
+        return requestCost('bso_phoenix_get_costs', {
+            date_from: '',
+            date_to: '',
+            cost_type: '',
+            limit: 100,
+        }).then(function (result) {
+            var costs = result && result.data && Array.isArray(result.data.costs) ? result.data.costs : [];
+            renderCostList(costs);
+        }).catch(function () {
+            renderCostList([]);
+        });
+    }
+
+    function handleTodoBulkDelete() {
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setTodoFeedback('Je hebt alleen-lezen rechten. Verwijderen is niet toegestaan.', 'warning');
+            return;
+        }
+
+        var ids = selectedIds('[data-phoenix-todo-check]');
+        if (!ids.length) {
+            setTodoFeedback('Selecteer minimaal 1 TODO-item.', 'warning');
+            return;
+        }
+
+        if (!window.confirm('Weet je zeker dat je de geselecteerde TODO-items wilt verwijderen?')) {
+            return;
+        }
+
+        requestTodo('bso_phoenix_delete_todos', {
+            todo_ids: ids.join(','),
+        }).then(function (result) {
+            var deletedCount = result && result.data ? parseInt(result.data.deleted_count || 0, 10) : 0;
+            var failedCount = result && result.data ? parseInt(result.data.failed_count || 0, 10) : 0;
+
+            if (deletedCount > 0) {
+                setTodoFeedback('Verwijderd: ' + String(deletedCount) + ' TODO-item(s).' + (failedCount > 0 ? ' Mislukt: ' + String(failedCount) + '.' : ''), 'success');
+            } else {
+                setTodoFeedback('Geen TODO-items verwijderd.', 'warning');
+            }
+
+            loadTodos();
+        }).catch(function (error) {
+            setTodoFeedback(error && error.message ? error.message : 'Bulk verwijderen van TODO-items mislukt.', 'error');
+        });
+    }
+
+    function handleCostBulkDelete() {
+        if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+            setCostFeedback('Je hebt alleen-lezen rechten. Verwijderen is niet toegestaan.', 'warning');
+            return;
+        }
+
+        var ids = selectedIds('[data-phoenix-cost-check]');
+        if (!ids.length) {
+            setCostFeedback('Selecteer minimaal 1 kostenpost.', 'warning');
+            return;
+        }
+
+        if (!window.confirm('Weet je zeker dat je de geselecteerde kostenposten wilt verwijderen?')) {
+            return;
+        }
+
+        requestCost('bso_phoenix_delete_costs', {
+            cost_ids: ids.join(','),
+        }).then(function (result) {
+            var deletedCount = result && result.data ? parseInt(result.data.deleted_count || 0, 10) : 0;
+            var failedCount = result && result.data ? parseInt(result.data.failed_count || 0, 10) : 0;
+
+            if (deletedCount > 0) {
+                setCostFeedback('Verwijderd: ' + String(deletedCount) + ' kostenpost(en).' + (failedCount > 0 ? ' Mislukt: ' + String(failedCount) + '.' : ''), 'success');
+            } else {
+                setCostFeedback('Geen kostenposten verwijderd.', 'warning');
+            }
+
+            loadCosts();
+        }).catch(function (error) {
+            setCostFeedback(error && error.message ? error.message : 'Bulk verwijderen van kostenposten mislukt.', 'error');
+        });
+    }
+
     function handleCostSubmit(event) {
         event.preventDefault();
 
@@ -1915,6 +2182,7 @@
                 amountNode.value = '';
             }
             setCostFeedback('Kostenpost opgeslagen.', 'success');
+            loadCosts();
             flushQueuedRequests();
         }).catch(function (error) {
             if (error && error.message === 'queued') {
@@ -1977,6 +2245,7 @@
                 titleNode.value = '';
             }
             setTodoFeedback('Taak toegevoegd.', 'success');
+            loadTodos();
             flushQueuedRequests();
         }).catch(function (error) {
             if (error && error.message === 'queued') {
@@ -2107,6 +2376,52 @@
             return;
         }
 
+        if (target.closest('[data-phoenix-todo-select-all]')) {
+            toggleSelection('[data-phoenix-todo-check]', 'all');
+            updateSelectionCount('[data-phoenix-todo-check]', '[data-phoenix-todo-selection-count]');
+            return;
+        }
+
+        if (target.closest('[data-phoenix-todo-select-none]')) {
+            toggleSelection('[data-phoenix-todo-check]', 'none');
+            updateSelectionCount('[data-phoenix-todo-check]', '[data-phoenix-todo-selection-count]');
+            return;
+        }
+
+        if (target.closest('[data-phoenix-todo-select-invert]')) {
+            toggleSelection('[data-phoenix-todo-check]', 'invert');
+            updateSelectionCount('[data-phoenix-todo-check]', '[data-phoenix-todo-selection-count]');
+            return;
+        }
+
+        if (target.closest('[data-phoenix-todo-delete-selected]')) {
+            handleTodoBulkDelete();
+            return;
+        }
+
+        if (target.closest('[data-phoenix-cost-select-all]')) {
+            toggleSelection('[data-phoenix-cost-check]', 'all');
+            updateSelectionCount('[data-phoenix-cost-check]', '[data-phoenix-cost-selection-count]');
+            return;
+        }
+
+        if (target.closest('[data-phoenix-cost-select-none]')) {
+            toggleSelection('[data-phoenix-cost-check]', 'none');
+            updateSelectionCount('[data-phoenix-cost-check]', '[data-phoenix-cost-selection-count]');
+            return;
+        }
+
+        if (target.closest('[data-phoenix-cost-select-invert]')) {
+            toggleSelection('[data-phoenix-cost-check]', 'invert');
+            updateSelectionCount('[data-phoenix-cost-check]', '[data-phoenix-cost-selection-count]');
+            return;
+        }
+
+        if (target.closest('[data-phoenix-cost-delete-selected]')) {
+            handleCostBulkDelete();
+            return;
+        }
+
         if (target.matches('[data-phoenix-lightbox]')) {
             closeLightbox();
             return;
@@ -2124,6 +2439,16 @@
     document.addEventListener('input', function (event) {
         var target = event.target;
         if (!(target instanceof Element)) {
+            return;
+        }
+
+        if (target.matches('[data-phoenix-todo-check]')) {
+            updateSelectionCount('[data-phoenix-todo-check]', '[data-phoenix-todo-selection-count]');
+            return;
+        }
+
+        if (target.matches('[data-phoenix-cost-check]')) {
+            updateSelectionCount('[data-phoenix-cost-check]', '[data-phoenix-cost-selection-count]');
             return;
         }
 
@@ -2158,9 +2483,11 @@
     ensureMap();
     initLogPhotoInput();
     loadLogGallery();
+    loadTodos();
+    loadCosts();
 
     if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
-        Array.prototype.slice.call(document.querySelectorAll('[data-phoenix-start], [data-phoenix-stop], [data-phoenix-log-form] button[type="submit"], [data-phoenix-todo-form] button[type="submit"], [data-phoenix-cost-form] button[type="submit"]')).forEach(function (node) {
+        Array.prototype.slice.call(document.querySelectorAll('[data-phoenix-start], [data-phoenix-stop], [data-phoenix-log-form] button[type="submit"], [data-phoenix-todo-form] button[type="submit"], [data-phoenix-cost-form] button[type="submit"], [data-phoenix-todo-delete-selected], [data-phoenix-cost-delete-selected]')).forEach(function (node) {
             node.setAttribute('disabled', 'disabled');
         });
 

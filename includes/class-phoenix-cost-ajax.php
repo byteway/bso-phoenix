@@ -9,6 +9,8 @@ class BSO_Phoenix_Cost_Ajax
     public function init(): void
     {
         add_action('wp_ajax_bso_phoenix_create_cost', array($this, 'create_cost'));
+        add_action('wp_ajax_bso_phoenix_get_costs', array($this, 'get_costs'));
+        add_action('wp_ajax_bso_phoenix_delete_costs', array($this, 'delete_costs'));
     }
 
     public function create_cost(): void
@@ -64,6 +66,61 @@ class BSO_Phoenix_Cost_Ajax
         }
 
         wp_send_json_success(array('cost_id' => $cost_id));
+    }
+
+    public function get_costs(): void
+    {
+		$this->guard_request(BSO_PHOENIX_CAP_READ);
+
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '';
+        $cost_type = isset($_POST['cost_type']) ? sanitize_key((string) $_POST['cost_type']) : '';
+        $limit = isset($_POST['limit']) ? (int) $_POST['limit'] : 100;
+
+        $date_from = $date_from !== '' ? BSO_Phoenix_Hardening::normalize_date($date_from) : '';
+        $date_to = $date_to !== '' ? BSO_Phoenix_Hardening::normalize_date($date_to) : '';
+        $limit = max(1, min(300, $limit));
+
+        $service = new BSO_Phoenix_Cost_Service();
+        $costs = $service->get_costs($date_from, $date_to, $cost_type, $limit);
+
+        wp_send_json_success(array('costs' => $costs));
+    }
+
+    public function delete_costs(): void
+    {
+		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
+
+        $raw_ids = isset($_POST['cost_ids']) ? (string) $_POST['cost_ids'] : '';
+        $cost_ids = array_values(array_unique(array_filter(array_map('intval', explode(',', $raw_ids)), function ($id) {
+            return $id > 0;
+        })));
+
+        if (empty($cost_ids)) {
+            wp_send_json_error(array('message' => 'Geen geldige cost_ids ontvangen.'), 400);
+        }
+
+        $service = new BSO_Phoenix_Cost_Service();
+        $deleted_ids = array();
+        $failed_ids = array();
+
+        foreach ($cost_ids as $cost_id) {
+            if ($service->delete_cost((int) $cost_id)) {
+                $deleted_ids[] = (int) $cost_id;
+                continue;
+            }
+
+            $failed_ids[] = (int) $cost_id;
+        }
+
+        wp_send_json_success(
+            array(
+                'deleted_ids' => $deleted_ids,
+                'failed_ids' => $failed_ids,
+                'deleted_count' => count($deleted_ids),
+                'failed_count' => count($failed_ids),
+            )
+        );
     }
 
 	private function guard_request(string $required_cap): void
