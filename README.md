@@ -150,10 +150,11 @@ bso-phoenix/
 
 ### Verdere doorontwikkeling
 
-- [ ] Offline buffering voor GPS-trackpoints
-- [ ] Uitgebreidere dashboardgrafieken
-- [ ] Eventuele geavanceerde offline ondersteuning
-- [ ] Extra gebruikersrechten en rollen
+- [ ] Offline captains log queue met foto-upload retry
+- [ ] Caption- en sorteerbeheer voor bestaande logfoto's in frontend
+- [ ] Route samenvatting per tocht met directe GPX-download
+- [ ] Uniforme actiefeedback en foutmeldingen op frontend
+- [ ] Rapportage exportpakket (ZIP met CSV + GPX)
 
 ## Documentatie
 
@@ -163,6 +164,7 @@ Meer details staan in:
 - [Technical Design](document/Technical_Design.md)
 - [Installatie en Acceptatietest Stap 7](document/Installatie_En_Acceptatietest_Stap7.md)
 - [Acceptatietest Run Template Stap 7](document/Acceptatietest_Run_Template_Stap7.md)
+- [Roadmap v1.2.0](document/Roadmap_v1.2.0.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
 - [Release Notes v1.1.0](document/Release_Notes_1.1.0.md)
 - [Release Notes v1.1.1](document/Release_Notes_1.1.1.md)

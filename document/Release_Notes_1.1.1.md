@@ -61,7 +61,10 @@ Deze patch maakt de plugin betrouwbaarder in dagelijks gebruik door:
 
 ## Volgende stappen (v1.2.x)
 
-- Offline buffering voor GPS-trackpoints en uploads
-- Uitgebreidere dashboards en grafieken
-- Print- en exportvarianten voor rapportages
-- Verdere optimalisatie van mobiele gebruikerservaring
+- Offline captains log queue met foto-upload retry
+- Logfoto captions en sortering in frontend galerij
+- Route samenvatting per tocht met directe GPX-download
+- Uniforme frontend feedbackcomponent voor acties en fouten
+- Rapportage exportpakket (ZIP met CSV + GPX)
+
+Zie ook: `document/Roadmap_v1.2.0.md`
