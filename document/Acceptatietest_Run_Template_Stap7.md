@@ -47,7 +47,7 @@ Vul per testregel in:
 | T7-10 | Duplicate start/stop preventie | PASS | Bij tweede start tijdens actieve route verschijnt melding "Er is al een actieve route."; herhaalde start/stop-tests blijven stabiel | Duplicate startpreventie bevestigd, geen dubbele actieve trip |
 | T7-11 | Log met meerdere foto's + captions | PASS | Frontend screenshot toont melding "Notitie opgeslagen met foto's." met meerdere geuploade foto's; admin logboek toont nieuw item met meerdere foto's | Multi-photo log werkt op frontend en persistente opslag bevestigd |
 | T7-12 | Frontend galerij met bestaande logfoto's | PASS | Frontend sectie "Recente logfoto's" toont bestaande en nieuw opgeslagen foto's na refresh | Galerijweergave van bestaande logfoto's bevestigd |
-| T7-13 | Lightbox grote preview + navigatie |  |  |  |
+| T7-13 | Lightbox grote preview + navigatie | PASS | Frontend screenshot toont geopende lightbox met grote fotovoorvertoning en zichtbare vorige/volgende navigatieknoppen | Lightbox preview en navigatie bevestigd |
 | T7-14 | Duplicate log submit preventie |  |  |  |
 | T7-15 | Duplicate TODO submit preventie |  |  |  |
 | T7-16 | Duplicate kosten submit preventie |  |  |  |

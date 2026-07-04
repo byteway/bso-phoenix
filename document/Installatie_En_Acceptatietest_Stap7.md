@@ -119,6 +119,7 @@ Gebruik kolommen: **Resultaat** (`PASS`/`FAIL`) en **Bewijs** (screenshot, expor
 | T7-10 | PASS | Bij tweede start tijdens actieve route verschijnt melding "Er is al een actieve route."; herhaalde start/stop-tests blijven stabiel | Duplicate startpreventie bevestigd, geen dubbele actieve trip |
 | T7-11 | PASS | Frontend screenshot toont melding "Notitie opgeslagen met foto's." met meerdere geuploade foto's; admin logboek toont nieuw item met meerdere foto's | Multi-photo log werkt op frontend en persistente opslag bevestigd |
 | T7-12 | PASS | Frontend sectie "Recente logfoto's" toont bestaande en nieuw opgeslagen foto's na refresh | Galerijweergave van bestaande logfoto's bevestigd |
+| T7-13 | PASS | Frontend screenshot toont geopende lightbox met grote fotovoorvertoning en zichtbare vorige/volgende navigatieknoppen | Lightbox preview en navigatie bevestigd |
 | ... |  |  |  |
 
 ## 7. Exit Criteria (Go/No-Go)
