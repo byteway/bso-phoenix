@@ -22,6 +22,7 @@
 
     var FEEDBACK_MAX_VISIBLE = 3;
     var FEEDBACK_TOAST_TIMEOUT_MS = 4500;
+    var QUEUE_MAX_ATTEMPTS = 5;
 
     function statNode(selector) {
         return document.querySelector(selector);
@@ -611,21 +612,76 @@
     }
 
     function queueRequest(entry) {
+        var queuedEntry = normalizeQueueEntry(entry);
         return withStore('readwrite', function (store) {
-            store.add(entry);
+            store.add(queuedEntry);
         }).then(function () {
             return updateQueuedCount();
         });
+    }
+
+    function normalizeQueueEntry(entry) {
+        var normalized = entry || {};
+
+        if (typeof normalized.attempts !== 'number' || Number.isNaN(normalized.attempts)) {
+            normalized.attempts = 0;
+        }
+        if (!normalized.status) {
+            normalized.status = 'queued';
+        }
+        if (typeof normalized.lastError !== 'string') {
+            normalized.lastError = '';
+        }
+        if (typeof normalized.lastTriedAt !== 'number') {
+            normalized.lastTriedAt = 0;
+        }
+        if (typeof normalized.createdAt !== 'number') {
+            normalized.createdAt = Date.now();
+        }
+
+        return normalized;
     }
 
     function getQueuedRequests() {
         return withStore('readonly', function (store, resolve, reject) {
             var request = store.getAll();
             request.onsuccess = function () {
-                resolve(request.result || []);
+                resolve((request.result || []).map(function (entry) {
+                    return normalizeQueueEntry(entry);
+                }));
             };
             request.onerror = function () {
                 reject(request.error || new Error('Queue read failed'));
+            };
+        });
+    }
+
+    function putQueuedRequest(entry) {
+        var nextEntry = normalizeQueueEntry(entry);
+
+        return withStore('readwrite', function (store) {
+            store.put(nextEntry);
+        });
+    }
+
+    function updateQueuedRequest(id, mutator) {
+        return withStore('readwrite', function (store, resolve, reject) {
+            var request = store.get(id);
+
+            request.onsuccess = function () {
+                var currentEntry = request.result;
+                if (!currentEntry) {
+                    resolve(null);
+                    return;
+                }
+
+                var updatedEntry = mutator(normalizeQueueEntry(currentEntry)) || currentEntry;
+                store.put(normalizeQueueEntry(updatedEntry));
+                resolve(updatedEntry);
+            };
+
+            request.onerror = function () {
+                reject(request.error || new Error('Queue update failed'));
             };
         });
     }
@@ -642,6 +698,7 @@
         var labels = {
             trackpoint: 'GPS-trackpoint',
             log: 'Captain\'s log',
+            log_photo: 'Logfoto upload',
             todo: 'TODO',
             cost: 'Kostenpost'
         };
@@ -684,6 +741,41 @@
         return date.toLocaleString();
     }
 
+    function queueStatusLabel(status) {
+        var labels = {
+            queued: 'queued',
+            retrying: 'retrying',
+            failed: 'failed',
+            synced: 'synced',
+        };
+
+        return labels[status] || 'queued';
+    }
+
+    function updateEntryStatus(id, status, errorMessage) {
+        return updateQueuedRequest(id, function (entry) {
+            entry.status = status;
+            entry.lastTriedAt = Date.now();
+
+            if (status === 'retrying') {
+                entry.attempts = (entry.attempts || 0) + 1;
+                entry.lastError = '';
+            }
+
+            if (status === 'failed') {
+                entry.lastError = errorMessage || 'Synchronisatie mislukt.';
+            }
+
+            if (status === 'synced') {
+                entry.lastError = '';
+            }
+
+            return entry;
+        }).then(function () {
+            return updateQueuedCount();
+        });
+    }
+
     function renderQueuedList(entries) {
         var listNode = document.querySelector('[data-phoenix-queue-list]');
         var emptyNode = document.querySelector('[data-phoenix-queue-empty]');
@@ -705,6 +797,7 @@
             var item = document.createElement('li');
             item.className = 'phoenix-queue__item';
             item.setAttribute('data-queue-id', String(entry.id));
+            item.setAttribute('data-queue-status', queueStatusLabel(entry.status));
 
             var meta = document.createElement('div');
             meta.className = 'phoenix-queue__meta';
@@ -719,6 +812,24 @@
             time.textContent = formatQueueTime(entry.createdAt);
             meta.appendChild(time);
 
+            var status = document.createElement('span');
+            status.className = 'phoenix-queue__status';
+            status.setAttribute('data-queue-status', queueStatusLabel(entry.status));
+            status.textContent = queueStatusLabel(entry.status);
+            meta.appendChild(status);
+
+            var details = document.createElement('span');
+            details.className = 'phoenix-queue__details';
+            details.textContent = 'pogingen: ' + String(entry.attempts || 0);
+            meta.appendChild(details);
+
+            if (entry.lastError) {
+                var error = document.createElement('span');
+                error.className = 'phoenix-queue__error';
+                error.textContent = entry.lastError;
+                meta.appendChild(error);
+            }
+
             var actions = document.createElement('div');
             actions.className = 'phoenix-queue__actions';
 
@@ -727,6 +838,7 @@
             retryButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
             retryButton.textContent = 'Opnieuw';
             retryButton.setAttribute('data-phoenix-queue-retry', String(entry.id));
+            retryButton.disabled = entry.status === 'retrying' || entry.status === 'synced' || (entry.attempts || 0) >= QUEUE_MAX_ATTEMPTS;
 
             var removeButton = document.createElement('button');
             removeButton.type = 'button';
@@ -746,16 +858,60 @@
     function updateQueuedCount() {
         return getQueuedRequests().then(function (entries) {
             renderQueuedList(entries);
-            if (!entries.length) {
+            var waitingCount = entries.filter(function (entry) {
+                return entry.status !== 'synced';
+            }).length;
+
+            if (!waitingCount) {
                 setSyncFeedback('Synchronisatie gereed.');
                 return 0;
             }
 
-            setSyncFeedback(entries.length + ' actie(s) wachten op synchronisatie.');
-            return entries.length;
+            setSyncFeedback(waitingCount + ' actie(s) wachten op synchronisatie.');
+            return waitingCount;
         }).catch(function () {
             setSyncFeedback('Synchronisatiestatus niet beschikbaar.');
             return 0;
+        });
+    }
+
+    function createQueuedLogPhotoRetry(originalEntry, logId) {
+        return queueRequest({
+            queueKind: 'log_photo',
+            transport: 'form',
+            action: 'bso_phoenix_add_log_photos',
+            nonce: originalEntry.nonce,
+            payload: {
+                log_id: String(logId),
+            },
+            files: originalEntry.files || [],
+            createdAt: Date.now(),
+            attempts: 0,
+            status: 'queued',
+            lastError: '',
+            lastTriedAt: 0,
+        });
+    }
+
+    function maybeSplitLogPhotoRetry(entry, replayError) {
+        if (entry.queueKind !== 'log' || entry.transport !== 'form' || !Array.isArray(entry.files) || !entry.files.length) {
+            return Promise.reject(replayError);
+        }
+
+        return buildFormDataRequest(entry.action, entry.nonce, entry.payload, []).then(function (response) {
+            return ensureSuccessfulResponse(response, 'Fallback zonder foto\'s mislukt.');
+        }).then(function (response) {
+            var logId = response && response.data && response.data.log_id ? parseInt(response.data.log_id, 10) : 0;
+            if (!logId) {
+                throw new Error('Log opgeslagen zonder foto\'s, maar log_id ontbreekt.');
+            }
+
+            return createQueuedLogPhotoRetry(entry, logId).then(function () {
+                notify('Logtekst is opgeslagen; foto-upload staat apart in de wachtrij.', 'warning', { toast: true });
+                return deleteQueuedRequest(entry.id);
+            });
+        }).catch(function () {
+            return Promise.reject(replayError);
         });
     }
 
@@ -764,8 +920,25 @@
             ? buildFormDataRequest(entry.action, entry.nonce, entry.payload, entry.files || [])
             : requestJson(entry.action, entry.payload, entry.nonce);
 
-        return sender.then(function () {
-            return deleteQueuedRequest(entry.id);
+        return updateEntryStatus(entry.id, 'retrying').then(function () {
+            return sender.then(function (response) {
+                return ensureSuccessfulResponse(response, 'Synchronisatie mislukt.');
+            }).then(function () {
+                return updateEntryStatus(entry.id, 'synced').then(function () {
+                    return deleteQueuedRequest(entry.id);
+                });
+            }).catch(function (error) {
+                return maybeSplitLogPhotoRetry(entry, error).catch(function (nextError) {
+                    var attempts = (entry.attempts || 0) + 1;
+                    var message = nextError && nextError.message ? nextError.message : 'Synchronisatie mislukt.';
+                    return updateEntryStatus(entry.id, 'failed', message).then(function () {
+                        if (attempts >= QUEUE_MAX_ATTEMPTS) {
+                            notify('Maximaal aantal retries bereikt voor een wachtrij-item.', 'error', { toast: true });
+                        }
+                        throw nextError;
+                    });
+                });
+            });
         });
     }
 
@@ -927,6 +1100,10 @@
         return getQueuedRequests().then(function (entries) {
             return entries.reduce(function (promise, entry) {
                 return promise.then(function () {
+                    if (entry.status === 'failed' && (entry.attempts || 0) >= QUEUE_MAX_ATTEMPTS) {
+                        return Promise.resolve();
+                    }
+
                     return replayQueuedEntry(entry).catch(function () {
                         return Promise.resolve();
                     });
