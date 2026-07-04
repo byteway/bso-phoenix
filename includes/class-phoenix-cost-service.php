@@ -8,6 +8,37 @@ class BSO_Phoenix_Cost_Service
 {
     private const VALID_TYPES = array('fuel', 'maintenance', 'mooring', 'insurance', 'parts', 'other');
 
+    public function find_recent_duplicate_cost_id(int $boat_id, ?int $trip_id, string $cost_type, float $amount, string $cost_date, string $currency, int $window_seconds = 25, int $exclude_cost_id = 0): int
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_costs';
+        $threshold = date('Y-m-d H:i:s', current_time('timestamp') - max(5, $window_seconds));
+        $normalized_type = in_array($cost_type, self::VALID_TYPES, true) ? $cost_type : 'other';
+        $normalized_currency = $currency !== '' ? strtoupper(substr($currency, 0, 10)) : 'EUR';
+
+        $sql = "SELECT id FROM {$table} WHERE boat_id = %d AND cost_type = %s AND amount = %f AND cost_date = %s AND currency = %s AND created_at >= %s";
+        $args = array($boat_id, $normalized_type, $amount, $cost_date, $normalized_currency, $threshold);
+
+        if ($trip_id !== null && $trip_id > 0) {
+            $sql .= ' AND trip_id = %d';
+            $args[] = $trip_id;
+        } else {
+            $sql .= ' AND (trip_id IS NULL OR trip_id = 0)';
+        }
+
+        if ($exclude_cost_id > 0) {
+            $sql .= ' AND id <> %d';
+            $args[] = $exclude_cost_id;
+        }
+
+        $sql .= ' ORDER BY id ASC LIMIT 1';
+
+        $duplicate_id = (int) $wpdb->get_var($wpdb->prepare($sql, ...$args));
+
+        return $duplicate_id > 0 ? $duplicate_id : 0;
+    }
+
     public function create_cost(int $boat_id, string $cost_type, float $amount, string $cost_date, string $currency, string $supplier, string $notes, ?int $trip_id): int
     {
         global $wpdb;

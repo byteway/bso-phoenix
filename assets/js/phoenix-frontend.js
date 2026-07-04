@@ -15,6 +15,7 @@
         liveStatsTimer: null,
         logSubmitInProgress: false,
         todoSubmitInProgress: false,
+        costSubmitInProgress: false,
     };
 
     function statNode(selector) {
@@ -1333,8 +1334,26 @@
         node.textContent = text;
     }
 
+    function setCostSubmitPending(isPending) {
+        var submitButton = document.querySelector('[data-phoenix-cost-form] button[type="submit"]');
+        if (!submitButton) {
+            return;
+        }
+
+        if (isPending) {
+            submitButton.setAttribute('disabled', 'disabled');
+            return;
+        }
+
+        submitButton.removeAttribute('disabled');
+    }
+
     function handleCostSubmit(event) {
         event.preventDefault();
+
+        if (state.costSubmitInProgress) {
+            return;
+        }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
             setCostFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
@@ -1364,6 +1383,9 @@
             return;
         }
 
+        state.costSubmitInProgress = true;
+        setCostSubmitPending(true);
+
         queueOrSendJson('bso_phoenix_create_cost', {
             nonce: window.bsoPhoenix.costNonce || '',
             cost_type: cost_type,
@@ -1392,6 +1414,9 @@
                 return;
             }
             setCostFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
+        }).finally(function () {
+            state.costSubmitInProgress = false;
+            setCostSubmitPending(false);
         });
     }
 
