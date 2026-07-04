@@ -454,8 +454,8 @@
                 }
 
                 all.push({
-                    id: photo.id || 0,
-                    log_id: log.id || 0,
+                    id: parseInt(photo.id || 0, 10) || 0,
+                    log_id: parseInt(log.id || 0, 10) || 0,
                     caption: photo.caption || '',
                     sort_order: parseInt(photo.sort_order || 0, 10) || 0,
                     url: photo.url || photo.thumbnail_url || '',
