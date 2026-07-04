@@ -42,6 +42,16 @@ De boot is een zelfgemaakt motorjacht en de plugin is bedoeld als centrale plek 
 
 De plugin is bewust ontworpen voor **één boot**. Ondersteuning voor meerdere boten is expliciet buiten scope om de oplossing overzichtelijk en beheersbaar te houden.
 
+### Problemen die de app oplost
+
+Met deze app worden de volgende praktische problemen tijdens en na het varen opgelost:
+
+- makkelijker inschatten hoeveel brandstof er na een vaart over is, zodat op tijd tanken gepland kan worden
+- inzicht in kosten tijdens het varen, zowel direct (bijvoorbeeld bruggen) als indirect (bijvoorbeeld gas en water)
+- een visuele kaart van de route tijdens het varen en na afloop
+- mogelijkheid om routekaarten te delen via download en mail
+- taakjes die tijdens het varen opvallen centraal vastleggen op een plek
+
 ---
 
 ## 2. Doelgroep en gebruikssituatie
@@ -339,6 +349,8 @@ In een apart formulier kan inzicht worden verkregen in kosten.
 De kostenmodule ondersteunt inzicht in:
 
 - brandstofkosten
+- directe vaarkosten (zoals bruggen en sluizen)
+- indirecte verbruikskosten (zoals gas en water)
 - onderhoudskosten
 - materiaalkosten
 - totale kosten over een periode
