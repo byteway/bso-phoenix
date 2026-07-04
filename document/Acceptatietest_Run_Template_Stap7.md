@@ -53,7 +53,7 @@ Vul per testregel in:
 | T7-16 | Duplicate kosten submit preventie | PASS | Frontend hertest kosten: submit succesvol met melding "Kostenpost opgeslagen."; admin Kosten-overzicht toont exact 1 nieuwe post | Duplicate submitpreventie voor kosten bevestigd |
 | T7-17 | Datumvalidatie admin | PASS | Screenshots admin filters: Kostenoverzicht, Rapportages en Captain's log filteren correct op datumrange | Datumfilters in admin werken stabiel en geven verwachte resultaten |
 | T7-18 | Datumvalidatie frontend/AJAX | PASS | Frontend/AJAX hertest: ongeldige datums worden afgewezen; geldige submit wordt opgeslagen en zichtbaar in admin logboek | Datumvalidatie in frontend en AJAX bevestigt correcte reject/accept-flow |
-| T7-19 | CSV trip export |  |  |  |
+| T7-19 | CSV trip export | PASS | Screenshot toont succesvolle download van phoenix-trips CSV en geopende inhoud met tripregels/kolommen | Trip CSV-export werkt en bevat verwachte data |
 | T7-20 | GPX export |  |  |  |
 | T7-21 | Rapportage CSV export |  |  |  |
 | T7-22 | Media library koppeling |  |  |  |
