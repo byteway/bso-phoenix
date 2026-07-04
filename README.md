@@ -216,6 +216,7 @@ bso-phoenix/
 
 ### Planned / ready for development
 
+- [ ] Story 7: toggle tussen standaard en schermvullende live routekaart in frontend dashboard
 - [ ] Verdere hardening van import/export validatie en foutrapportage
 - [ ] Release notes voor formele v1.2.0 versie-tag
 
@@ -225,6 +226,7 @@ bso-phoenix/
 - [Technical Design](document/Technical_Design.md)
 - [Roadmap v1.2.0](document/Roadmap_v1.2.0.md)
 - [User Story: Bulkacties Selectie en Verwijderen](document/User_Story_Bulkacties_Selectie_En_Verwijderen.md)
+- [User Story: Live route schermvullend toggle](document/User_Story_Live_Route_Schermvullend_Toggle.md)
 - [Testplan: Bulkacties Recente tochten TODO Kosten](document/Testplan_Bulkacties_Recente_Tochten_TODO_Kosten.md)
 - [Dagafsluiting 2026-07-04](document/Dagafsluiting_2026-07-04.md)
 - [Acceptatietest Story 5 / PR comment](document/Acceptatietest_PR_comment.md)

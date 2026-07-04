@@ -6,7 +6,7 @@
 
 ## Scope
 
-Deze roadmap bevat 6 concrete, gebruikersgerichte verbeteringen voor de volgende feature release.  
+Deze roadmap bevat 7 concrete, gebruikersgerichte verbeteringen voor de volgende feature release.  
 Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere operationele inzichten.
 
 ## 1) Offline Captains Log Queue (incl. foto-upload retry)
@@ -106,6 +106,24 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 - Zonder schrijfrechten wordt verwijderen geblokkeerd.
 - Alle mutaties zijn afgeschermd met capability + nonce checks.
 
+## 7) Live route schermvullend toggle
+
+**Gebruikerswaarde**
+- Tijdens het varen kan de gebruiker beter zicht houden op de afgelegde route door snel te schakelen naar een schermvullende kaartweergave.
+
+**v1.2.0 oplevering**
+- Toggle in frontend dashboard tussen:
+  - standaard kaartformaat
+  - schermvullende live routeweergave
+- Terugschakelen zonder verlies van actieve routecontext.
+- Sluitactie via duidelijke UI-knop en Escape-ondersteuning.
+
+**Acceptatiecriteria**
+- Schakelen werkt zonder pagina-herlaad.
+- Route blijft zichtbaar en up-to-date in beide weergaven.
+- Terugschakelen herstelt de standaard dashboardlayout correct.
+- Mobiele weergave blijft bruikbaar.
+
 ## Niet in scope voor v1.2.0
 
 - Multi-boat ondersteuning.
@@ -120,6 +138,7 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 4. Route Samenvatting per Tocht
 5. Rapportage exportpakket
 6. Bulkacties selectie + verwijderen
+7. Live route schermvullend toggle
 
 ## Definitie van gereed (DoR/DoD)
 
