@@ -287,6 +287,16 @@
 
             var content = document.createElement('div');
             content.className = 'phoenix-log-photos__content';
+
+            if (entry.previewUrl) {
+                var preview = document.createElement('img');
+                preview.className = 'phoenix-log-photos__preview';
+                preview.src = entry.previewUrl;
+                preview.alt = entry.file.name || 'Foto-preview';
+                preview.loading = 'lazy';
+                content.appendChild(preview);
+            }
+
             content.appendChild(name);
             content.appendChild(caption);
 
@@ -298,15 +308,28 @@
     }
 
     function setSelectedLogPhotos(fileList) {
+        clearSelectedLogPhotos();
+
         state.logPhotoFiles = Array.prototype.slice.call(fileList || []).filter(function (file) {
             return file && typeof file.type === 'string' && file.type.indexOf('image/') === 0;
         }).map(function (file) {
             return {
                 file: file,
                 caption: '',
+                previewUrl: window.URL && window.URL.createObjectURL ? window.URL.createObjectURL(file) : '',
             };
         });
         renderSelectedLogPhotos();
+    }
+
+    function clearSelectedLogPhotos() {
+        state.logPhotoFiles.forEach(function (entry) {
+            if (entry && entry.previewUrl && window.URL && window.URL.revokeObjectURL) {
+                window.URL.revokeObjectURL(entry.previewUrl);
+            }
+        });
+
+        state.logPhotoFiles = [];
     }
 
     function moveSelectedLogPhoto(fromIndex, toIndex) {
@@ -324,7 +347,10 @@
             return;
         }
 
-        state.logPhotoFiles.splice(index, 1);
+        var removed = state.logPhotoFiles.splice(index, 1)[0];
+        if (removed && removed.previewUrl && window.URL && window.URL.revokeObjectURL) {
+            window.URL.revokeObjectURL(removed.previewUrl);
+        }
         renderSelectedLogPhotos();
     }
 
@@ -1688,7 +1714,7 @@
             if (fileNode) {
                 fileNode.value = '';
             }
-            state.logPhotoFiles = [];
+            clearSelectedLogPhotos();
             renderSelectedLogPhotos();
             setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'), 'success');
             loadLogGallery();
@@ -1701,7 +1727,7 @@
                 if (fileNode) {
                     fileNode.value = '';
                 }
-                state.logPhotoFiles = [];
+                clearSelectedLogPhotos();
                 renderSelectedLogPhotos();
                 setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.', 'warning');
                 return;

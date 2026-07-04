@@ -427,6 +427,16 @@
     min-width: 0;
 }
 
+.phoenix-log-photos__preview {
+    width: 100%;
+    max-width: 140px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #d7d7d7;
+    background: #fff;
+}
+
 .phoenix-log-photos__caption {
     width: 100%;
     border: 1px solid #d7d7d7;
