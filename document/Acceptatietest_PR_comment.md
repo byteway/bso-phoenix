@@ -47,12 +47,12 @@
 - Actie: controleer bovenste en onderste foto in een log.
 - Expected: `Omhoog` is disabled op de eerste foto.
 - Expected: `Omlaag` is disabled op de laatste foto.
-- Status: PENDING
+- Status: PASS
 
 6. Lightbox captioncontrole
 - Actie: open foto in lightbox na caption-update.
 - Expected: lightbox toont de bijgewerkte caption.
-- Status: PENDING
+- Status: PASS
 
 7. Rechtencontrole (read-only)
 - Actie: open dashboard met read-only gebruiker.
@@ -62,7 +62,7 @@
 8. Regressiecheck log upload flow
 - Actie: maak een nieuw logitem met foto's en captions.
 - Expected: upload flow blijft werken zoals in Story 1/4.
-- Status: PENDING
+- Status: PASS
 
 ## PR Testevidence (plakbaar)
 
@@ -77,10 +77,12 @@ Resultaten:
 - Sortering omlaag: PASS
 - Grensgevallen sortering: PENDING
 - Lightbox captioncontrole: PENDING
+- Grensgevallen sortering: PASS
+- Lightbox captioncontrole: PASS
 - Rechtencontrole (read-only): PASS
-- Regressiecheck log upload flow: PENDING
+- Regressiecheck log upload flow: PASS
 
-Voorlopige conclusie:
+Eindconclusie:
 
-Story 2 is technisch geïmplementeerd en klaar voor handmatige validatie.
-Na afronding van bovenstaande checks kan de definitieve GO/NO-GO worden vastgesteld.
+Story 2 is volledig gevalideerd en heeft een definitieve GO-status.
+Alle checklist-items zijn PASS en er zijn geen regressies geconstateerd.
