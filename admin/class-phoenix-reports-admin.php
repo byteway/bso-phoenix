@@ -11,6 +11,7 @@ class BSO_Phoenix_Reports_Admin
         add_action('admin_menu', array($this, 'register_submenu'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('admin_post_bso_phoenix_export_reports_csv', array($this, 'handle_export_reports_csv'));
+        add_action('admin_post_bso_phoenix_export_reports_zip', array($this, 'handle_export_reports_zip'));
     }
 
     public function enqueue_assets(string $hook_suffix): void
@@ -99,6 +100,14 @@ class BSO_Phoenix_Reports_Admin
         echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
         wp_nonce_field('bso_phoenix_export_reports_csv', 'bso_phoenix_reports_export_nonce');
         submit_button(__('Exporteer rapportage naar CSV', 'bso-phoenix'), 'secondary', 'submit', false);
+        echo '</form>';
+
+        echo '<form class="no-print" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0 0 18px;">';
+        echo '<input type="hidden" name="action" value="bso_phoenix_export_reports_zip" />';
+        echo '<input type="hidden" name="date_from" value="' . esc_attr($date_from) . '" />';
+        echo '<input type="hidden" name="date_to" value="' . esc_attr($date_to) . '" />';
+        wp_nonce_field('bso_phoenix_export_reports_zip', 'bso_phoenix_reports_export_zip_nonce');
+        submit_button(__('Exporteer rapportagepakket (ZIP)', 'bso-phoenix'), 'primary', 'submit', false);
         echo '</form>';
 
         echo '<div class="phoenix-report-print">';
@@ -887,5 +896,222 @@ class BSO_Phoenix_Reports_Admin
 
         fclose($output);
         exit;
+    }
+
+    public function handle_export_reports_zip(): void
+    {
+        if (! current_user_can(BSO_PHOENIX_CAP_READ)) {
+            wp_die(esc_html__('Je hebt geen rechten om deze actie uit te voeren.', 'bso-phoenix'));
+        }
+
+        check_admin_referer('bso_phoenix_export_reports_zip', 'bso_phoenix_reports_export_zip_nonce');
+
+        if (! class_exists('ZipArchive')) {
+            wp_die(esc_html__('ZIP-export is niet beschikbaar op deze server (ZipArchive ontbreekt).', 'bso-phoenix'));
+        }
+
+        $date_from = $this->normalize_date(isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '');
+        $date_to = $this->normalize_date(isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '');
+
+        $trip_service = new BSO_Phoenix_Trip_Service();
+        $cost_service = new BSO_Phoenix_Cost_Service();
+        $log_service = new BSO_Phoenix_Log_Service();
+        $todo_service = new BSO_Phoenix_Todo_Service();
+
+        $trips = $trip_service->get_trips_by_date_range($date_from, $date_to, '', 1000);
+        $costs = $cost_service->get_costs($date_from, $date_to, '', 1000);
+        $logs = $log_service->get_logs($date_from, $date_to, 1000);
+        $todos = $todo_service->get_todos('', '', 1000);
+
+        $zip_path = tempnam(sys_get_temp_dir(), 'phoenix-report-');
+        if ($zip_path === false) {
+            wp_die(esc_html__('Kon tijdelijk ZIP-bestand niet aanmaken.', 'bso-phoenix'));
+        }
+
+        $zip = new ZipArchive();
+        $opened = $zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($opened !== true) {
+            @unlink($zip_path);
+            wp_die(esc_html__('Kon ZIP-bestand niet opbouwen.', 'bso-phoenix'));
+        }
+
+        $zip->addFromString('README.txt', $this->build_export_readme());
+        $zip->addFromString('summary.txt', $this->build_export_summary($date_from, $date_to, $trips, $costs, $logs, $todos));
+
+        $zip->addFromString('csv/trips.csv', $this->csv_to_string(
+            array('trip_id', 'started_at', 'ended_at', 'status', 'distance_km', 'duration_minutes', 'average_speed_kmh', 'estimated_fuel_used_l'),
+            array_map(function ($trip): array {
+                return array(
+                    (string) ($trip['id'] ?? ''),
+                    (string) ($trip['started_at'] ?? ''),
+                    (string) ($trip['ended_at'] ?? ''),
+                    (string) ($trip['status'] ?? ''),
+                    (string) ($trip['distance_km'] ?? ''),
+                    (string) ($trip['duration_minutes'] ?? ''),
+                    (string) ($trip['average_speed_kmh'] ?? ''),
+                    (string) ($trip['estimated_fuel_used_l'] ?? ''),
+                );
+            }, $trips)
+        ));
+
+        $zip->addFromString('csv/costs.csv', $this->csv_to_string(
+            array('id', 'trip_id', 'cost_type', 'amount', 'currency', 'cost_date', 'supplier', 'notes'),
+            array_map(function ($cost): array {
+                return array(
+                    (string) ($cost['id'] ?? ''),
+                    (string) ($cost['trip_id'] ?? ''),
+                    (string) ($cost['cost_type'] ?? ''),
+                    (string) ($cost['amount'] ?? ''),
+                    (string) ($cost['currency'] ?? ''),
+                    (string) ($cost['cost_date'] ?? ''),
+                    (string) ($cost['supplier'] ?? ''),
+                    (string) ($cost['notes'] ?? ''),
+                );
+            }, $costs)
+        ));
+
+        $zip->addFromString('csv/logs.csv', $this->csv_to_string(
+            array('id', 'trip_id', 'log_date', 'log_time', 'entry_text', 'created_at'),
+            array_map(function ($log): array {
+                return array(
+                    (string) ($log['id'] ?? ''),
+                    (string) ($log['trip_id'] ?? ''),
+                    (string) ($log['log_date'] ?? ''),
+                    (string) ($log['log_time'] ?? ''),
+                    (string) ($log['entry_text'] ?? ''),
+                    (string) ($log['created_at'] ?? ''),
+                );
+            }, $logs)
+        ));
+
+        $zip->addFromString('csv/todos.csv', $this->csv_to_string(
+            array('id', 'title', 'status', 'priority', 'due_date', 'completed_at', 'created_at'),
+            array_map(function ($todo): array {
+                return array(
+                    (string) ($todo['id'] ?? ''),
+                    (string) ($todo['title'] ?? ''),
+                    (string) ($todo['status'] ?? ''),
+                    (string) ($todo['priority'] ?? ''),
+                    (string) ($todo['due_date'] ?? ''),
+                    (string) ($todo['completed_at'] ?? ''),
+                    (string) ($todo['created_at'] ?? ''),
+                );
+            }, $todos)
+        ));
+
+        foreach ($trips as $trip) {
+            $trip_id = isset($trip['id']) ? (int) $trip['id'] : 0;
+            if ($trip_id <= 0) {
+                continue;
+            }
+
+            $points = $trip_service->get_trackpoints_for_trip($trip_id);
+            if (empty($points)) {
+                continue;
+            }
+
+            $zip->addFromString(
+                'gpx/trip-' . $trip_id . '.gpx',
+                $this->build_trip_gpx((array) $trip, $points)
+            );
+        }
+
+        $zip->close();
+
+        $filename = 'phoenix-exportpakket-' . gmdate('Ymd-His') . '.zip';
+        nocache_headers();
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Length: ' . (string) filesize($zip_path));
+
+        readfile($zip_path);
+        @unlink($zip_path);
+        exit;
+    }
+
+    private function csv_to_string(array $header, array $rows): string
+    {
+        $stream = fopen('php://temp', 'r+');
+        if ($stream === false) {
+            return '';
+        }
+
+        fputcsv($stream, $header);
+        foreach ($rows as $row) {
+            fputcsv($stream, $row);
+        }
+
+        rewind($stream);
+        $content = stream_get_contents($stream);
+        fclose($stream);
+
+        return is_string($content) ? $content : '';
+    }
+
+    private function build_export_readme(): string
+    {
+        return implode("\n", array(
+            'BSO Phoenix - Rapportage exportpakket',
+            '',
+            'Inhoud:',
+            '- csv/trips.csv',
+            '- csv/costs.csv',
+            '- csv/logs.csv',
+            '- csv/todos.csv',
+            '- gpx/trip-<id>.gpx',
+            '- summary.txt',
+            '',
+            'Dit pakket is gegenereerd vanuit de Rapportages pagina.',
+        ));
+    }
+
+    private function build_export_summary(string $date_from, string $date_to, array $trips, array $costs, array $logs, array $todos): string
+    {
+        $lines = array(
+            'BSO Phoenix - Export samenvatting',
+            'Gegenereerd op: ' . gmdate('Y-m-d H:i:s') . ' UTC',
+            'Periode vanaf: ' . ($date_from !== '' ? $date_from : '-'),
+            'Periode tot en met: ' . ($date_to !== '' ? $date_to : '-'),
+            '',
+            'Aantallen',
+            '- Trips: ' . count($trips),
+            '- Costs: ' . count($costs),
+            '- Logs: ' . count($logs),
+            '- Todos: ' . count($todos),
+        );
+
+        return implode("\n", $lines);
+    }
+
+    private function build_trip_gpx(array $trip, array $points): string
+    {
+        $trip_id = isset($trip['id']) ? (int) $trip['id'] : 0;
+        $name = 'Phoenix Trip #' . $trip_id;
+
+        $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $xml .= '<gpx version="1.1" creator="BSO Phoenix" xmlns="http://www.topografix.com/GPX/1/1">';
+        $xml .= '<metadata><name>' . esc_html($name) . '</name></metadata>';
+        $xml .= '<trk><name>' . esc_html($name) . '</name><trkseg>';
+
+        foreach ($points as $point) {
+            $lat = isset($point['latitude']) ? (float) $point['latitude'] : 0.0;
+            $lon = isset($point['longitude']) ? (float) $point['longitude'] : 0.0;
+            $ele = isset($point['altitude_m']) ? (string) $point['altitude_m'] : '';
+            $recorded_at = isset($point['recorded_at']) ? (string) $point['recorded_at'] : '';
+            $timestamp = $recorded_at !== '' ? strtotime($recorded_at) : false;
+
+            $xml .= '<trkpt lat="' . esc_attr((string) $lat) . '" lon="' . esc_attr((string) $lon) . '">';
+            if ($ele !== '') {
+                $xml .= '<ele>' . esc_html($ele) . '</ele>';
+            }
+            if ($timestamp !== false) {
+                $xml .= '<time>' . gmdate('c', $timestamp) . '</time>';
+            }
+            $xml .= '</trkpt>';
+        }
+
+        $xml .= '</trkseg></trk></gpx>';
+
+        return $xml;
     }
 }
