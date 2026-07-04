@@ -230,6 +230,7 @@ bso-phoenix/
 - [User Story: Live route schermvullend toggle](document/User_Story_Live_Route_Schermvullend_Toggle.md)
 - [Testplan: Bulkacties Recente tochten TODO Kosten](document/Testplan_Bulkacties_Recente_Tochten_TODO_Kosten.md)
 - [Testplan: Live route schermvullend toggle](document/Testplan_Live_Route_Schermvullend_Toggle.md)
+- [Dagafsluiting 2026-07-05](document/Dagafsluiting_2026-07-05.md)
 - [Dagafsluiting 2026-07-04](document/Dagafsluiting_2026-07-04.md)
 - [Acceptatietest Story 5 / PR comment](document/Acceptatietest_PR_comment.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
