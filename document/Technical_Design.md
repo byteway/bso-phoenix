@@ -25,6 +25,7 @@
 13. [Known Implementation Caveats](#13-known-implementation-caveats)
 14. [Roadmap](#14-roadmap)
 15. [Bulkacties architectuur](#15-bulkacties-architectuur)
+16. [Live route schermvullend toggle architectuur](#16-live-route-schermvullend-toggle-architectuur)
 
 ---
 
@@ -831,6 +832,64 @@ Bij verwijderen van trips:
 - trackpoints en exports worden fysiek verwijderd
 - gerelateerde logs/kosten blijven behouden maar `trip_id` wordt `NULL`
 - actieve trips worden niet bulk-verwijderd
+
+---
+
+## 16. Live route schermvullend toggle architectuur
+
+### 16.1 Doel
+
+De gebruiker kan tijdens een actieve of afgeronde route de kaart wisselen tussen:
+
+- standaard dashboardweergave
+- schermvullende kaartweergave
+
+zonder verlies van routecontext of herladen van de pagina.
+
+### 16.2 Front-end componenten
+
+- Template `frontend-dashboard.php`
+	- toggleknop `data-phoenix-map-fullscreen-toggle`
+	- fullscreen-container `data-phoenix-map-fullscreen`
+	- closeknop `data-phoenix-map-fullscreen-close`
+	- map-homecontainer `data-phoenix-map-home`
+- Script `phoenix-frontend.js`
+	- `toggleMapFullscreen()`
+	- `closeMapFullscreen()`
+	- `isMapFullscreenOpen()`
+	- `setMapFullscreenButtonState()`
+- Styling `phoenix-frontend.css`
+	- fullscreen overlay
+	- body scroll lock (`body.phoenix-has-fullscreen`)
+	- responsive regels voor mobiel
+
+### 16.3 Eventflow
+
+```mermaid
+flowchart TD
+	A[Klik op Volledig scherm] --> B[Fullscreen container zichtbaar]
+	B --> C[Map DOM node verplaatsen naar fullscreen]
+	C --> D[Leaflet invalidateSize]
+	D --> E[Route blijft live updaten]
+	E --> F{Exit actie}
+	F -->|Escape| G[closeMapFullscreen]
+	F -->|Klik Sluiten| G
+	G --> H[Map terug naar standaard container]
+	H --> I[Fullscreen hidden + body scroll unlock]
+	I --> J[Leaflet invalidateSize]
+```
+
+### 16.4 Consistentie en rechten
+
+- Geen extra server-endpoint nodig; functionaliteit is volledig client-side.
+- Bestaande route-state (`state.routePoints`, `state.routeLine`, actieve trip) blijft in dezelfde JS-state.
+- Read-only gebruikers mogen fullscreen gebruiken omdat er geen mutatie plaatsvindt.
+
+### 16.5 Acceptatie op technisch niveau
+
+- Toggle en close zijn event-gedreven zonder page reload.
+- Escape sluit fullscreen voordat andere Escape-interacties (zoals lightbox) worden afgehandeld.
+- Kaart blijft renderen na schakelen door `invalidateSize()` bij enter/exit.
 
 ---
 

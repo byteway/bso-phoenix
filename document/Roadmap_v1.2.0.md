@@ -1,7 +1,7 @@
 # Roadmap - v1.2.0
 
 **Plugin:** BSO Phoenix  
-**Roadmap status:** In uitvoering (Stories 1 t/m 6 op feature branches opgeleverd)  
+**Roadmap status:** In uitvoering (Stories 1 t/m 7 op feature branches opgeleverd)  
 **Doelrelease:** v1.2.0
 
 ## Scope
@@ -107,6 +107,8 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 - Alle mutaties zijn afgeschermd met capability + nonce checks.
 
 ## 7) Live route schermvullend toggle
+
+**Status:** Opgeleverd op feature branch
 
 **Gebruikerswaarde**
 - Tijdens het varen kan de gebruiker beter zicht houden op de afgelegde route door snel te schakelen naar een schermvullende kaartweergave.

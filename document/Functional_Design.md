@@ -25,6 +25,7 @@
 13. [Gebruikersrollen en toegang](#13-gebruikersrollen-en-toegang)
 14. [Functionele grenzen en aannames](#14-functionele-grenzen-en-aannames)
 15. [Bulkacties selectie en verwijderen](#15-bulkacties-selectie-en-verwijderen)
+16. [Live route schermvullend toggle](#16-live-route-schermvullend-toggle)
 
 ---
 
@@ -514,6 +515,47 @@ De app moet verschillende samenvattingen kunnen genereren.
 - Verwijderen zonder selectie wordt geblokkeerd met melding.
 - Verwijderen zonder voldoende rechten wordt geblokkeerd.
 - Na verwijderen zijn de verwijderde records niet meer zichtbaar in de lijst.
+
+---
+
+## 16. Live route schermvullend toggle
+
+### User story
+
+Als geautoriseerde gebruiker wil ik kunnen wisselen tussen standaard dashboard en schermvullende live routekaart, zodat ik tijdens varen beter zicht houd op de afgelegde route.
+
+### Scope
+
+- Toggle-knop in het Live route kaartpaneel.
+- Schermvullende kaartmodus toont kaart op volledig scherm.
+- Routedata blijft synchroon in beide weergaven.
+- Sluiten van fullscreen via closeknop of Escape-toets.
+- Beschikbaar op desktop, tablet en mobiel.
+
+### Functioneel gedrag
+
+1. Gebruiker klikt toggle-knop `Volledig scherm` in Live route header.
+2. Kaart toont in schermvullende modus (position: fixed, inset: 0).
+3. Dashboard-secties verdwijnen uit zicht.
+4. Gebruiker kan Escape indrukken of knop `Sluiten` klikken om terug te keren.
+5. Route blijft live bijwerken in beide modi.
+6. Geen page reload of routedata verlies.
+
+### Toegang
+
+- Beschikbaar voor alle geautoriseerde gebruikers (read/write/manage).
+- Geen aanvullende rechtenchecks vereist.
+- Read-only gebruikers kunnen toggle gebruiken (status lezen).
+
+### Acceptatiecriteria
+
+- Toggle-knop is zichtbaar in Live route header.
+- Klik toggle = kaart in fullscreen modus.
+- Kaart blijft routedata live ontvangen en tekenen in fullscreen.
+- Escape-toets sluit fullscreen.
+- Closeknop sluit fullscreen.
+- Klik buiten kaart (op overlay achtergrond) doet niets.
+- Fullscreen-status reset bij page reload.
 
 ---
 

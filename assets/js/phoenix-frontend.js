@@ -1436,6 +1436,58 @@
         }).addTo(state.map);
     }
 
+    function isMapFullscreenOpen() {
+        var fullscreenNode = document.querySelector('[data-phoenix-map-fullscreen]');
+        return !!(fullscreenNode && !fullscreenNode.hasAttribute('hidden'));
+    }
+
+    function setMapFullscreenButtonState(isFullscreen) {
+        var toggleButton = document.querySelector('[data-phoenix-map-fullscreen-toggle]');
+        if (!toggleButton) {
+            return;
+        }
+
+        toggleButton.setAttribute('aria-pressed', isFullscreen ? 'true' : 'false');
+        toggleButton.textContent = isFullscreen ? 'Standaard weergave' : 'Volledig scherm';
+    }
+
+    function toggleMapFullscreen() {
+        var fullscreenNode = document.querySelector('[data-phoenix-map-fullscreen]');
+        var mapNode = document.querySelector('[data-phoenix-map]');
+        var contentNode = document.querySelector('[data-phoenix-map-fullscreen-content]');
+        var homeNode = document.querySelector('[data-phoenix-map-home]');
+
+        if (!fullscreenNode || !mapNode || !contentNode || !homeNode) {
+            return;
+        }
+
+        var isFullscreen = isMapFullscreenOpen();
+
+        if (isFullscreen) {
+            homeNode.appendChild(mapNode);
+            fullscreenNode.setAttribute('hidden', '');
+            document.body.classList.remove('phoenix-has-fullscreen');
+            setMapFullscreenButtonState(false);
+        } else {
+            fullscreenNode.removeAttribute('hidden');
+            contentNode.appendChild(mapNode);
+            document.body.classList.add('phoenix-has-fullscreen');
+            setMapFullscreenButtonState(true);
+        }
+
+        if (state.map) {
+            setTimeout(function () {
+                state.map.invalidateSize();
+            }, 120);
+        }
+    }
+
+    function closeMapFullscreen() {
+        if (isMapFullscreenOpen()) {
+            toggleMapFullscreen();
+        }
+    }
+
     function renderRoute(points) {
         ensureMap();
         if (!state.map || !state.routeLine) {
@@ -2422,6 +2474,16 @@
             return;
         }
 
+        if (target.closest('[data-phoenix-map-fullscreen-toggle]')) {
+            toggleMapFullscreen();
+            return;
+        }
+
+        if (target.closest('[data-phoenix-map-fullscreen-close]')) {
+            closeMapFullscreen();
+            return;
+        }
+
         if (target.matches('[data-phoenix-lightbox]')) {
             closeLightbox();
             return;
@@ -2461,12 +2523,22 @@
     });
 
     document.addEventListener('keydown', function (event) {
-        if (state.lightboxIndex < 0) {
-            return;
-        }
+        var fullscreenNode = document.querySelector('[data-phoenix-map-fullscreen]');
+        var isFullscreenOpen = fullscreenNode && !fullscreenNode.hasAttribute('hidden');
 
         if (event.key === 'Escape') {
-            closeLightbox();
+            if (isFullscreenOpen) {
+                closeMapFullscreen();
+                return;
+            }
+
+            if (state.lightboxIndex >= 0) {
+                closeLightbox();
+                return;
+            }
+        }
+
+        if (state.lightboxIndex < 0) {
             return;
         }
 
@@ -2481,6 +2553,7 @@
     });
 
     ensureMap();
+    setMapFullscreenButtonState(false);
     initLogPhotoInput();
     loadLogGallery();
     loadTodos();

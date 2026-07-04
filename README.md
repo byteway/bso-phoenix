@@ -34,6 +34,7 @@ WordPress-plugin voor de Phoenix: een app-achtige dashboardomgeving voor varen, 
 - Kostenbeheer per type, leverancier en periode
 - Bulkselectie met verwijderen in admin voor Recente tochten
 - Bulkselectie met verwijderen in frontend voor TODO en kosten (schrijfrechten vereist)
+- Toggle tussen standaard en schermvullende live routekaart in frontend dashboard
 - Rapportages met trends, vergelijkingen en exports
 - Exportpakket vanuit Rapportages als ZIP met:
 	- `README.txt`
@@ -213,10 +214,10 @@ bso-phoenix/
 - [x] Story 4: uniforme frontend actiefeedback en meldingen
 - [x] Story 5: rapportage exportpakket als ZIP (CSV + GPX + metadata)
 - [x] Story 6: bulkselectie + bulkverwijderen voor Recente tochten (admin), TODO en kosten (frontend)
+- [x] Story 7: toggle tussen standaard en schermvullende live routekaart in frontend dashboard
 
 ### Planned / ready for development
 
-- [ ] Story 7: toggle tussen standaard en schermvullende live routekaart in frontend dashboard
 - [ ] Verdere hardening van import/export validatie en foutrapportage
 - [ ] Release notes voor formele v1.2.0 versie-tag
 
@@ -228,6 +229,7 @@ bso-phoenix/
 - [User Story: Bulkacties Selectie en Verwijderen](document/User_Story_Bulkacties_Selectie_En_Verwijderen.md)
 - [User Story: Live route schermvullend toggle](document/User_Story_Live_Route_Schermvullend_Toggle.md)
 - [Testplan: Bulkacties Recente tochten TODO Kosten](document/Testplan_Bulkacties_Recente_Tochten_TODO_Kosten.md)
+- [Testplan: Live route schermvullend toggle](document/Testplan_Live_Route_Schermvullend_Toggle.md)
 - [Dagafsluiting 2026-07-04](document/Dagafsluiting_2026-07-04.md)
 - [Acceptatietest Story 5 / PR comment](document/Acceptatietest_PR_comment.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
