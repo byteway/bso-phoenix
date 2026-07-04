@@ -16,7 +16,12 @@
         logSubmitInProgress: false,
         todoSubmitInProgress: false,
         costSubmitInProgress: false,
+        feedbackQueue: [],
+        feedbackVisibleCount: 0,
     };
+
+    var FEEDBACK_MAX_VISIBLE = 3;
+    var FEEDBACK_TOAST_TIMEOUT_MS = 4500;
 
     function statNode(selector) {
         return document.querySelector(selector);
@@ -479,12 +484,87 @@
         renderLightbox();
     }
 
-    function setSyncFeedback(text) {
-        var node = document.querySelector('[data-phoenix-sync-feedback]');
+    function normalizeFeedbackType(type) {
+        if (type === 'success' || type === 'info' || type === 'warning' || type === 'error') {
+            return type;
+        }
+
+        return 'info';
+    }
+
+    function setFeedbackBanner(selector, text, type) {
+        var node = document.querySelector(selector);
         if (!node) {
             return;
         }
+
         node.textContent = text;
+        node.setAttribute('data-feedback-type', normalizeFeedbackType(type));
+    }
+
+    function removeFeedbackToast(toastNode) {
+        if (toastNode && toastNode.parentNode) {
+            toastNode.parentNode.removeChild(toastNode);
+        }
+
+        state.feedbackVisibleCount = Math.max(0, state.feedbackVisibleCount - 1);
+        drainFeedbackQueue();
+    }
+
+    function drainFeedbackQueue() {
+        var root = document.querySelector('[data-phoenix-feedback-stack]');
+        if (!root) {
+            state.feedbackQueue = [];
+            state.feedbackVisibleCount = 0;
+            return;
+        }
+
+        while (state.feedbackVisibleCount < FEEDBACK_MAX_VISIBLE && state.feedbackQueue.length > 0) {
+            var nextToast = state.feedbackQueue.shift();
+            var toastNode = document.createElement('div');
+            toastNode.className = 'phoenix-feedback-toast';
+            toastNode.setAttribute('data-feedback-type', nextToast.type);
+            toastNode.setAttribute('role', nextToast.type === 'error' ? 'alert' : 'status');
+            toastNode.textContent = nextToast.text;
+            root.appendChild(toastNode);
+            state.feedbackVisibleCount += 1;
+
+            (function (node) {
+                window.setTimeout(function () {
+                    removeFeedbackToast(node);
+                }, FEEDBACK_TOAST_TIMEOUT_MS);
+            })(toastNode);
+        }
+    }
+
+    function notify(text, type, options) {
+        var nextType = normalizeFeedbackType(type);
+        var nextOptions = options || {};
+        if (!text) {
+            return;
+        }
+
+        if (nextOptions.bannerSelector) {
+            setFeedbackBanner(nextOptions.bannerSelector, text, nextType);
+        }
+
+        if (nextOptions.toast === false) {
+            return;
+        }
+
+        state.feedbackQueue.push({
+            text: text,
+            type: nextType,
+        });
+        drainFeedbackQueue();
+    }
+
+    function setSyncFeedback(text, type, options) {
+        var nextOptions = options || {};
+        notify(text, type || 'info', {
+            bannerSelector: '[data-phoenix-sync-feedback]',
+            toast: nextOptions.toast === true,
+        });
     }
 
     function openQueueDb() {
@@ -991,7 +1071,7 @@
             renderRoute(result.data.trackpoints || []);
             setMapTrip('Trip #' + tripId + ' (' + ((result.data.trip && result.data.trip.status) || 'onbekend') + ')');
         }).catch(function () {
-            setFeedback('Laatste route laden mislukt.');
+            setFeedback('Laatste route laden mislukt.', 'error');
         });
     }
 
@@ -1006,12 +1086,12 @@
         return distance;
     }
 
-    function setFeedback(text) {
-        var node = document.querySelector('[data-phoenix-feedback]');
-        if (!node) {
-            return;
-        }
-        node.textContent = text;
+    function setFeedback(text, type, options) {
+        var nextOptions = options || {};
+        notify(text, type || 'info', {
+            bannerSelector: '[data-phoenix-feedback]',
+            toast: nextOptions.toast !== false,
+        });
     }
 
     function setStatus(nextStatus) {
@@ -1053,21 +1133,21 @@
             request_uid: createRequestUid('trackpoint'),
         }, window.bsoPhoenix && window.bsoPhoenix.nonce ? window.bsoPhoenix.nonce : '', 'trackpoint', 'queued').catch(function (error) {
             if (error && error.message === 'queued') {
-                setFeedback('Geen verbinding. Trackpoint lokaal opgeslagen voor latere synchronisatie.');
+                setFeedback('Geen verbinding. Trackpoint lokaal opgeslagen voor latere synchronisatie.', 'warning', { toast: false });
                 return;
             }
-            setFeedback(error && error.message ? error.message : 'Trackpoint opslaan mislukt. Controleer verbinding.');
+            setFeedback(error && error.message ? error.message : 'Trackpoint opslaan mislukt. Controleer verbinding.', 'error');
         });
     }
 
     function startGeolocation() {
         if (!('geolocation' in navigator)) {
-            setFeedback('GPS is niet beschikbaar op dit apparaat.');
+            setFeedback('GPS is niet beschikbaar op dit apparaat.', 'error');
             return;
         }
 
         if (window.isSecureContext !== true) {
-            setFeedback('GPS vereist een beveiligde verbinding (HTTPS) of localhost. Open deze pagina via HTTPS.');
+            setFeedback('GPS vereist een beveiligde verbinding (HTTPS) of localhost. Open deze pagina via HTTPS.', 'warning');
             return;
         }
 
@@ -1079,21 +1159,21 @@
             sendTrackpoint,
             function (error) {
                 if (error && error.code === 1) {
-                    setFeedback('Locatietoegang geweigerd. Sta locatie toe in browser- en app-instellingen.');
+                    setFeedback('Locatietoegang geweigerd. Sta locatie toe in browser- en app-instellingen.', 'warning');
                     return;
                 }
 
                 if (error && error.code === 2) {
-                    setFeedback('Locatie niet beschikbaar. Controleer GPS, netwerk of ga naar buiten voor beter signaal.');
+                    setFeedback('Locatie niet beschikbaar. Controleer GPS, netwerk of ga naar buiten voor beter signaal.', 'warning');
                     return;
                 }
 
                 if (error && error.code === 3) {
-                    setFeedback('Locatie-opvraag timeout. Probeer opnieuw of verhoog het GPS-interval in de instellingen.');
+                    setFeedback('Locatie-opvraag timeout. Probeer opnieuw of verhoog het GPS-interval in de instellingen.', 'warning');
                     return;
                 }
 
-                setFeedback('Geen GPS-signaal. Controleer locatiepermissies.');
+                setFeedback('Geen GPS-signaal. Controleer locatiepermissies.', 'error');
             },
             {
                 enableHighAccuracy: true,
@@ -1112,14 +1192,14 @@
 
     function handleStart() {
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
-            setFeedback('Je hebt alleen-lezen rechten. Starten van routes is niet toegestaan.');
+            setFeedback('Je hebt alleen-lezen rechten. Starten van routes is niet toegestaan.', 'warning');
             return;
         }
 
         var knownActiveTripId = normalizeTripId(state.activeTripId);
         if (knownActiveTripId > 0) {
             state.activeTripId = knownActiveTripId;
-            setFeedback('Er is al een actieve route.');
+            setFeedback('Er is al een actieve route.', 'info');
             setStatus('Actief');
             startGeolocation();
             return;
@@ -1128,7 +1208,7 @@
         state.activeTripId = null;
 
         if (navigator.onLine === false) {
-            setFeedback('Een nieuwe route starten vereist verbinding met de server.');
+            setFeedback('Een nieuwe route starten vereist verbinding met de server.', 'warning');
             return;
         }
 
@@ -1137,7 +1217,7 @@
             request_uid: createRequestUid('start_trip'),
         }).then(function (result) {
             if (!result || !result.success) {
-                setFeedback('Start route mislukt.');
+                setFeedback('Start route mislukt.', 'error');
                 return;
             }
 
@@ -1148,11 +1228,11 @@
 
             if (result.data.already_active) {
                 loadTripRoute(state.activeTripId);
-                setFeedback('Bestaande actieve route hervat. GPS tracking blijft actief.');
+                setFeedback('Bestaande actieve route hervat. GPS tracking blijft actief.', 'info');
             } else {
                 state.routePoints = [];
                 renderRoute([]);
-                setFeedback('Route gestart. GPS tracking is actief.');
+                setFeedback('Route gestart. GPS tracking is actief.', 'success');
             }
 
             ensureLiveStatsTimer();
@@ -1160,20 +1240,20 @@
             startGeolocation();
             flushQueuedRequests();
         }).catch(function (error) {
-            setFeedback(error && error.message ? error.message : 'Start route mislukt. Controleer sessie of permissies.');
+            setFeedback(error && error.message ? error.message : 'Start route mislukt. Controleer sessie of permissies.', 'error');
         });
     }
 
     function handleStop() {
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
-            setFeedback('Je hebt alleen-lezen rechten. Stoppen van routes is niet toegestaan.');
+            setFeedback('Je hebt alleen-lezen rechten. Stoppen van routes is niet toegestaan.', 'warning');
             return;
         }
 
         var activeTripId = normalizeTripId(state.activeTripId);
         if (activeTripId <= 0) {
             state.activeTripId = null;
-            setFeedback('Er is geen actieve route om te stoppen.');
+            setFeedback('Er is geen actieve route om te stoppen.', 'info');
             return;
         }
 
@@ -1184,7 +1264,7 @@
             request_uid: createRequestUid('stop_trip'),
         }).then(function (result) {
             if (!result || !result.success) {
-                setFeedback('Stop route mislukt.');
+                setFeedback('Stop route mislukt.', 'error');
                 return;
             }
 
@@ -1193,19 +1273,19 @@
             state.activeTripId = null;
             state.activeTripStartedAt = null;
             setStatus('Gestopt');
-            setFeedback('Route gestopt en opgeslagen.');
+            setFeedback('Route gestopt en opgeslagen.', 'success');
             resetLiveStats();
         }).catch(function (error) {
-            setFeedback(error && error.message ? error.message : 'Stop route mislukt. Controleer verbinding.');
+            setFeedback(error && error.message ? error.message : 'Stop route mislukt. Controleer verbinding.', 'error');
         });
     }
 
-    function setLogFeedback(text) {
-        var node = document.querySelector('[data-phoenix-log-feedback]');
-        if (!node) {
-            return;
-        }
-        node.textContent = text;
+    function setLogFeedback(text, type, options) {
+        var nextOptions = options || {};
+        notify(text, type || 'info', {
+            bannerSelector: '[data-phoenix-log-feedback]',
+            toast: nextOptions.toast !== false,
+        });
     }
 
     function setLogSubmitPending(isPending) {
@@ -1230,7 +1310,7 @@
         }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
-            setLogFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
+            setLogFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.', 'warning');
             return;
         }
 
@@ -1239,12 +1319,12 @@
         var text = textNode ? textNode.value.trim() : '';
 
         if (!text) {
-            setLogFeedback('Vul een notitie in voor het opslaan.');
+            setLogFeedback('Vul een notitie in voor het opslaan.', 'warning');
             return;
         }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
-            setLogFeedback('Configuratie ontbreekt.');
+            setLogFeedback('Configuratie ontbreekt.', 'error');
             return;
         }
 
@@ -1269,7 +1349,7 @@
             request_uid: createRequestUid('create_log'),
         }, window.bsoPhoenix.logNonce || '', buildQueuedFiles(orderedPhotos), 'log', 'queued').then(function (result) {
             if (!result || !result.success) {
-                setLogFeedback('Opslaan mislukt.');
+                setLogFeedback('Opslaan mislukt.', 'error');
                 return;
             }
 
@@ -1281,7 +1361,7 @@
             }
             state.logPhotoFiles = [];
             renderSelectedLogPhotos();
-            setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'));
+            setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'), 'success');
             loadLogGallery();
             flushQueuedRequests();
         }).catch(function (error) {
@@ -1294,22 +1374,22 @@
                 }
                 state.logPhotoFiles = [];
                 renderSelectedLogPhotos();
-                setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.');
+                setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.', 'warning');
                 return;
             }
-            setLogFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
+            setLogFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.', 'error');
         }).finally(function () {
             state.logSubmitInProgress = false;
             setLogSubmitPending(false);
         });
     }
 
-    function setTodoFeedback(text) {
-        var node = document.querySelector('[data-phoenix-todo-feedback]');
-        if (!node) {
-            return;
-        }
-        node.textContent = text;
+    function setTodoFeedback(text, type, options) {
+        var nextOptions = options || {};
+        notify(text, type || 'info', {
+            bannerSelector: '[data-phoenix-todo-feedback]',
+            toast: nextOptions.toast !== false,
+        });
     }
 
     function setTodoSubmitPending(isPending) {
@@ -1326,12 +1406,12 @@
         submitButton.removeAttribute('disabled');
     }
 
-    function setCostFeedback(text) {
-        var node = document.querySelector('[data-phoenix-cost-feedback]');
-        if (!node) {
-            return;
-        }
-        node.textContent = text;
+    function setCostFeedback(text, type, options) {
+        var nextOptions = options || {};
+        notify(text, type || 'info', {
+            bannerSelector: '[data-phoenix-cost-feedback]',
+            toast: nextOptions.toast !== false,
+        });
     }
 
     function setCostSubmitPending(isPending) {
@@ -1356,7 +1436,7 @@
         }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
-            setCostFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
+            setCostFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.', 'warning');
             return;
         }
 
@@ -1369,17 +1449,17 @@
         var cost_date = dateNode ? dateNode.value : '';
 
         if (!amount || parseFloat(amount) <= 0) {
-            setCostFeedback('Vul een geldig bedrag in.');
+            setCostFeedback('Vul een geldig bedrag in.', 'warning');
             return;
         }
 
         if (!cost_date) {
-            setCostFeedback('Vul een datum in.');
+            setCostFeedback('Vul een datum in.', 'warning');
             return;
         }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
-            setCostFeedback('Configuratie ontbreekt.');
+            setCostFeedback('Configuratie ontbreekt.', 'error');
             return;
         }
 
@@ -1396,24 +1476,24 @@
             request_uid: createRequestUid('create_cost'),
         }, window.bsoPhoenix.costNonce || '', 'cost', 'queued').then(function (result) {
             if (!result || !result.success) {
-                setCostFeedback('Opslaan mislukt.');
+                setCostFeedback('Opslaan mislukt.', 'error');
                 return;
             }
 
             if (amountNode) {
                 amountNode.value = '';
             }
-            setCostFeedback('Kostenpost opgeslagen.');
+            setCostFeedback('Kostenpost opgeslagen.', 'success');
             flushQueuedRequests();
         }).catch(function (error) {
             if (error && error.message === 'queued') {
                 if (amountNode) {
                     amountNode.value = '';
                 }
-                setCostFeedback('Geen verbinding. Kostenpost lokaal in wachtrij geplaatst.');
+                setCostFeedback('Geen verbinding. Kostenpost lokaal in wachtrij geplaatst.', 'warning');
                 return;
             }
-            setCostFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
+            setCostFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.', 'error');
         }).finally(function () {
             state.costSubmitInProgress = false;
             setCostSubmitPending(false);
@@ -1428,7 +1508,7 @@
         }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
-            setTodoFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
+            setTodoFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.', 'warning');
             return;
         }
 
@@ -1438,12 +1518,12 @@
         var priority = priorityNode ? priorityNode.value : 'normal';
 
         if (!title) {
-            setTodoFeedback('Vul een taakomschrijving in.');
+            setTodoFeedback('Vul een taakomschrijving in.', 'warning');
             return;
         }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.ajaxUrl) {
-            setTodoFeedback('Configuratie ontbreekt.');
+            setTodoFeedback('Configuratie ontbreekt.', 'error');
             return;
         }
 
@@ -1458,24 +1538,24 @@
             request_uid: createRequestUid('create_todo'),
         }, window.bsoPhoenix.todoNonce || '', 'todo', 'queued').then(function (result) {
             if (!result || !result.success) {
-                setTodoFeedback('Opslaan mislukt.');
+                setTodoFeedback('Opslaan mislukt.', 'error');
                 return;
             }
 
             if (titleNode) {
                 titleNode.value = '';
             }
-            setTodoFeedback('Taak toegevoegd.');
+            setTodoFeedback('Taak toegevoegd.', 'success');
             flushQueuedRequests();
         }).catch(function (error) {
             if (error && error.message === 'queued') {
                 if (titleNode) {
                     titleNode.value = '';
                 }
-                setTodoFeedback('Geen verbinding. Taak lokaal in wachtrij geplaatst.');
+                setTodoFeedback('Geen verbinding. Taak lokaal in wachtrij geplaatst.', 'warning');
                 return;
             }
-            setTodoFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
+            setTodoFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.', 'error');
         }).finally(function () {
             state.todoSubmitInProgress = false;
             setTodoSubmitPending(false);
@@ -1508,12 +1588,17 @@
         }
 
         if (target.closest('[data-phoenix-queue-retry-all]')) {
+            setSyncFeedback('Opnieuw proberen gestart voor alle wachtrij-acties.', 'info', { toast: true });
             flushQueuedRequests();
             return;
         }
 
         if (target.closest('[data-phoenix-queue-remove]')) {
-            deleteQueuedRequest(parseInt(target.closest('[data-phoenix-queue-remove]').getAttribute('data-phoenix-queue-remove'), 10));
+            deleteQueuedRequest(parseInt(target.closest('[data-phoenix-queue-remove]').getAttribute('data-phoenix-queue-remove'), 10)).then(function () {
+                setSyncFeedback('Actie verwijderd uit wachtrij.', 'success', { toast: true });
+            }).catch(function () {
+                setSyncFeedback('Verwijderen uit wachtrij mislukt.', 'error', { toast: true });
+            });
             return;
         }
 
@@ -1528,8 +1613,10 @@
                     return;
                 }
 
-                replayQueuedEntry(entry).catch(function () {
-                    setSyncFeedback('Opnieuw proberen mislukt. Actie blijft in wachtrij.');
+                replayQueuedEntry(entry).then(function () {
+                    setSyncFeedback('Wachtrij-actie succesvol verzonden.', 'success', { toast: true });
+                }).catch(function () {
+                    setSyncFeedback('Opnieuw proberen mislukt. Actie blijft in wachtrij.', 'error', { toast: true });
                 });
             });
             return;
@@ -1633,7 +1720,7 @@
             node.setAttribute('disabled', 'disabled');
         });
 
-        setFeedback('Alleen-lezen modus actief.');
+        setFeedback('Alleen-lezen modus actief.', 'info', { toast: false });
     }
 
     updateQueuedCount();
@@ -1645,7 +1732,7 @@
         state.activeTripStartedAt = window.bsoPhoenix.activeTripStartedAt || null;
         if (state.activeTripId > 0) {
             setStatus('Actief');
-            setFeedback('Actieve route hervat na herladen van de pagina.');
+            setFeedback('Actieve route hervat na herladen van de pagina.', 'info', { toast: false });
             loadTripRoute(state.activeTripId);
             ensureLiveStatsTimer();
             updateLiveStats();
@@ -1657,13 +1744,13 @@
 
     window.addEventListener('online', function () {
         setConnectionStatus();
-        setSyncFeedback('Verbinding hersteld. Synchronisatie gestart...');
+        setSyncFeedback('Verbinding hersteld. Synchronisatie gestart...', 'info', { toast: true });
         flushQueuedRequests();
     });
 
     window.addEventListener('offline', function () {
         setConnectionStatus();
-        setSyncFeedback('Offline. Nieuwe acties worden lokaal in de wachtrij geplaatst.');
+        setSyncFeedback('Offline. Nieuwe acties worden lokaal in de wachtrij geplaatst.', 'warning', { toast: true });
     });
 
     if (navigator.onLine !== false) {
