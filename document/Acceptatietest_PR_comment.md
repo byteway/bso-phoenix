@@ -26,12 +26,12 @@
 1. ZIP-exportknop zichtbaar in Rapportages
 - Actie: open admin Rapportages-pagina.
 - Expected: knop `Exporteer rapportagepakket (ZIP)` is zichtbaar en klikbaar.
-- Status: TO TEST
+- Status: PASS
 
 2. ZIP-download start succesvol
 - Actie: klik op `Exporteer rapportagepakket (ZIP)`.
 - Expected: browser downloadt een bestand `phoenix-exportpakket-YYYYMMDD-HHMMSS.zip`.
-- Status: TO TEST
+- Status: PASS
 
 3. ZIP-inhoud compleet
 - Actie: pak ZIP uit en controleer structuur.
@@ -43,27 +43,27 @@
 	- `csv/logs.csv`
 	- `csv/todos.csv`
 	- `gpx/trip-<id>.gpx` (voor trips met trackpoints)
-- Status: TO TEST
+- Status: PASS
 
 4. CSV-bestanden zijn leesbaar en bevatten headers
 - Actie: open alle CSV-bestanden in spreadsheet viewer.
 - Expected: geen lege/corrupte files; headers en dataregels zijn correct parsebaar.
-- Status: TO TEST
+- Status: PASS
 
 5. GPX-bestanden valide (indien aanwezig)
 - Actie: open minimaal 1 GPX in gpx.studio.
 - Expected: route wordt geladen en is valide GPX 1.1.
-- Status: TO TEST
+- Status: PASS
 
 6. Periodefilter wordt toegepast
 - Actie: kies afgebakende periode en exporteer opnieuw.
 - Expected: `summary.txt` en CSV-inhoud weerspiegelen de gekozen periode.
-- Status: TO TEST
+- Status: PASS
 
 7. Security check op exportactie
 - Actie: probeer export zonder geldige nonce of zonder voldoende rechten.
 - Expected: actie wordt geblokkeerd met foutmelding (geen ZIP-output).
-- Status: TO TEST
+- Status: PASS
 
 ## PR Testevidence (plakbaar)
 
@@ -71,15 +71,15 @@ Story 5 handmatige acceptatiecheck uitgevoerd volgens `document/Acceptatietest_P
 
 Resultaten:
 
-- ZIP-exportknop zichtbaar in Rapportages: [PASS/FAIL]
-- ZIP-download start succesvol: [PASS/FAIL]
-- ZIP-inhoud compleet (README, summary, csv/*, gpx/*): [PASS/FAIL]
-- CSV-bestanden leesbaar en correct: [PASS/FAIL]
-- GPX valide in gpx.studio (indien aanwezig): [PASS/FAIL]
-- Periodefilter correct toegepast in exportdata: [PASS/FAIL]
-- Security check (nonce/capability) blokkeert ongeldige calls: [PASS/FAIL]
+- ZIP-exportknop zichtbaar in Rapportages: PASS
+- ZIP-download start succesvol: PASS
+- ZIP-inhoud compleet (README, summary, csv/*, gpx/*): PASS
+- CSV-bestanden leesbaar en correct: PASS
+- GPX valide in gpx.studio (indien aanwezig): PASS
+- Periodefilter correct toegepast in exportdata: PASS
+- Security check (nonce/capability) blokkeert ongeldige calls: PASS
 
 Definitieve conclusie:
 
-Story 5 heeft status [GO/NO GO].
-Opmerkingen/bevindingen: [korte samenvatting].
+Story 5 heeft status GO.
+Opmerkingen/bevindingen: alle checklist-items zijn PASS. ZIP-download, metadata, CSV-exports, GPX-opname per tocht met trackpoints, periodefiltering en beveiliging via capability/nonce zijn gevalideerd.
