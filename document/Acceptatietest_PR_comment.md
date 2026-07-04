@@ -18,7 +18,12 @@
 1. Bestaande logfoto's zichtbaar in gallery
 - Actie: open frontend dashboard met logs die al foto's bevatten.
 - Expected: bestaande foto's worden getoond in de gallery.
-- Status: PENDING
+- Status: PASS
+
+1a. Foto direct zichtbaar tijdens selectie (voor opslaan)
+- Actie: kies foto in Captain's log vóór submit.
+- Expected: geselecteerde foto wordt direct als preview getoond.
+- Status: PASS
 
 2. Caption bewerken en opslaan
 - Actie: pas bijschrift aan en klik op `Bewaar`.
@@ -66,6 +71,7 @@ Story 2 handmatige acceptatiecheck uitgevoerd volgens `document/Acceptatietest_P
 Resultaten:
 
 - Bestaande logfoto's zichtbaar in gallery: PENDING
+- Foto direct zichtbaar tijdens selectie: PASS
 - Caption bewerken en opslaan: PENDING
 - Sortering omhoog: PENDING
 - Sortering omlaag: PENDING
