@@ -71,7 +71,7 @@ class BSO_Phoenix_Trip_Service
 
         $table = $wpdb->prefix . 'phoenix_trips';
         $row = $wpdb->get_row(
-            "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+            "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, estimated_fuel_used_l, status
             FROM {$table}
             WHERE status = 'completed'
             ORDER BY ended_at DESC, id DESC
@@ -89,7 +89,7 @@ class BSO_Phoenix_Trip_Service
         $table = $wpdb->prefix . 'phoenix_trips';
         $limit = max(1, min(1000, $limit));
 
-        $sql = "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+        $sql = "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, estimated_fuel_used_l, status
                 FROM {$table}";
 
         $where = array();
@@ -130,7 +130,7 @@ class BSO_Phoenix_Trip_Service
         $table = $wpdb->prefix . 'phoenix_trips';
         $row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, status
+                "SELECT id, started_at, ended_at, duration_minutes, distance_km, average_speed_kmh, estimated_fuel_used_l, status
                 FROM {$table}
                 WHERE id = %d",
                 $trip_id

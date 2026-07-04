@@ -63,6 +63,15 @@ if (! defined('ABSPATH')) {
             </dl>
         </article>
     </section>
+
+    <section class="phoenix-trip-list" aria-label="Recente tochten">
+        <div class="phoenix-queue__header">
+            <h3>Recente tochten</h3>
+        </div>
+        <p class="phoenix-queue__empty" data-phoenix-trip-list-empty>Nog geen afgeronde tochten beschikbaar.</p>
+        <ul class="phoenix-trip-list__items" data-phoenix-trip-list></ul>
+    </section>
+
     <section class="phoenix-queue" aria-label="Offline wachtrij">
         <div class="phoenix-queue__header">
             <h3>Offline wachtrij</h3>

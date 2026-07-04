@@ -221,6 +221,81 @@
         setTripSummaryValue('[data-phoenix-latest-trip-duration]', formatDuration((parseFloat(trip.duration_minutes || 0) * 60)));
     }
 
+    function renderTripList(trips) {
+        var listNode = document.querySelector('[data-phoenix-trip-list]');
+        var emptyNode = document.querySelector('[data-phoenix-trip-list-empty]');
+
+        if (!listNode || !emptyNode) {
+            return;
+        }
+
+        listNode.innerHTML = '';
+
+        if (!trips || !trips.length) {
+            emptyNode.style.display = '';
+            return;
+        }
+
+        emptyNode.style.display = 'none';
+
+        trips.forEach(function (trip) {
+            var item = document.createElement('li');
+            item.className = 'phoenix-trip-list__item';
+
+            var meta = document.createElement('div');
+            meta.className = 'phoenix-trip-list__meta';
+
+            var title = document.createElement('strong');
+            title.textContent = 'Trip #' + String(trip.id || '-');
+
+            var details = document.createElement('span');
+            details.className = 'phoenix-trip-list__details';
+            details.textContent = 'Einde: ' + formatDateTimeLabel(trip.ended_at || '')
+                + ' · Afstand: ' + distanceForDisplay(parseFloat(trip.distance_km || 0)).toFixed(2) + ' ' + currentDistanceUnit()
+                + ' · Duur: ' + formatDuration(parseFloat(trip.duration_minutes || 0) * 60)
+                + ' · Snelheid: ' + speedForDisplay(parseFloat(trip.average_speed_kmh || 0)).toFixed(2) + ' ' + speedUnit()
+                + ' · Brandstof: ' + parseFloat(trip.estimated_fuel_used_l || 0).toFixed(2) + ' l';
+
+            meta.appendChild(title);
+            meta.appendChild(details);
+
+            var actions = document.createElement('div');
+            actions.className = 'phoenix-trip-list__actions';
+
+            var download = document.createElement('a');
+            download.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+            download.textContent = 'Download GPX';
+            download.href = trip.download_url || '#';
+            download.target = '_blank';
+            download.rel = 'noopener';
+
+            actions.appendChild(download);
+            item.appendChild(meta);
+            item.appendChild(actions);
+            listNode.appendChild(item);
+        });
+    }
+
+    function loadTripSummaries() {
+        return ajaxRequest('bso_phoenix_get_trip_summaries', {
+            limit: 8,
+        }).then(function (result) {
+            if (!result || !result.success || !result.data) {
+                return;
+            }
+
+            var trips = Array.isArray(result.data.trips) ? result.data.trips : [];
+            renderTripList(trips);
+
+            if (trips.length && window.bsoPhoenix) {
+                window.bsoPhoenix.latestCompletedTrip = trips[0];
+                renderLatestCompletedTrip();
+            }
+        }).catch(function () {
+            renderTripList([]);
+        });
+    }
+
     function renderSelectedLogPhotos() {
         var listNode = document.querySelector('[data-phoenix-log-photo-list]');
         var emptyNode = document.querySelector('[data-phoenix-log-photo-empty]');
@@ -1630,6 +1705,7 @@
             setStatus('Gestopt');
             setFeedback('Route gestopt en opgeslagen.', 'success');
             resetLiveStats();
+            loadTripSummaries();
         }).catch(function (error) {
             setFeedback(error && error.message ? error.message : 'Stop route mislukt. Controleer verbinding.', 'error');
         });
@@ -2095,6 +2171,7 @@
     resetLiveStats();
     setConnectionStatus();
     renderLatestCompletedTrip();
+    loadTripSummaries();
     if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
         state.activeTripId = normalizeTripId(window.bsoPhoenix.activeTripId);
         state.activeTripStartedAt = window.bsoPhoenix.activeTripStartedAt || null;

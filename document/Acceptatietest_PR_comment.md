@@ -1,88 +1,52 @@
-# Handmatige acceptatiecheck Story 2 (caption + sortering bestaande logfoto's)
+# Handmatige acceptatiecheck Story 3 (tochtsamenvatting + directe GPX-download)
 
 ## Scope
 
-- Bestaande logfoto's kunnen een bijschrift krijgen/bijwerken
-- Bestaande logfoto's kunnen omhoog/omlaag worden gesorteerd
-- Wijzigingen worden server-side opgeslagen en blijven na refresh zichtbaar
-- Lightbox en galerijweergave tonen bijgewerkte captions en volgorde
+- Recente tochten worden zichtbaar als samenvattingslijst
+- Per tocht is directe GPX-download beschikbaar
+- Gedownloade GPX is valide en bruikbaar in gpx.studio
+- Na stoppen van een tocht wordt de lijst direct ververst
 
 ## Testomgeving
 
 - Desktop browser (Chrome/Edge)
 - Tablet (Samsung Tab S5 of vergelijkbaar)
-- Ingelogd als gebruiker met schrijfrechten
+- gpx.studio voor GPX-validatie
 
 ## Checklist
 
-1. Bestaande logfoto's zichtbaar in gallery
-- Actie: open frontend dashboard met logs die al foto's bevatten.
-- Expected: bestaande foto's worden getoond in de gallery.
+1. Recente tochten zichtbaar
+- Actie: open frontend dashboard.
+- Expected: sectie `Recente tochten` toont lijst met afgeronde trips.
 - Status: PASS
 
-1a. Foto direct zichtbaar tijdens selectie (voor opslaan)
-- Actie: kies foto in Captain's log vóór submit.
-- Expected: geselecteerde foto wordt direct als preview getoond.
+2. Directe GPX-download per tocht
+- Actie: klik op `Download GPX` bij een trip.
+- Expected: GPX-bestand wordt direct gedownload.
 - Status: PASS
 
-2. Caption bewerken en opslaan
-- Actie: pas bijschrift aan en klik op `Bewaar`.
-- Expected: succesmelding verschijnt.
-- Expected: nieuw bijschrift blijft zichtbaar na herladen.
+3. GPX-validatie extern
+- Actie: open gedownload bestand in gpx.studio.
+- Expected: route wordt correct geladen en is valide.
 - Status: PASS
 
-3. Sortering omhoog
-- Actie: klik op `Omhoog` bij een foto die niet bovenaan staat.
-- Expected: foto schuift één positie omhoog binnen dezelfde log.
-- Expected: aangepaste volgorde blijft behouden na herladen.
-- Status: PASS
-
-4. Sortering omlaag
-- Actie: klik op `Omlaag` bij een foto die niet onderaan staat.
-- Expected: foto schuift één positie omlaag binnen dezelfde log.
-- Expected: aangepaste volgorde blijft behouden na herladen.
-- Status: PASS
-
-5. Grensgevallen sortering
-- Actie: controleer bovenste en onderste foto in een log.
-- Expected: `Omhoog` is disabled op de eerste foto.
-- Expected: `Omlaag` is disabled op de laatste foto.
-- Status: PASS
-
-6. Lightbox captioncontrole
-- Actie: open foto in lightbox na caption-update.
-- Expected: lightbox toont de bijgewerkte caption.
-- Status: PASS
-
-7. Rechtencontrole (read-only)
-- Actie: open dashboard met read-only gebruiker.
-- Expected: caption/sort editor controls zijn niet beschikbaar.
-- Status: PASS
-
-8. Regressiecheck log upload flow
-- Actie: maak een nieuw logitem met foto's en captions.
-- Expected: upload flow blijft werken zoals in Story 1/4.
+4. Live update na stop trip
+- Actie: start en stop een nieuwe trip.
+- Expected: `Recente tochten` wordt bijgewerkt met de nieuwe samenvatting.
 - Status: PASS
 
 ## PR Testevidence (plakbaar)
 
-Story 2 handmatige acceptatiecheck uitgevoerd volgens `document/Acceptatietest_PR_comment.md`.
+Story 3 handmatige acceptatiecheck uitgevoerd volgens `document/Acceptatietest_PR_comment.md`.
 
 Resultaten:
 
-- Bestaande logfoto's zichtbaar in gallery: PENDING
-- Foto direct zichtbaar tijdens selectie: PASS
-- Caption bewerken en opslaan: PASS
-- Sortering omhoog: PASS
-- Sortering omlaag: PASS
-- Grensgevallen sortering: PENDING
-- Lightbox captioncontrole: PENDING
-- Grensgevallen sortering: PASS
-- Lightbox captioncontrole: PASS
-- Rechtencontrole (read-only): PASS
-- Regressiecheck log upload flow: PASS
+- Recente tochten zichtbaar: PASS
+- Download GPX: PASS
+- GPX valide in gpx.studio: PASS
+- Stop trip ververst lijst: PASS
 
-Eindconclusie:
+Definitieve conclusie:
 
-Story 2 is volledig gevalideerd en heeft een definitieve GO-status.
-Alle checklist-items zijn PASS en er zijn geen regressies geconstateerd.
+Story 3 is volledig gevalideerd en heeft een definitieve GO-status.
+Alle checklist-items zijn PASS en de GPX-export is inhoudelijk gevalideerd in gpx.studio.

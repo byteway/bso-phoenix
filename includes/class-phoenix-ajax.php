@@ -12,6 +12,8 @@ class BSO_Phoenix_Ajax
         add_action('wp_ajax_bso_phoenix_trackpoint', array($this, 'trackpoint'));
         add_action('wp_ajax_bso_phoenix_stop_trip', array($this, 'stop_trip'));
         add_action('wp_ajax_bso_phoenix_get_trip_trackpoints', array($this, 'get_trip_trackpoints'));
+        add_action('wp_ajax_bso_phoenix_get_trip_summaries', array($this, 'get_trip_summaries'));
+        add_action('wp_ajax_bso_phoenix_download_trip_gpx', array($this, 'download_trip_gpx'));
     }
 
     public function start_trip(): void
@@ -143,6 +145,126 @@ class BSO_Phoenix_Ajax
                 'trackpoints' => $points,
             )
         );
+    }
+
+    public function get_trip_summaries(): void
+    {
+		$this->guard_request(BSO_PHOENIX_CAP_READ);
+
+        $limit = isset($_POST['limit']) ? (int) $_POST['limit'] : 10;
+        $limit = max(1, min(50, $limit));
+
+        $service = new BSO_Phoenix_Trip_Service();
+        $trips = $service->get_trips_by_date_range(null, null, 'completed', $limit);
+
+        $summaries = array_map(function (array $trip): array {
+            $trip_id = isset($trip['id']) ? (int) $trip['id'] : 0;
+            $duration_minutes = isset($trip['duration_minutes']) ? (float) $trip['duration_minutes'] : 0.0;
+            $distance_km = isset($trip['distance_km']) ? (float) $trip['distance_km'] : 0.0;
+            $average_speed_kmh = isset($trip['average_speed_kmh']) ? (float) $trip['average_speed_kmh'] : 0.0;
+            $estimated_fuel_used_l = isset($trip['estimated_fuel_used_l']) ? (float) $trip['estimated_fuel_used_l'] : 0.0;
+            $download_url = add_query_arg(
+                array(
+                    'action' => 'bso_phoenix_download_trip_gpx',
+                    'trip_id' => $trip_id,
+                    'nonce' => wp_create_nonce('bso_phoenix_gps'),
+                ),
+                admin_url('admin-ajax.php')
+            );
+
+            return array(
+                'id' => $trip_id,
+                'started_at' => isset($trip['started_at']) ? (string) $trip['started_at'] : '',
+                'ended_at' => isset($trip['ended_at']) ? (string) $trip['ended_at'] : '',
+                'duration_minutes' => $duration_minutes,
+                'distance_km' => $distance_km,
+                'average_speed_kmh' => $average_speed_kmh,
+                'estimated_fuel_used_l' => $estimated_fuel_used_l,
+                'download_url' => esc_url_raw($download_url),
+            );
+        }, $trips);
+
+        wp_send_json_success(array('trips' => $summaries));
+    }
+
+    public function download_trip_gpx(): void
+    {
+        if (! is_user_logged_in()) {
+            wp_die('Inloggen vereist.', 'Unauthorized', array('response' => 401));
+        }
+
+        if (! current_user_can(BSO_PHOENIX_CAP_READ)) {
+            wp_die('Onvoldoende rechten.', 'Forbidden', array('response' => 403));
+        }
+
+        $nonce = isset($_GET['nonce']) ? sanitize_text_field((string) $_GET['nonce']) : '';
+        if (! wp_verify_nonce($nonce, 'bso_phoenix_gps')) {
+            wp_die('Ongeldige nonce.', 'Forbidden', array('response' => 403));
+        }
+
+        $trip_id = isset($_GET['trip_id']) ? (int) $_GET['trip_id'] : 0;
+        if ($trip_id <= 0) {
+            wp_die('Ongeldige trip_id.', 'Bad Request', array('response' => 400));
+        }
+
+        $service = new BSO_Phoenix_Trip_Service();
+        $trip = $service->get_trip_by_id($trip_id);
+        if (! is_array($trip)) {
+            wp_die('Trip niet gevonden.', 'Not Found', array('response' => 404));
+        }
+
+        $points = $service->get_trackpoints_for_trip($trip_id);
+        if (empty($points)) {
+            wp_die('Geen trackpoints beschikbaar voor deze trip.', 'Not Found', array('response' => 404));
+        }
+
+        $gpx = $this->build_gpx_xml($trip, $points);
+        $filename = 'phoenix-trip-' . $trip_id . '.gpx';
+
+        nocache_headers();
+        header('Content-Type: application/gpx+xml; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        echo $gpx; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        exit;
+    }
+
+    private function build_gpx_xml(array $trip, array $points): string
+    {
+        $trip_id = isset($trip['id']) ? (int) $trip['id'] : 0;
+        $name = 'Phoenix Trip #' . $trip_id;
+        $started_at = isset($trip['started_at']) ? (string) $trip['started_at'] : '';
+
+        $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $xml .= '<gpx version="1.1" creator="BSO Phoenix" xmlns="http://www.topografix.com/GPX/1/1">';
+        $xml .= '<metadata>';
+        $xml .= '<name>' . esc_html($name) . '</name>';
+        if ($started_at !== '') {
+            $timestamp = strtotime($started_at);
+            if ($timestamp !== false) {
+                $xml .= '<time>' . gmdate('c', $timestamp) . '</time>';
+            }
+        }
+        $xml .= '</metadata>';
+        $xml .= '<trk><name>' . esc_html($name) . '</name><trkseg>';
+
+        foreach ($points as $point) {
+            $lat = isset($point['latitude']) ? (float) $point['latitude'] : 0.0;
+            $lon = isset($point['longitude']) ? (float) $point['longitude'] : 0.0;
+            $time = isset($point['recorded_at']) ? (string) $point['recorded_at'] : '';
+
+            $xml .= '<trkpt lat="' . esc_attr((string) $lat) . '" lon="' . esc_attr((string) $lon) . '">';
+            if ($time !== '') {
+                $timestamp = strtotime($time);
+                if ($timestamp !== false) {
+                    $xml .= '<time>' . gmdate('c', $timestamp) . '</time>';
+                }
+            }
+            $xml .= '</trkpt>';
+        }
+
+        $xml .= '</trkseg></trk></gpx>';
+
+        return $xml;
     }
 
 	private function guard_request(string $required_cap): void
