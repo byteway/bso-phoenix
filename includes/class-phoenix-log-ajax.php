@@ -9,6 +9,7 @@ class BSO_Phoenix_Log_Ajax
     public function init(): void
     {
         add_action('wp_ajax_bso_phoenix_create_log', array($this, 'create_log'));
+        add_action('wp_ajax_bso_phoenix_add_log_photos', array($this, 'add_log_photos'));
         add_action('wp_ajax_bso_phoenix_delete_log', array($this, 'delete_log'));
         add_action('wp_ajax_bso_phoenix_get_logs', array($this, 'get_logs'));
     }
@@ -92,6 +93,45 @@ class BSO_Phoenix_Log_Ajax
 
         if (isset($_FILES['log_photos'])) {
             $attachment_ids = $service->store_uploaded_photos($log_id, $_FILES['log_photos'], $photo_captions);
+        }
+
+        wp_send_json_success(
+            array(
+                'log_id' => $log_id,
+                'attachment_ids' => $attachment_ids,
+                'photos' => $service->get_log_photos($log_id),
+            )
+        );
+    }
+
+    public function add_log_photos(): void
+    {
+		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_WRITE);
+
+        $log_id = isset($_POST['log_id']) ? (int) $_POST['log_id'] : 0;
+        if ($log_id <= 0) {
+            wp_send_json_error(array('message' => 'Ongeldige log_id.'), 400);
+        }
+
+        if (! isset($_FILES['log_photos'])) {
+            wp_send_json_error(array('message' => 'Geen foto\'s aangeleverd.'), 400);
+        }
+
+        $photo_captions = array();
+        if (isset($_POST['log_photo_captions']) && is_array($_POST['log_photo_captions'])) {
+            $photo_captions = array_map(
+                static function ($value): string {
+                    return sanitize_text_field((string) $value);
+                },
+                wp_unslash($_POST['log_photo_captions'])
+            );
+        }
+
+        $service = new BSO_Phoenix_Log_Service();
+        $attachment_ids = $service->store_uploaded_photos($log_id, $_FILES['log_photos'], $photo_captions);
+
+        if (empty($attachment_ids)) {
+            wp_send_json_error(array('message' => 'Kon logfoto\'s niet opslaan.'), 500);
         }
 
         wp_send_json_success(

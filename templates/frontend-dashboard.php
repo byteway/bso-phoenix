@@ -16,8 +16,9 @@ if (! defined('ABSPATH')) {
         <button type="button" class="phoenix-btn" data-phoenix-start>Start route</button>
         <button type="button" class="phoenix-btn phoenix-btn--ghost" data-phoenix-stop>Stop route</button>
     </div>
-    <p class="phoenix-dashboard__feedback" data-phoenix-feedback>Geen actieve route.</p>
-    <p class="phoenix-dashboard__feedback" data-phoenix-sync-feedback>Synchronisatie gereed.</p>
+    <div class="phoenix-feedback-stack" data-phoenix-feedback-stack aria-live="polite" aria-atomic="false"></div>
+    <p class="phoenix-dashboard__feedback phoenix-feedback-banner" data-feedback-type="info" data-phoenix-feedback>Geen actieve route.</p>
+    <p class="phoenix-dashboard__feedback phoenix-feedback-banner" data-feedback-type="info" data-phoenix-sync-feedback>Synchronisatie gereed.</p>
     <section class="phoenix-live-stats" aria-label="Live vaarinformatie">
         <article class="phoenix-live-stat">
             <span class="phoenix-live-stat__label">Duur</span>
@@ -91,7 +92,7 @@ if (! defined('ABSPATH')) {
                 <ul class="phoenix-log-photos" data-phoenix-log-photo-list></ul>
                 <button type="submit" class="phoenix-btn"><?php esc_html_e('Opslaan', 'bso-phoenix'); ?></button>
             </form>
-            <p data-phoenix-log-feedback style="margin-top:8px;font-size:13px;"></p>
+            <p class="phoenix-feedback-banner phoenix-feedback-banner--small" data-feedback-type="info" data-phoenix-log-feedback style="margin-top:8px;"></p>
 
             <div class="phoenix-log-gallery" data-phoenix-log-gallery-wrap>
                 <h4><?php esc_html_e('Recente logfoto\'s', 'bso-phoenix'); ?></h4>
@@ -111,7 +112,7 @@ if (! defined('ABSPATH')) {
                 </select>
                 <button type="submit" class="phoenix-btn"><?php esc_html_e('Taak toevoegen', 'bso-phoenix'); ?></button>
             </form>
-            <p data-phoenix-todo-feedback style="margin-top:8px;font-size:13px;"></p>
+            <p class="phoenix-feedback-banner phoenix-feedback-banner--small" data-feedback-type="info" data-phoenix-todo-feedback style="margin-top:8px;"></p>
         </article>
 
         <article class="phoenix-card" id="phoenix-cost-card">
@@ -129,7 +130,7 @@ if (! defined('ABSPATH')) {
                 <input type="date" data-phoenix-cost-date value="<?php echo esc_attr(current_time('Y-m-d')); ?>" style="width:100%;" />
                 <button type="submit" class="phoenix-btn"><?php esc_html_e('Kostenpost opslaan', 'bso-phoenix'); ?></button>
             </form>
-            <p data-phoenix-cost-feedback style="margin-top:8px;font-size:13px;"></p>
+            <p class="phoenix-feedback-banner phoenix-feedback-banner--small" data-feedback-type="info" data-phoenix-cost-feedback style="margin-top:8px;"></p>
         </article>
     </div>
 
