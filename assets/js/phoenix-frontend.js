@@ -287,6 +287,16 @@
 
             var content = document.createElement('div');
             content.className = 'phoenix-log-photos__content';
+
+            if (entry.previewUrl) {
+                var preview = document.createElement('img');
+                preview.className = 'phoenix-log-photos__preview';
+                preview.src = entry.previewUrl;
+                preview.alt = entry.file.name || 'Foto-preview';
+                preview.loading = 'lazy';
+                content.appendChild(preview);
+            }
+
             content.appendChild(name);
             content.appendChild(caption);
 
@@ -298,15 +308,28 @@
     }
 
     function setSelectedLogPhotos(fileList) {
+        clearSelectedLogPhotos();
+
         state.logPhotoFiles = Array.prototype.slice.call(fileList || []).filter(function (file) {
             return file && typeof file.type === 'string' && file.type.indexOf('image/') === 0;
         }).map(function (file) {
             return {
                 file: file,
                 caption: '',
+                previewUrl: window.URL && window.URL.createObjectURL ? window.URL.createObjectURL(file) : '',
             };
         });
         renderSelectedLogPhotos();
+    }
+
+    function clearSelectedLogPhotos() {
+        state.logPhotoFiles.forEach(function (entry) {
+            if (entry && entry.previewUrl && window.URL && window.URL.revokeObjectURL) {
+                window.URL.revokeObjectURL(entry.previewUrl);
+            }
+        });
+
+        state.logPhotoFiles = [];
     }
 
     function moveSelectedLogPhoto(fromIndex, toIndex) {
@@ -324,7 +347,10 @@
             return;
         }
 
-        state.logPhotoFiles.splice(index, 1);
+        var removed = state.logPhotoFiles.splice(index, 1)[0];
+        if (removed && removed.previewUrl && window.URL && window.URL.revokeObjectURL) {
+            window.URL.revokeObjectURL(removed.previewUrl);
+        }
         renderSelectedLogPhotos();
     }
 
@@ -352,6 +378,7 @@
     function renderLogGallery() {
         var listNode = document.querySelector('[data-phoenix-log-gallery-list]');
         var emptyNode = document.querySelector('[data-phoenix-log-gallery-empty]');
+        var canEditGallery = !!(window.bsoPhoenix && window.bsoPhoenix.canWrite);
 
         if (!listNode || !emptyNode) {
             return;
@@ -369,6 +396,7 @@
         state.galleryPhotos.forEach(function (photo, index) {
             var item = document.createElement('li');
             item.className = 'phoenix-log-gallery__item';
+            item.setAttribute('data-phoenix-gallery-photo-id', String(photo.id || 0));
 
             var button = document.createElement('button');
             button.type = 'button';
@@ -385,9 +413,60 @@
             caption.className = 'phoenix-log-gallery__caption';
             caption.textContent = photo.caption || 'Foto';
 
+            var meta = document.createElement('span');
+            meta.className = 'phoenix-log-gallery__meta';
+            meta.textContent = 'Log #' + String(photo.log_id || '-') + ' · #' + String((photo.sort_order || index + 1));
+
             button.appendChild(image);
             button.appendChild(caption);
+            button.appendChild(meta);
             item.appendChild(button);
+
+            if (canEditGallery && photo.id) {
+                var editor = document.createElement('div');
+                editor.className = 'phoenix-log-gallery__editor';
+
+                var input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'phoenix-log-gallery__input';
+                input.value = photo.caption || '';
+                input.placeholder = 'Bijschrift';
+                input.setAttribute('data-phoenix-gallery-caption-input', String(photo.id));
+
+                var controls = document.createElement('div');
+                controls.className = 'phoenix-log-gallery__controls';
+
+                var saveButton = document.createElement('button');
+                saveButton.type = 'button';
+                saveButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+                saveButton.textContent = 'Bewaar';
+                saveButton.setAttribute('data-phoenix-gallery-save-caption', String(photo.id));
+
+                var upButton = document.createElement('button');
+                upButton.type = 'button';
+                upButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+                upButton.textContent = 'Omhoog';
+                upButton.setAttribute('data-phoenix-gallery-move', String(photo.id));
+                upButton.setAttribute('data-phoenix-gallery-step', '-1');
+                upButton.disabled = !hasAdjacentGalleryPhoto(photo.id, -1);
+
+                var downButton = document.createElement('button');
+                downButton.type = 'button';
+                downButton.className = 'phoenix-btn phoenix-btn--ghost phoenix-btn--small';
+                downButton.textContent = 'Omlaag';
+                downButton.setAttribute('data-phoenix-gallery-move', String(photo.id));
+                downButton.setAttribute('data-phoenix-gallery-step', '1');
+                downButton.disabled = !hasAdjacentGalleryPhoto(photo.id, 1);
+
+                controls.appendChild(saveButton);
+                controls.appendChild(upButton);
+                controls.appendChild(downButton);
+
+                editor.appendChild(input);
+                editor.appendChild(controls);
+                item.appendChild(editor);
+            }
+
             listNode.appendChild(item);
         });
     }
@@ -401,9 +480,10 @@
                 }
 
                 all.push({
-                    id: photo.id || 0,
-                    log_id: log.id || 0,
+                    id: parseInt(photo.id || 0, 10) || 0,
+                    log_id: parseInt(log.id || 0, 10) || 0,
                     caption: photo.caption || '',
+                    sort_order: parseInt(photo.sort_order || 0, 10) || 0,
                     url: photo.url || photo.thumbnail_url || '',
                     thumbnail_url: photo.thumbnail_url || photo.url || '',
                     log_date: log.log_date || '',
@@ -415,6 +495,104 @@
         }, []);
 
         renderLogGallery();
+    }
+
+    function requestLogJson(action, payload) {
+        return requestJson(action, payload, window.bsoPhoenix && window.bsoPhoenix.logNonce ? window.bsoPhoenix.logNonce : '').then(function (response) {
+            return ensureSuccessfulResponse(response, 'Verzoek afgewezen door server.');
+        });
+    }
+
+    function gallerySiblingsFor(photoId) {
+        var current = state.galleryPhotos.find(function (photo) {
+            return photo.id === photoId;
+        });
+
+        if (!current) {
+            return [];
+        }
+
+        return state.galleryPhotos.filter(function (photo) {
+            return photo.log_id === current.log_id;
+        }).sort(function (a, b) {
+            var aOrder = a.sort_order || 0;
+            var bOrder = b.sort_order || 0;
+            if (aOrder === bOrder) {
+                return a.id - b.id;
+            }
+            return aOrder - bOrder;
+        });
+    }
+
+    function hasAdjacentGalleryPhoto(photoId, direction) {
+        var siblings = gallerySiblingsFor(photoId);
+        var currentIndex = siblings.findIndex(function (photo) {
+            return photo.id === photoId;
+        });
+
+        if (currentIndex < 0) {
+            return false;
+        }
+
+        var targetIndex = currentIndex + direction;
+        return targetIndex >= 0 && targetIndex < siblings.length;
+    }
+
+    function readGalleryCaptionInput(photoId) {
+        var node = document.querySelector('[data-phoenix-gallery-caption-input="' + String(photoId) + '"]');
+        return node ? node.value.trim() : '';
+    }
+
+    function updateExistingLogPhoto(photoId, caption, sortOrder) {
+        return requestLogJson('bso_phoenix_update_log_photo', {
+            photo_id: photoId,
+            caption: caption,
+            sort_order: sortOrder || '',
+        }).then(function () {
+            return loadLogGallery();
+        });
+    }
+
+    function moveExistingGalleryPhoto(photoId, direction) {
+        var siblings = gallerySiblingsFor(photoId);
+        var currentIndex = siblings.findIndex(function (photo) {
+            return photo.id === photoId;
+        });
+        if (currentIndex < 0) {
+            return Promise.resolve();
+        }
+
+        var targetIndex = currentIndex + direction;
+        if (targetIndex < 0 || targetIndex >= siblings.length) {
+            return Promise.resolve();
+        }
+
+        var current = siblings[currentIndex];
+        var target = siblings[targetIndex];
+        var caption = readGalleryCaptionInput(photoId);
+        var targetSortOrder = target.sort_order || (targetIndex + 1);
+
+        return updateExistingLogPhoto(photoId, caption || current.caption || '', targetSortOrder).then(function () {
+            setLogFeedback('Volgorde bijgewerkt.', 'success', { toast: true });
+        }).catch(function (error) {
+            setLogFeedback(error && error.message ? error.message : 'Volgorde bijwerken mislukt.', 'error');
+        });
+    }
+
+    function saveExistingGalleryCaption(photoId) {
+        var siblings = gallerySiblingsFor(photoId);
+        var current = siblings.find(function (photo) {
+            return photo.id === photoId;
+        });
+        if (!current) {
+            return Promise.resolve();
+        }
+
+        return updateExistingLogPhoto(photoId, readGalleryCaptionInput(photoId), current.sort_order || '').then(function () {
+            setLogFeedback('Bijschrift opgeslagen.', 'success', { toast: true });
+        }).catch(function (error) {
+            setLogFeedback(error && error.message ? error.message : 'Bijschrift opslaan mislukt.', 'error');
+        });
     }
 
     function loadLogGallery() {
@@ -1536,7 +1714,7 @@
             if (fileNode) {
                 fileNode.value = '';
             }
-            state.logPhotoFiles = [];
+            clearSelectedLogPhotos();
             renderSelectedLogPhotos();
             setLogFeedback('Notitie opgeslagen' + ((result.data && result.data.attachment_ids && result.data.attachment_ids.length) ? ' met foto\'s.' : '.'), 'success');
             loadLogGallery();
@@ -1549,7 +1727,7 @@
                 if (fileNode) {
                     fileNode.value = '';
                 }
-                state.logPhotoFiles = [];
+                clearSelectedLogPhotos();
                 renderSelectedLogPhotos();
                 setLogFeedback('Geen verbinding. Notitie lokaal in wachtrij geplaatst.', 'warning');
                 return;
@@ -1817,6 +1995,19 @@
 
         if (target.closest('[data-phoenix-log-photo-remove]')) {
             removeSelectedLogPhoto(parseInt(target.closest('[data-phoenix-log-photo-remove]').getAttribute('data-phoenix-log-photo-remove'), 10));
+            return;
+        }
+
+        if (target.closest('[data-phoenix-gallery-save-caption]')) {
+            saveExistingGalleryCaption(parseInt(target.closest('[data-phoenix-gallery-save-caption]').getAttribute('data-phoenix-gallery-save-caption'), 10));
+            return;
+        }
+
+        if (target.closest('[data-phoenix-gallery-move]')) {
+            moveExistingGalleryPhoto(
+                parseInt(target.closest('[data-phoenix-gallery-move]').getAttribute('data-phoenix-gallery-move'), 10),
+                parseInt(target.closest('[data-phoenix-gallery-move]').getAttribute('data-phoenix-gallery-step'), 10)
+            );
             return;
         }
 

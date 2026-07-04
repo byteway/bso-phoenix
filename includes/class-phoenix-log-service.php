@@ -144,6 +144,23 @@ class BSO_Phoenix_Log_Service
         );
     }
 
+    public function get_photo_by_id(int $photo_id): ?array
+    {
+        global $wpdb;
+
+        $this->ensure_photo_sort_order_column();
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, log_id, attachment_id, caption, sort_order, created_at FROM {$wpdb->prefix}phoenix_log_photos WHERE id = %d",
+                $photo_id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
     /**
      * Ensure the photo sort column exists before reading or writing order data.
      */
