@@ -57,7 +57,7 @@
 7. Rechtencontrole (read-only)
 - Actie: open dashboard met read-only gebruiker.
 - Expected: caption/sort editor controls zijn niet beschikbaar.
-- Status: PENDING
+- Status: PASS
 
 8. Regressiecheck log upload flow
 - Actie: maak een nieuw logitem met foto's en captions.
@@ -77,7 +77,7 @@ Resultaten:
 - Sortering omlaag: PASS
 - Grensgevallen sortering: PENDING
 - Lightbox captioncontrole: PENDING
-- Rechtencontrole (read-only): PENDING
+- Rechtencontrole (read-only): PASS
 - Regressiecheck log upload flow: PENDING
 
 Voorlopige conclusie:
