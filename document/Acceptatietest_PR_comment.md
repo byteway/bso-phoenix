@@ -29,19 +29,19 @@
 - Actie: pas bijschrift aan en klik op `Bewaar`.
 - Expected: succesmelding verschijnt.
 - Expected: nieuw bijschrift blijft zichtbaar na herladen.
-- Status: PENDING
+- Status: PASS
 
 3. Sortering omhoog
 - Actie: klik op `Omhoog` bij een foto die niet bovenaan staat.
 - Expected: foto schuift één positie omhoog binnen dezelfde log.
 - Expected: aangepaste volgorde blijft behouden na herladen.
-- Status: PENDING
+- Status: PASS
 
 4. Sortering omlaag
 - Actie: klik op `Omlaag` bij een foto die niet onderaan staat.
 - Expected: foto schuift één positie omlaag binnen dezelfde log.
 - Expected: aangepaste volgorde blijft behouden na herladen.
-- Status: PENDING
+- Status: PASS
 
 5. Grensgevallen sortering
 - Actie: controleer bovenste en onderste foto in een log.
@@ -72,9 +72,9 @@ Resultaten:
 
 - Bestaande logfoto's zichtbaar in gallery: PENDING
 - Foto direct zichtbaar tijdens selectie: PASS
-- Caption bewerken en opslaan: PENDING
-- Sortering omhoog: PENDING
-- Sortering omlaag: PENDING
+- Caption bewerken en opslaan: PASS
+- Sortering omhoog: PASS
+- Sortering omlaag: PASS
 - Grensgevallen sortering: PENDING
 - Lightbox captioncontrole: PENDING
 - Rechtencontrole (read-only): PENDING
