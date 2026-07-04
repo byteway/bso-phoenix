@@ -17,15 +17,6 @@ class BSO_Phoenix_Log_Ajax
     {
 		$this->guard_request('bso_phoenix_log', BSO_PHOENIX_CAP_WRITE);
 
-        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_log', array(
-            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
-            'entry_text' => sanitize_text_field((string) ($_POST['entry_text'] ?? '')),
-            'log_date' => sanitize_text_field((string) ($_POST['log_date'] ?? '')),
-            'log_time' => sanitize_text_field((string) ($_POST['log_time'] ?? '')),
-        ), 20)) {
-            wp_send_json_error(array('message' => 'Dubbele logboekaanvraag gedetecteerd. Controleer of het item al is opgeslagen.'), 409);
-        }
-
         $entry_text = isset($_POST['entry_text']) ? wp_kses_post((string) $_POST['entry_text']) : '';
         $boat_id = isset($_POST['boat_id']) ? (int) $_POST['boat_id'] : 1;
         $trip_id = isset($_POST['trip_id']) && (int) $_POST['trip_id'] > 0 ? (int) $_POST['trip_id'] : null;
@@ -46,11 +37,45 @@ class BSO_Phoenix_Log_Ajax
             wp_send_json_error(array('message' => 'Ongeldige logtijd. Gebruik HH:MM of HH:MM:SS.'), 400);
         }
 
+        $photo_names = array();
+        if (isset($_FILES['log_photos']['name']) && is_array($_FILES['log_photos']['name'])) {
+            $photo_names = array_map(
+                static function ($name): string {
+                    return sanitize_file_name((string) $name);
+                },
+                $_FILES['log_photos']['name']
+            );
+        }
+
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_log', array(
+            'boat_id' => $boat_id,
+            'trip_id' => $trip_id ?: 0,
+            'entry_text' => sanitize_text_field((string) wp_strip_all_tags($entry_text)),
+            'log_date' => $log_date,
+            'log_time' => $log_time ?: '',
+            'photo_names' => implode('|', $photo_names),
+        ), 20)) {
+            wp_send_json_error(array('message' => 'Dubbele logboekaanvraag gedetecteerd. Controleer of het item al is opgeslagen.'), 409);
+        }
+
         $service = new BSO_Phoenix_Log_Service();
+
+        $recent_duplicate_id = $service->find_recent_duplicate_log_id($boat_id, $trip_id, $entry_text, $log_date, 30);
+        if ($recent_duplicate_id > 0) {
+            wp_send_json_error(array('message' => 'Dubbele logboekaanvraag gedetecteerd. Controleer of het item al is opgeslagen.'), 409);
+        }
+
         $log_id = $service->create_log($boat_id, $entry_text, $trip_id, $log_date, $log_time);
 
         if ($log_id <= 0) {
             wp_send_json_error(array('message' => 'Kon logboek niet opslaan.'), 500);
+        }
+
+        // Extra race-condition guard: if an identical row already exists, keep the first and drop this duplicate.
+        $post_insert_duplicate_id = $service->find_recent_duplicate_log_id($boat_id, $trip_id, $entry_text, $log_date, 30, $log_id);
+        if ($post_insert_duplicate_id > 0) {
+            $service->delete_log($log_id);
+            wp_send_json_error(array('message' => 'Dubbele logboekaanvraag gedetecteerd. Controleer of het item al is opgeslagen.'), 409);
         }
 
         $attachment_ids = array();

@@ -13,6 +13,7 @@
         lightboxIndex: -1,
         syncInProgress: false,
         liveStatsTimer: null,
+        logSubmitInProgress: false,
     };
 
     function statNode(selector) {
@@ -1205,8 +1206,26 @@
         node.textContent = text;
     }
 
+    function setLogSubmitPending(isPending) {
+        var submitButton = document.querySelector('[data-phoenix-log-form] button[type="submit"]');
+        if (!submitButton) {
+            return;
+        }
+
+        if (isPending) {
+            submitButton.setAttribute('disabled', 'disabled');
+            return;
+        }
+
+        submitButton.removeAttribute('disabled');
+    }
+
     function handleLogSubmit(event) {
         event.preventDefault();
+
+        if (state.logSubmitInProgress) {
+            return;
+        }
 
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
             setLogFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
@@ -1235,6 +1254,9 @@
                     caption: '',
                 };
             });
+
+        state.logSubmitInProgress = true;
+        setLogSubmitPending(true);
 
         queueOrSendForm('bso_phoenix_create_log', {
             entry_text: text,
@@ -1274,6 +1296,9 @@
                 return;
             }
             setLogFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
+        }).finally(function () {
+            state.logSubmitInProgress = false;
+            setLogSubmitPending(false);
         });
     }
 

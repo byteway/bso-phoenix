@@ -120,6 +120,7 @@ Gebruik kolommen: **Resultaat** (`PASS`/`FAIL`) en **Bewijs** (screenshot, expor
 | T7-11 | PASS | Frontend screenshot toont melding "Notitie opgeslagen met foto's." met meerdere geuploade foto's; admin logboek toont nieuw item met meerdere foto's | Multi-photo log werkt op frontend en persistente opslag bevestigd |
 | T7-12 | PASS | Frontend sectie "Recente logfoto's" toont bestaande en nieuw opgeslagen foto's na refresh | Galerijweergave van bestaande logfoto's bevestigd |
 | T7-13 | PASS | Frontend screenshot toont geopende lightbox met grote fotovoorvertoning en zichtbare vorige/volgende navigatieknoppen | Lightbox preview en navigatie bevestigd |
+| T7-14 | PASS | Hertest screenshot: dubbelklik op frontend Opslaan uitgevoerd, daarna admin logboek toont exact 1 record "T7-14 hertest" | Duplicate submitpreventie voor logboek bevestigd |
 | ... |  |  |  |
 
 ## 7. Exit Criteria (Go/No-Go)

@@ -48,7 +48,7 @@ Vul per testregel in:
 | T7-11 | Log met meerdere foto's + captions | PASS | Frontend screenshot toont melding "Notitie opgeslagen met foto's." met meerdere geuploade foto's; admin logboek toont nieuw item met meerdere foto's | Multi-photo log werkt op frontend en persistente opslag bevestigd |
 | T7-12 | Frontend galerij met bestaande logfoto's | PASS | Frontend sectie "Recente logfoto's" toont bestaande en nieuw opgeslagen foto's na refresh | Galerijweergave van bestaande logfoto's bevestigd |
 | T7-13 | Lightbox grote preview + navigatie | PASS | Frontend screenshot toont geopende lightbox met grote fotovoorvertoning en zichtbare vorige/volgende navigatieknoppen | Lightbox preview en navigatie bevestigd |
-| T7-14 | Duplicate log submit preventie |  |  |  |
+| T7-14 | Duplicate log submit preventie | PASS | Hertest screenshot: dubbelklik op frontend Opslaan uitgevoerd, daarna admin logboek toont exact 1 record "T7-14 hertest" | Duplicate submitpreventie voor logboek bevestigd |
 | T7-15 | Duplicate TODO submit preventie |  |  |  |
 | T7-16 | Duplicate kosten submit preventie |  |  |  |
 | T7-17 | Datumvalidatie admin |  |  |  |

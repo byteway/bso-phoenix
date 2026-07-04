@@ -6,6 +6,35 @@ if (! defined('ABSPATH')) {
 
 class BSO_Phoenix_Log_Service
 {
+    public function find_recent_duplicate_log_id(int $boat_id, ?int $trip_id, string $entry_text, string $log_date, int $window_seconds = 25, int $exclude_log_id = 0): int
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_captains_logs';
+        $threshold = date('Y-m-d H:i:s', current_time('timestamp') - max(5, $window_seconds));
+
+        $sql = "SELECT id FROM {$table} WHERE boat_id = %d AND log_date = %s AND entry_text = %s AND created_at >= %s";
+        $args = array($boat_id, $log_date, $entry_text, $threshold);
+
+        if ($trip_id !== null && $trip_id > 0) {
+            $sql .= ' AND trip_id = %d';
+            $args[] = $trip_id;
+        } else {
+            $sql .= ' AND (trip_id IS NULL OR trip_id = 0)';
+        }
+
+        if ($exclude_log_id > 0) {
+            $sql .= ' AND id <> %d';
+            $args[] = $exclude_log_id;
+        }
+
+        $sql .= ' ORDER BY id ASC LIMIT 1';
+
+        $duplicate_id = (int) $wpdb->get_var($wpdb->prepare($sql, ...$args));
+
+        return $duplicate_id > 0 ? $duplicate_id : 0;
+    }
+
     public function create_log(int $boat_id, string $entry_text, ?int $trip_id, ?string $log_date, ?string $log_time): int
     {
         global $wpdb;
