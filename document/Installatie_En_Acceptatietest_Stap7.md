@@ -126,6 +126,7 @@ Gebruik kolommen: **Resultaat** (`PASS`/`FAIL`) en **Bewijs** (screenshot, expor
 | T7-17 | PASS | Screenshots admin filters: Kostenoverzicht, Rapportages en Captain's log filteren correct op datumrange | Datumfilters in admin werken stabiel en geven verwachte resultaten |
 | T7-18 | PASS | Frontend/AJAX hertest: ongeldige datums worden afgewezen; geldige submit wordt opgeslagen en zichtbaar in admin logboek | Datumvalidatie in frontend en AJAX bevestigt correcte reject/accept-flow |
 | T7-19 | PASS | Screenshot toont succesvolle download van phoenix-trips CSV en geopende inhoud met tripregels/kolommen | Trip CSV-export werkt en bevat verwachte data |
+| T7-20 | PASS | GPX-bestand succesvol gedownload en geopend in gpx.studio; route/spoor wordt correct weergegeven | GPX-export correct gegenereerd en valide |
 | ... |  |  |  |
 
 ## 7. Exit Criteria (Go/No-Go)

@@ -54,7 +54,7 @@ Vul per testregel in:
 | T7-17 | Datumvalidatie admin | PASS | Screenshots admin filters: Kostenoverzicht, Rapportages en Captain's log filteren correct op datumrange | Datumfilters in admin werken stabiel en geven verwachte resultaten |
 | T7-18 | Datumvalidatie frontend/AJAX | PASS | Frontend/AJAX hertest: ongeldige datums worden afgewezen; geldige submit wordt opgeslagen en zichtbaar in admin logboek | Datumvalidatie in frontend en AJAX bevestigt correcte reject/accept-flow |
 | T7-19 | CSV trip export | PASS | Screenshot toont succesvolle download van phoenix-trips CSV en geopende inhoud met tripregels/kolommen | Trip CSV-export werkt en bevat verwachte data |
-| T7-20 | GPX export |  |  |  |
+| T7-20 | GPX export | PASS | GPX-bestand succesvol gedownload en geopend in gpx.studio; route/spoor wordt correct weergegeven | GPX-export correct gegenereerd en valide |
 | T7-21 | Rapportage CSV export |  |  |  |
 | T7-22 | Media library koppeling |  |  |  |
 
