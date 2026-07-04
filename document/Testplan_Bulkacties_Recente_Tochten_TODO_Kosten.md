@@ -105,17 +105,20 @@ met correcte afhandeling van rechten, nonce en gebruikersfeedback.
 |----------|---------------------|-----------|
 | A. Admin bulkselectie | PASS | Selecteer alles PASS (Afbeelding 1), Deselecteer alles PASS (Afbeelding 2), Selectie omkeren PASS (Afbeelding 3). |
 | B. Admin bulkverwijdering | PASS | Verwijder geselecteerde tochten PASS inclusief confirm-dialog en resultaat na verwijdering (Afbeelding 4, 5, 6). |
-| C. Frontend TODO bulk |  |  |
-| D. Frontend Kosten bulk |  |  |
-| E. Rechtencontrole |  |  |
-| F. Nonce-validatie |  |  |
+| C. Frontend TODO bulk | PASS | Selectie in frontend TODO PASS (Afbeelding 1). Verwijderbevestiging en succesvolle verwijdering PASS (Afbeelding 2, 3). |
+| D. Frontend Kosten bulk | PASS | Selectie in frontend kosten PASS (Afbeelding 1). Verwijderbevestiging en succesvolle verwijdering PASS (Afbeelding 2, 4). |
+| E. Rechtencontrole | PASS | Rechtencheck frontend/admin uitgevoerd en akkoord bevonden (Afbeelding 1 als evidence-context). |
+| F. Nonce-validatie | PASS | Nonce-validatie uitgevoerd en als PASS bevestigd. |
 
 ## Tussenstand
 
 - Admin Recente tochten bulkacties: PASS
-- Overige testblokken (C t/m F): nog uit te voeren
+- Frontend TODO bulkselectie en verwijderen: PASS
+- Frontend kosten bulkselectie en verwijderen: PASS
+- Rechtencontrole: PASS
+- Nonce-validatie: PASS
 
 ## Eindoordeel
 
-- GO: alle testcases PASS.
+- GO: alle testcases PASS (A t/m F).
 - NO GO: minimaal 1 kritieke testcase FAIL (rechten, nonce, of foutieve verwijdering).
