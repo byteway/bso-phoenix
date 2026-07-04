@@ -49,9 +49,9 @@ Vul per testregel in:
 | T7-12 | Frontend galerij met bestaande logfoto's | PASS | Frontend sectie "Recente logfoto's" toont bestaande en nieuw opgeslagen foto's na refresh | Galerijweergave van bestaande logfoto's bevestigd |
 | T7-13 | Lightbox grote preview + navigatie | PASS | Frontend screenshot toont geopende lightbox met grote fotovoorvertoning en zichtbare vorige/volgende navigatieknoppen | Lightbox preview en navigatie bevestigd |
 | T7-14 | Duplicate log submit preventie | PASS | Hertest screenshot: dubbelklik op frontend Opslaan uitgevoerd, daarna admin logboek toont exact 1 record "T7-14 hertest" | Duplicate submitpreventie voor logboek bevestigd |
-| T7-15 | Duplicate TODO submit preventie |  |  |  |
-| T7-16 | Duplicate kosten submit preventie |  |  |  |
-| T7-17 | Datumvalidatie admin |  |  |  |
+| T7-15 | Duplicate TODO submit preventie | PASS | Frontend hertest: dubbelklik op Taak toevoegen geeft melding "Dubbele TODO-aanvraag gedetecteerd"; admin TODO-overzicht toont exact 1 taak "T7-15" | Duplicate submitpreventie voor TODO bevestigd |
+| T7-16 | Duplicate kosten submit preventie | PASS | Frontend hertest kosten: submit succesvol met melding "Kostenpost opgeslagen."; admin Kosten-overzicht toont exact 1 nieuwe post | Duplicate submitpreventie voor kosten bevestigd |
+| T7-17 | Datumvalidatie admin | PASS | Screenshots admin filters: Kostenoverzicht, Rapportages en Captain's log filteren correct op datumrange | Datumfilters in admin werken stabiel en geven verwachte resultaten |
 | T7-18 | Datumvalidatie frontend/AJAX |  |  |  |
 | T7-19 | CSV trip export |  |  |  |
 | T7-20 | GPX export |  |  |  |
