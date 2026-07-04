@@ -62,21 +62,21 @@ Vul per testregel in:
 
 | Nr | Ernst | Omschrijving | Reproductie | Status |
 |---|---|---|---|---|
-| 1 |  |  |  | Open / Opgelost |
-| 2 |  |  |  | Open / Opgelost |
-| 3 |  |  |  | Open / Opgelost |
+| 1 | Laag | Tijdelijke duplicate submits gedetecteerd in frontend (log/TODO/kosten) tijdens acceptatietest | Dubbelklik op frontend submitknoppen | Opgelost |
+| 2 | Laag | Frontend log submit vereiste geldige logdatum/logtijd in AJAX payload | Opslaan captain's log zonder geldige datum/tijdpayload | Opgelost |
+| 3 | Laag | Frontend routeflow gaf ongeldige trip_id bij stop in specifieke sessies | Start/stop in mobiele sessie met inconsistent trip state | Opgelost |
 
 ## 5. Samenvatting
 
-**Totaal PASS:** ___  
-**Totaal FAIL:** ___  
-**Totaal NVT:** ___
+**Totaal PASS:** 22  
+**Totaal FAIL:** 0  
+**Totaal NVT:** 0
 
-**Go / No-Go advies:** GO / NO-GO
+**Go / No-Go advies:** GO
 
 **Toelichting:**
 
-_
+Alle tests T7-01 t/m T7-22 zijn succesvol doorlopen op productieomgeving met bewijs (screenshots/exports). Eerder gevonden issues tijdens hertests zijn opgelost en opnieuw gevalideerd. Stap 7 kan als afgerond worden gemarkeerd.
 
 ## 6. Sign-off
 
