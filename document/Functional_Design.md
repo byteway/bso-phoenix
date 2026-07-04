@@ -284,6 +284,12 @@ Na een tocht kan de gebruiker:
 - datum van de tocht
 - optioneel tempo- of snelheidsinformatie
 
+### Validatie van geëxporteerde GPX-bestanden
+
+Geëxporteerde GPX-bestanden kunnen eenvoudig online worden gecontroleerd met de gratis dienst:
+
+- https://gpx.studio/
+
 ---
 
 ## 9. TODO beheer
