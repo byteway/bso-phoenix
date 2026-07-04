@@ -55,7 +55,7 @@ Vul per testregel in:
 | T7-18 | Datumvalidatie frontend/AJAX | PASS | Frontend/AJAX hertest: ongeldige datums worden afgewezen; geldige submit wordt opgeslagen en zichtbaar in admin logboek | Datumvalidatie in frontend en AJAX bevestigt correcte reject/accept-flow |
 | T7-19 | CSV trip export | PASS | Screenshot toont succesvolle download van phoenix-trips CSV en geopende inhoud met tripregels/kolommen | Trip CSV-export werkt en bevat verwachte data |
 | T7-20 | GPX export | PASS | GPX-bestand succesvol gedownload en geopend in gpx.studio; route/spoor wordt correct weergegeven | GPX-export correct gegenereerd en valide |
-| T7-21 | Rapportage CSV export |  |  |  |
+| T7-21 | Rapportage CSV export | PASS | Screenshot toont download van phoenix-report CSV en geopende inhoud met metrics, periodevergelijking en totalen | Rapportage CSV-export werkt en bevat verwachte dataset |
 | T7-22 | Media library koppeling |  |  |  |
 
 ## 4. Incidentlog
