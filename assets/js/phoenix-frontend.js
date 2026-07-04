@@ -14,6 +14,7 @@
         syncInProgress: false,
         liveStatsTimer: null,
         logSubmitInProgress: false,
+        todoSubmitInProgress: false,
     };
 
     function statNode(selector) {
@@ -1310,6 +1311,20 @@
         node.textContent = text;
     }
 
+    function setTodoSubmitPending(isPending) {
+        var submitButton = document.querySelector('[data-phoenix-todo-form] button[type="submit"]');
+        if (!submitButton) {
+            return;
+        }
+
+        if (isPending) {
+            submitButton.setAttribute('disabled', 'disabled');
+            return;
+        }
+
+        submitButton.removeAttribute('disabled');
+    }
+
     function setCostFeedback(text) {
         var node = document.querySelector('[data-phoenix-cost-feedback]');
         if (!node) {
@@ -1383,6 +1398,10 @@
     function handleTodoSubmit(event) {
         event.preventDefault();
 
+        if (state.todoSubmitInProgress) {
+            return;
+        }
+
         if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
             setTodoFeedback('Je hebt alleen-lezen rechten. Opslaan is niet toegestaan.');
             return;
@@ -1402,6 +1421,9 @@
             setTodoFeedback('Configuratie ontbreekt.');
             return;
         }
+
+        state.todoSubmitInProgress = true;
+        setTodoSubmitPending(true);
 
         queueOrSendJson('bso_phoenix_create_todo', {
             nonce: window.bsoPhoenix.todoNonce || '',
@@ -1429,6 +1451,9 @@
                 return;
             }
             setTodoFeedback(error && error.message ? error.message : 'Opslaan mislukt. Controleer verbinding.');
+        }).finally(function () {
+            state.todoSubmitInProgress = false;
+            setTodoSubmitPending(false);
         });
     }
 

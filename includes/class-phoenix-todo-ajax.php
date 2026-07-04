@@ -17,14 +17,6 @@ class BSO_Phoenix_Todo_Ajax
     {
 		$this->guard_request(BSO_PHOENIX_CAP_WRITE);
 
-        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_todo', array(
-            'request_uid' => sanitize_text_field((string) ($_POST['request_uid'] ?? '')),
-            'title' => sanitize_text_field((string) ($_POST['title'] ?? '')),
-            'due_date' => sanitize_text_field((string) ($_POST['due_date'] ?? '')),
-        ), 20)) {
-            wp_send_json_error(array('message' => 'Dubbele TODO-aanvraag gedetecteerd. Controleer of de taak al bestaat.'), 409);
-        }
-
         $title = isset($_POST['title']) ? sanitize_text_field((string) $_POST['title']) : '';
         $description = isset($_POST['description']) ? sanitize_textarea_field((string) $_POST['description']) : '';
         $priority = isset($_POST['priority']) ? sanitize_key((string) $_POST['priority']) : 'normal';
@@ -41,11 +33,32 @@ class BSO_Phoenix_Todo_Ajax
             wp_send_json_error(array('message' => 'Ongeldige einddatum. Gebruik een bestaande datum binnen de toegestane range.'), 400);
         }
 
+        if (BSO_Phoenix_Hardening::is_duplicate_submission('ajax_create_todo', array(
+            'boat_id' => $boat_id,
+            'title' => $title,
+            'priority' => $priority,
+            'due_date' => $due_date ?: '',
+        ), 20)) {
+            wp_send_json_error(array('message' => 'Dubbele TODO-aanvraag gedetecteerd. Controleer of de taak al bestaat.'), 409);
+        }
+
         $service = new BSO_Phoenix_Todo_Service();
+
+        $recent_duplicate_id = $service->find_recent_duplicate_todo_id($boat_id, $title, $priority, $due_date, 30);
+        if ($recent_duplicate_id > 0) {
+            wp_send_json_error(array('message' => 'Dubbele TODO-aanvraag gedetecteerd. Controleer of de taak al bestaat.'), 409);
+        }
+
         $todo_id = $service->create_todo($boat_id, $title, $description, $priority, $due_date);
 
         if ($todo_id <= 0) {
             wp_send_json_error(array('message' => 'Kon taak niet aanmaken.'), 500);
+        }
+
+        $post_insert_duplicate_id = $service->find_recent_duplicate_todo_id($boat_id, $title, $priority, $due_date, 30, $todo_id);
+        if ($post_insert_duplicate_id > 0) {
+            $service->delete_todo($todo_id);
+            wp_send_json_error(array('message' => 'Dubbele TODO-aanvraag gedetecteerd. Controleer of de taak al bestaat.'), 409);
         }
 
         wp_send_json_success(array('todo_id' => $todo_id));
