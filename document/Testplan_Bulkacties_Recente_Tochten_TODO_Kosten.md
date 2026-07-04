@@ -103,12 +103,17 @@ met correcte afhandeling van rechten, nonce en gebruikersfeedback.
 
 | Testcase | Status (PASS/FAIL) | Opmerking |
 |----------|---------------------|-----------|
-| A. Admin bulkselectie |  |  |
-| B. Admin bulkverwijdering |  |  |
+| A. Admin bulkselectie | PASS | Selecteer alles PASS (Afbeelding 1), Deselecteer alles PASS (Afbeelding 2), Selectie omkeren PASS (Afbeelding 3). |
+| B. Admin bulkverwijdering | PASS | Verwijder geselecteerde tochten PASS inclusief confirm-dialog en resultaat na verwijdering (Afbeelding 4, 5, 6). |
 | C. Frontend TODO bulk |  |  |
 | D. Frontend Kosten bulk |  |  |
 | E. Rechtencontrole |  |  |
 | F. Nonce-validatie |  |  |
+
+## Tussenstand
+
+- Admin Recente tochten bulkacties: PASS
+- Overige testblokken (C t/m F): nog uit te voeren
 
 ## Eindoordeel
 
