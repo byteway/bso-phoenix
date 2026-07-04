@@ -65,7 +65,8 @@ Klik op `Sluiten`.
 **Verwacht A3**
 Kaart keert terug naar standaard dashboardpositie zonder herladen.
 
-**Status**: OPEN
+**Status**: PASS
+**Evidence**: Afbeelding 1, Afbeelding 2
 
 ---
 
@@ -80,7 +81,8 @@ Druk op `Escape`.
 **Verwacht B**
 Fullscreen sluit direct en standaard layout wordt hersteld.
 
-**Status**: OPEN
+**Status**: PASS
+**Evidence**: Afbeelding 1, Afbeelding 2
 
 ---
 
@@ -98,7 +100,8 @@ Observeer trackpoint teller en route-lijn gedurende 30-60 seconden.
 **Verwacht C**
 Trackpoint teller loopt op en route blijft doorlopen in fullscreen.
 
-**Status**: OPEN
+**Status**: PASS
+**Evidence**: Afbeelding 1
 
 ---
 
@@ -113,7 +116,8 @@ Controleer triplabel, trackpoint teller, afstand en routevorm.
 **Verwacht D**
 Geen reset van routecontext; gegevens blijven consistent met pre-fullscreen status.
 
-**Status**: OPEN
+**Status**: PASS
+**Evidence**: Afbeelding 2
 
 ---
 
@@ -128,7 +132,8 @@ Open dashboard en gebruik fullscreen toggle.
 **Verwacht E**
 Toggle werkt (geen mutatie), start/stop en andere schrijfacties blijven geblokkeerd.
 
-**Status**: OPEN
+**Status**: PASS
+**Evidence**: Read-only validatie
 
 ---
 
@@ -146,7 +151,8 @@ Sluit fullscreen via knop of Escape (indien toetsenbord beschikbaar).
 **Verwacht F**
 Kaart blijft bruikbaar in viewport, closeknop zichtbaar/klikbaar, terugschakelen werkt zonder layout-breuk.
 
-**Status**: OPEN
+**Status**: PASS
+**Evidence**: Mobiele testweergave
 
 ---
 
@@ -162,12 +168,12 @@ Kaart blijft bruikbaar in viewport, closeknop zichtbaar/klikbaar, terugschakelen
 
 | Blok | Omschrijving | Verwacht | Status | Evidence |
 |------|--------------|----------|--------|----------|
-| A | Open/sluit fullscreen desktop | Correct schakelen | OPEN | - |
-| B | Escape sluit fullscreen | Sluit zonder reload | OPEN | - |
-| C | Live route in fullscreen | Blijft updaten | OPEN | - |
-| D | Contextbehoud na exit | Geen reset | OPEN | - |
-| E | Read-only gedrag | Toegestaan zonder mutatie | OPEN | - |
-| F | Mobiele responsiviteit | Bedienbaar en stabiel | OPEN | - |
+| A | Open/sluit fullscreen desktop | Correct schakelen | PASS | Afbeelding 1, Afbeelding 2 |
+| B | Escape sluit fullscreen | Sluit zonder reload | PASS | Afbeelding 1, Afbeelding 2 |
+| C | Live route in fullscreen | Blijft updaten | PASS | Afbeelding 1 |
+| D | Contextbehoud na exit | Geen reset | PASS | Afbeelding 2 |
+| E | Read-only gedrag | Toegestaan zonder mutatie | PASS | Read-only validatie |
+| F | Mobiele responsiviteit | Bedienbaar en stabiel | PASS | Mobiele testweergave |
 
 ---
 
