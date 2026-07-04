@@ -61,6 +61,20 @@
             + String(remainder).padStart(2, '0');
     }
 
+    function pad2(value) {
+        return String(value).padStart(2, '0');
+    }
+
+    function currentLogDate() {
+        var now = new Date();
+        return now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
+    }
+
+    function currentLogTime() {
+        var now = new Date();
+        return pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds());
+    }
+
     function currentDistanceUnit() {
         return window.bsoPhoenix && window.bsoPhoenix.distanceUnit ? window.bsoPhoenix.distanceUnit : 'km';
     }
@@ -1226,6 +1240,8 @@
             entry_text: text,
             boat_id: String(window.bsoPhoenix.defaultBoatId || 1),
             trip_id: String(state.activeTripId || ''),
+            log_date: currentLogDate(),
+            log_time: currentLogTime(),
             request_uid: createRequestUid('create_log'),
         }, window.bsoPhoenix.logNonce || '', buildQueuedFiles(orderedPhotos), 'log', 'queued').then(function (result) {
             if (!result || !result.success) {

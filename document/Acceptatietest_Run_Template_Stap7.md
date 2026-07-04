@@ -45,8 +45,8 @@ Vul per testregel in:
 | T7-08 | Trackpoint buiten actieve trip wordt geweigerd | PASS | Meerdere start/stop-cycli uitgevoerd; na stop geen ongewenste extra routegroei of actieve status in rapportage | Trackpointverwerking alleen binnen actieve trip bevestigd |
 | T7-09 | Stop trip en metrics | PASS | Screenshot rapportages/admin: tochten vastgelegd met afstand en gemiddelde snelheid na stop | Stop verwerkt en metrics opgeslagen |
 | T7-10 | Duplicate start/stop preventie | PASS | Bij tweede start tijdens actieve route verschijnt melding "Er is al een actieve route."; herhaalde start/stop-tests blijven stabiel | Duplicate startpreventie bevestigd, geen dubbele actieve trip |
-| T7-11 | Log met meerdere foto's + captions |  |  |  |
-| T7-12 | Frontend galerij met bestaande logfoto's |  |  |  |
+| T7-11 | Log met meerdere foto's + captions | PASS | Frontend screenshot toont melding "Notitie opgeslagen met foto's." met meerdere geuploade foto's; admin logboek toont nieuw item met meerdere foto's | Multi-photo log werkt op frontend en persistente opslag bevestigd |
+| T7-12 | Frontend galerij met bestaande logfoto's | PASS | Frontend sectie "Recente logfoto's" toont bestaande en nieuw opgeslagen foto's na refresh | Galerijweergave van bestaande logfoto's bevestigd |
 | T7-13 | Lightbox grote preview + navigatie |  |  |  |
 | T7-14 | Duplicate log submit preventie |  |  |  |
 | T7-15 | Duplicate TODO submit preventie |  |  |  |
