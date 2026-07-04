@@ -38,7 +38,13 @@ De technische focus ligt op:
 - dashboard met live status en routepreview
 - genereren en delen van GPX-routes
 - op WordPress gebaseerde autorisatie en opslag
+### Problemen die de app technisch oplost
 
+- inschatting van resterende brandstofvoorraad na elke tocht (basis voor tankplanning)
+- verzameling van directe (bruggen, sluizen) en indirecte (gas, water) vaartkosten in een centraal register
+- real-time en later bekijkbare kaartvisualisatie van routes en trackpoints
+- exportfunctionaliteit van routes in standaardformaat (GPX) voor deling en validatie
+- centraal beheer van onderhoudstaken en notities vastgelegd tijdens het varen
 ### Scope
 
 Binnen scope:
@@ -447,7 +453,10 @@ De captain's log is een dagboekachtige registratie van observaties, bijzonderhed
 - logboekitem kan gekoppeld zijn aan een tocht
 - logboekitem kan meerdere foto’s bevatten
 - elk logboekitem heeft datum en tijd
+### Admin beheeracties
 
+- bulk delete actie: alle logboekitems verwijderen met bevestigingsstap
+- terugmelding aantal verwijderde items en bijbehorende foto's
 ### Media-opslag
 
 Foto’s worden opgeslagen als WordPress-media-attachments en gekoppeld via het logboektabelrecord.
@@ -485,6 +494,11 @@ De GPX-generator zet trackpoints om naar een GPX-bestand of GPX-structuur.
 - deelroute exporteren op basis van geselecteerde tijd of punten
 - delen via download
 - delen via e-mail
+
+### Validatie van geëxporteerde GPX-bestanden
+
+Geëxporteerde GPX-bestanden kunnen online gevalideerd worden met de gratis dienst:
+- https://gpx.studio/
 
 ### GPX-exportmodel
 
@@ -536,6 +550,11 @@ flowchart LR
 	B --> C
 ```
 
+#### Admin beheeracties
+
+- bulk delete actie: alle TODO-items verwijderen met bevestigingsstap
+- terugmelding aantal verwijderde taken
+
 ### Kostenmodule
 
 De kostenmodule ondersteunt:
@@ -555,7 +574,10 @@ De kostenmodule ondersteunt:
 | Koppeling | Optioneel aan tocht |
 | Leverancier | Optionele leverancier of nota |
 | Opmerking | Vrije toelichting |
+#### Registratieregel voor meerdere kosten per dag
 
+Meerdere kostenposten van hetzelfde type mogen op dezelfde datum worden opgeslagen.
+Duplicatie wordt alleen voorkomen bij echte dubbele submit (dezelfde actie direct herhaald), niet op basis van categorie+datum combinatie.
 ### Rapportages
 
 De rapportagelaag berekent en toont onder andere:
@@ -580,7 +602,7 @@ Het dashboard moet in één oogopslag de status van de boot tonen:
 - is er een actieve tocht
 - wanneer is de laatste update ontvangen
 - is tanken waarschijnlijk nodig
-- live preview van de GPX-kaart
+- live preview van de GPX-kaart met schakeloptie tussen compacte weergave en schermvullende view
 - snelle knoppen voor Start, Stop en Logboek
 
 ### Live gedrag
