@@ -36,6 +36,7 @@ WordPress-plugin voor de Phoenix: een app-achtige dashboardomgeving voor varen, 
 - Bulkselectie met verwijderen in frontend voor TODO en kosten (schrijfrechten vereist)
 - Toggle tussen standaard en schermvullende live routekaart in frontend dashboard
 - Rapportages met trends, vergelijkingen en exports
+- Extra hardening op exportvalidatie en foutmeldingen (datumrange, ZIP/CSV preflight checks, consistente admin-notices)
 - Exportpakket vanuit Rapportages als ZIP met:
 	- `README.txt`
 	- `summary.txt`
@@ -123,6 +124,7 @@ De plugin gebruikt geen publieke WordPress REST-routes, maar geauthenticeerde ad
 | `bso_phoenix_stop_trip` | Stop actieve tocht | `bso_phoenix_gps` | `bso_phoenix_write` |
 | `bso_phoenix_get_trip_trackpoints` | Haal route op | `bso_phoenix_gps` | `bso_phoenix_read` |
 | `bso_phoenix_get_trip_summaries` | Recente tochten | `bso_phoenix_gps` | `bso_phoenix_read` |
+| `bso_phoenix_download_trip_gpx` | GPX-bestand downloaden van tocht | `bso_phoenix_gps` | `bso_phoenix_read` |
 | `bso_phoenix_create_log` | Nieuwe logregel | `bso_phoenix_log` | `bso_phoenix_write` |
 | `bso_phoenix_add_log_photos` | Foto's aan log toevoegen | `bso_phoenix_log` | `bso_phoenix_write` |
 | `bso_phoenix_update_log_photo` | Caption/sortering foto aanpassen | `bso_phoenix_log` | `bso_phoenix_write` |
@@ -218,8 +220,17 @@ bso-phoenix/
 
 ### Planned / ready for development
 
-- [ ] Verdere hardening van import/export validatie en foutrapportage
+- [x] Verdere hardening van import/export validatie en foutrapportage (exportpaden + GPX-download)
 - [ ] Release notes voor formele v1.2.0 versie-tag
+
+### Hardeningregels import/export (v1.2.0+)
+
+- Centrale datumvalidatie via `BSO_Phoenix_Hardening::normalize_date()` en `::is_valid_date_range()`.
+- CSV-export faalt gecontroleerd bij write-fouten (`fputcsv` checks op header en records).
+- Downloadbestandsnamen worden gesaniteerd met `sanitize_file_name()`.
+- Admin exportfouten worden teruggekoppeld met `export_error` en user-friendly notices.
+- ZIP-export hanteert expliciete foutcodes: `zip_unavailable`, `temp_file_failed`, `zip_open_failed`, `zip_write_failed`, `zip_close_failed`, `zip_read_failed`.
+- GPX-download filtert ongeldige coordinaten; bij alleen ongeldige punten volgt HTTP 422.
 
 ## Documentatie
 
@@ -230,6 +241,7 @@ bso-phoenix/
 - [User Story: Live route schermvullend toggle](document/User_Story_Live_Route_Schermvullend_Toggle.md)
 - [Testplan: Bulkacties Recente tochten TODO Kosten](document/Testplan_Bulkacties_Recente_Tochten_TODO_Kosten.md)
 - [Testplan: Live route schermvullend toggle](document/Testplan_Live_Route_Schermvullend_Toggle.md)
+- [Testplan: Hardening import/export validatie en foutrapportage](document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md)
 - [Dagafsluiting 2026-07-05](document/Dagafsluiting_2026-07-05.md)
 - [Dagafsluiting 2026-07-04](document/Dagafsluiting_2026-07-04.md)
 - [Acceptatietest Story 5 / PR comment](document/Acceptatietest_PR_comment.md)

@@ -72,6 +72,15 @@ class BSO_Phoenix_Cost_Admin
         if (isset($_GET['error']) && $_GET['error'] === 'invalid') {
             echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Ongeldige invoer. Controleer bedrag en datum.', 'bso-phoenix') . '</p></div>';
         }
+        if (isset($_GET['export_error'])) {
+            $messages = array(
+                'invalid_range' => __('Ongeldige periode: de einddatum ligt voor de startdatum.', 'bso-phoenix'),
+            );
+            $error_code = sanitize_key((string) $_GET['export_error']);
+            if (isset($messages[$error_code])) {
+                echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($messages[$error_code]) . '</p></div>';
+            }
+        }
 
         // Summary cards
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0 20px;">';
@@ -301,24 +310,46 @@ class BSO_Phoenix_Cost_Admin
         $date_to = $this->normalize_date(sanitize_text_field((string) ($_POST['date_to'] ?? '')));
         $cost_type = sanitize_key((string) ($_POST['cost_type'] ?? ''));
 
+        if (! BSO_Phoenix_Hardening::is_valid_date_range($date_from, $date_to)) {
+            $redirect_url = add_query_arg(
+                array(
+                    'page' => 'bso-phoenix-costs',
+                    'date_from' => $date_from,
+                    'date_to' => $date_to,
+                    'cost_type' => $cost_type,
+                    'export_error' => 'invalid_range',
+                ),
+                admin_url('admin.php')
+            );
+            wp_safe_redirect($redirect_url);
+            exit;
+        }
+
+        if (! array_key_exists($cost_type, self::TYPE_LABELS) && $cost_type !== '') {
+            $cost_type = '';
+        }
+
         $service = new BSO_Phoenix_Cost_Service();
         $costs = $service->get_costs($date_from, $date_to, $cost_type, 10000);
 
-        $filename = 'phoenix-costs-' . gmdate('Ymd-His') . '.csv';
+        $filename = sanitize_file_name('phoenix-costs-' . gmdate('Ymd-His') . '.csv');
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $output = fopen('php://output', 'w');
         if ($output === false) {
             wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
         }
 
-        fputcsv($output, array('id', 'cost_date', 'cost_type', 'amount', 'currency', 'supplier', 'notes'));
+        if (fputcsv($output, array('id', 'cost_date', 'cost_type', 'amount', 'currency', 'supplier', 'notes')) === false) {
+            fclose($output);
+            wp_die(esc_html__('Kon CSV-header niet schrijven.', 'bso-phoenix'));
+        }
 
         foreach ($costs as $cost) {
-            fputcsv($output, array(
+            $written = fputcsv($output, array(
                 (string) $cost['id'],
                 (string) $cost['cost_date'],
                 (string) $cost['cost_type'],
@@ -327,6 +358,11 @@ class BSO_Phoenix_Cost_Admin
                 (string) $cost['supplier'],
                 (string) $cost['notes'],
             ));
+
+            if ($written === false) {
+                fclose($output);
+                wp_die(esc_html__('Kon CSV-rij niet schrijven.', 'bso-phoenix'));
+            }
         }
 
         fclose($output);

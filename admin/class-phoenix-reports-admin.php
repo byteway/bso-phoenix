@@ -76,6 +76,21 @@ class BSO_Phoenix_Reports_Admin
         $this->render_print_styles();
         echo '<h1>' . esc_html__('Rapportages', 'bso-phoenix') . '</h1>';
         echo '<p>' . esc_html__('Gecombineerd overzicht van tochten, kosten, logboek en taken binnen de geselecteerde periode.', 'bso-phoenix') . '</p>';
+        if (isset($_GET['export_error'])) {
+            $messages = array(
+                'invalid_range' => __('Ongeldige periode: de einddatum ligt voor de startdatum.', 'bso-phoenix'),
+                'zip_unavailable' => __('ZIP-export is niet beschikbaar op deze server (ZipArchive ontbreekt).', 'bso-phoenix'),
+                'temp_file_failed' => __('Kon tijdelijk ZIP-bestand niet aanmaken.', 'bso-phoenix'),
+                'zip_open_failed' => __('Kon ZIP-bestand niet opbouwen.', 'bso-phoenix'),
+                'zip_write_failed' => __('Kon een of meer bestanden niet toevoegen aan het ZIP-pakket.', 'bso-phoenix'),
+                'zip_close_failed' => __('Kon ZIP-bestand niet afronden.', 'bso-phoenix'),
+                'zip_read_failed' => __('Kon ZIP-bestand niet uitlezen voor download.', 'bso-phoenix'),
+            );
+            $error_code = sanitize_key((string) $_GET['export_error']);
+            if (isset($messages[$error_code])) {
+                echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($messages[$error_code]) . '</p></div>';
+            }
+        }
 
         echo '<div class="phoenix-report-toolbar no-print" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:12px 0 18px;">';
         echo '<form method="get" action="" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:0;">';
@@ -789,6 +804,10 @@ class BSO_Phoenix_Reports_Admin
         $date_from = $this->normalize_date(isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '');
         $date_to = $this->normalize_date(isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '');
 
+        if (! BSO_Phoenix_Hardening::is_valid_date_range($date_from, $date_to)) {
+            $this->redirect_export_error('invalid_range', $date_from, $date_to);
+        }
+
         $trip_service = new BSO_Phoenix_Trip_Service();
         $cost_service = new BSO_Phoenix_Cost_Service();
         $log_service = new BSO_Phoenix_Log_Service();
@@ -807,45 +826,45 @@ class BSO_Phoenix_Reports_Admin
         $top_costs = $this->build_top_costs($costs);
         $top_suppliers = $this->build_top_suppliers($costs);
 
-        $filename = 'phoenix-report-' . gmdate('Ymd-His') . '.csv';
+        $filename = sanitize_file_name('phoenix-report-' . gmdate('Ymd-His') . '.csv');
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $output = fopen('php://output', 'w');
         if ($output === false) {
             wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
         }
 
-        fputcsv($output, array('metric', 'value'));
-        fputcsv($output, array('trip_count', (string) $report['trip_count']));
-        fputcsv($output, array('distance', $settings_service->format_distance($report['distance_km'], 2)));
-        fputcsv($output, array('duration_hours', number_format_i18n($report['duration_hours'], 2)));
-        fputcsv($output, array('average_speed', $settings_service->format_speed($report['average_speed_kmh'], 2)));
-        fputcsv($output, array('cost_total', $settings_service->format_money($report['cost_total'])));
-        fputcsv($output, array('log_count', (string) $report['log_count']));
-        fputcsv($output, array('todo_open_count', (string) $report['todo_open_count']));
+        $this->write_csv_row($output, array('metric', 'value'));
+        $this->write_csv_row($output, array('trip_count', (string) $report['trip_count']));
+        $this->write_csv_row($output, array('distance', $settings_service->format_distance($report['distance_km'], 2)));
+        $this->write_csv_row($output, array('duration_hours', number_format_i18n($report['duration_hours'], 2)));
+        $this->write_csv_row($output, array('average_speed', $settings_service->format_speed($report['average_speed_kmh'], 2)));
+        $this->write_csv_row($output, array('cost_total', $settings_service->format_money($report['cost_total'])));
+        $this->write_csv_row($output, array('log_count', (string) $report['log_count']));
+        $this->write_csv_row($output, array('todo_open_count', (string) $report['todo_open_count']));
 
         foreach ($report['costs_by_type'] as $type => $amount) {
-            fputcsv($output, array('cost_type_' . $type, $settings_service->format_money($amount)));
+            $this->write_csv_row($output, array('cost_type_' . $type, $settings_service->format_money($amount)));
         }
 
         foreach ($report['todos_by_status'] as $status => $count) {
-            fputcsv($output, array('todo_status_' . $status, (string) $count));
+            $this->write_csv_row($output, array('todo_status_' . $status, (string) $count));
         }
 
-        fputcsv($output, array());
-        fputcsv($output, array('comparison_metric', 'current_period', 'previous_period'));
-        fputcsv($output, array('trip_count', (string) $comparison['current']['trip_count'], (string) $comparison['previous']['trip_count']));
-        fputcsv($output, array('distance', $settings_service->format_distance($comparison['current']['distance_km'], 2), $settings_service->format_distance($comparison['previous']['distance_km'], 2)));
-        fputcsv($output, array('cost_total', $settings_service->format_money($comparison['current']['cost_total']), $settings_service->format_money($comparison['previous']['cost_total'])));
-        fputcsv($output, array('log_count', (string) $comparison['current']['log_count'], (string) $comparison['previous']['log_count']));
+        $this->write_csv_row($output, array());
+        $this->write_csv_row($output, array('comparison_metric', 'current_period', 'previous_period'));
+        $this->write_csv_row($output, array('trip_count', (string) $comparison['current']['trip_count'], (string) $comparison['previous']['trip_count']));
+        $this->write_csv_row($output, array('distance', $settings_service->format_distance($comparison['current']['distance_km'], 2), $settings_service->format_distance($comparison['previous']['distance_km'], 2)));
+        $this->write_csv_row($output, array('cost_total', $settings_service->format_money($comparison['current']['cost_total']), $settings_service->format_money($comparison['previous']['cost_total'])));
+        $this->write_csv_row($output, array('log_count', (string) $comparison['current']['log_count'], (string) $comparison['previous']['log_count']));
 
-        fputcsv($output, array());
-        fputcsv($output, array('monthly_total_month', 'trip_count', 'distance', 'cost_total'));
+        $this->write_csv_row($output, array());
+        $this->write_csv_row($output, array('monthly_total_month', 'trip_count', 'distance', 'cost_total'));
         foreach ($monthly_totals as $month => $month_data) {
-            fputcsv($output, array(
+            $this->write_csv_row($output, array(
                 $month,
                 (string) $month_data['trip_count'],
                 $settings_service->format_distance($month_data['distance_km'], 2),
@@ -853,20 +872,20 @@ class BSO_Phoenix_Reports_Admin
             ));
         }
 
-        fputcsv($output, array());
-        fputcsv($output, array('monthly_cost_breakdown_month', 'cost_type', 'total'));
+        $this->write_csv_row($output, array());
+        $this->write_csv_row($output, array('monthly_cost_breakdown_month', 'cost_type', 'total'));
         foreach ($monthly_cost_breakdown as $row) {
-            fputcsv($output, array(
+            $this->write_csv_row($output, array(
                 (string) $row['month'],
                 (string) $row['cost_type'],
                 $settings_service->format_money((float) $row['total']),
             ));
         }
 
-        fputcsv($output, array());
-        fputcsv($output, array('top_cost_date', 'cost_type', 'supplier', 'amount'));
+        $this->write_csv_row($output, array());
+        $this->write_csv_row($output, array('top_cost_date', 'cost_type', 'supplier', 'amount'));
         foreach ($top_costs as $cost) {
-            fputcsv($output, array(
+            $this->write_csv_row($output, array(
                 (string) $cost['cost_date'],
                 (string) $cost['cost_type'],
                 (string) $cost['supplier'],
@@ -874,20 +893,20 @@ class BSO_Phoenix_Reports_Admin
             ));
         }
 
-        fputcsv($output, array());
-        fputcsv($output, array('top_supplier', 'transactions', 'total'));
+        $this->write_csv_row($output, array());
+        $this->write_csv_row($output, array('top_supplier', 'transactions', 'total'));
         foreach ($top_suppliers as $supplier) {
-            fputcsv($output, array(
+            $this->write_csv_row($output, array(
                 (string) $supplier['supplier'],
                 (string) $supplier['count'],
                 $settings_service->format_money((float) $supplier['total']),
             ));
         }
 
-        fputcsv($output, array());
-        fputcsv($output, array('busiest_day', 'trip_count', 'distance'));
+        $this->write_csv_row($output, array());
+        $this->write_csv_row($output, array('busiest_day', 'trip_count', 'distance'));
         foreach ($busiest_trip_days as $day) {
-            fputcsv($output, array(
+            $this->write_csv_row($output, array(
                 (string) $day['date'],
                 (string) $day['trip_count'],
                 $settings_service->format_distance((float) $day['distance_km'], 2),
@@ -906,12 +925,16 @@ class BSO_Phoenix_Reports_Admin
 
         check_admin_referer('bso_phoenix_export_reports_zip', 'bso_phoenix_reports_export_zip_nonce');
 
-        if (! class_exists('ZipArchive')) {
-            wp_die(esc_html__('ZIP-export is niet beschikbaar op deze server (ZipArchive ontbreekt).', 'bso-phoenix'));
-        }
-
         $date_from = $this->normalize_date(isset($_POST['date_from']) ? sanitize_text_field((string) $_POST['date_from']) : '');
         $date_to = $this->normalize_date(isset($_POST['date_to']) ? sanitize_text_field((string) $_POST['date_to']) : '');
+
+        if (! BSO_Phoenix_Hardening::is_valid_date_range($date_from, $date_to)) {
+            $this->redirect_export_error('invalid_range', $date_from, $date_to);
+        }
+
+        if (! class_exists('ZipArchive')) {
+            $this->redirect_export_error('zip_unavailable', $date_from, $date_to);
+        }
 
         $trip_service = new BSO_Phoenix_Trip_Service();
         $cost_service = new BSO_Phoenix_Cost_Service();
@@ -925,20 +948,28 @@ class BSO_Phoenix_Reports_Admin
 
         $zip_path = tempnam(sys_get_temp_dir(), 'phoenix-report-');
         if ($zip_path === false) {
-            wp_die(esc_html__('Kon tijdelijk ZIP-bestand niet aanmaken.', 'bso-phoenix'));
+            $this->redirect_export_error('temp_file_failed', $date_from, $date_to);
         }
 
         $zip = new ZipArchive();
         $opened = $zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
         if ($opened !== true) {
             @unlink($zip_path);
-            wp_die(esc_html__('Kon ZIP-bestand niet opbouwen.', 'bso-phoenix'));
+            $this->redirect_export_error('zip_open_failed', $date_from, $date_to);
         }
 
-        $zip->addFromString('README.txt', $this->build_export_readme());
-        $zip->addFromString('summary.txt', $this->build_export_summary($date_from, $date_to, $trips, $costs, $logs, $todos));
+        if (! $zip->addFromString('README.txt', $this->build_export_readme())) {
+            $zip->close();
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+        }
+        if (! $zip->addFromString('summary.txt', $this->build_export_summary($date_from, $date_to, $trips, $costs, $logs, $todos))) {
+            $zip->close();
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+        }
 
-        $zip->addFromString('csv/trips.csv', $this->csv_to_string(
+        if (! $zip->addFromString('csv/trips.csv', $this->csv_to_string(
             array('trip_id', 'started_at', 'ended_at', 'status', 'distance_km', 'duration_minutes', 'average_speed_kmh', 'estimated_fuel_used_l'),
             array_map(function ($trip): array {
                 return array(
@@ -952,9 +983,13 @@ class BSO_Phoenix_Reports_Admin
                     (string) ($trip['estimated_fuel_used_l'] ?? ''),
                 );
             }, $trips)
-        ));
+        ))) {
+            $zip->close();
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+        }
 
-        $zip->addFromString('csv/costs.csv', $this->csv_to_string(
+        if (! $zip->addFromString('csv/costs.csv', $this->csv_to_string(
             array('id', 'trip_id', 'cost_type', 'amount', 'currency', 'cost_date', 'supplier', 'notes'),
             array_map(function ($cost): array {
                 return array(
@@ -968,9 +1003,13 @@ class BSO_Phoenix_Reports_Admin
                     (string) ($cost['notes'] ?? ''),
                 );
             }, $costs)
-        ));
+        ))) {
+            $zip->close();
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+        }
 
-        $zip->addFromString('csv/logs.csv', $this->csv_to_string(
+        if (! $zip->addFromString('csv/logs.csv', $this->csv_to_string(
             array('id', 'trip_id', 'log_date', 'log_time', 'entry_text', 'created_at'),
             array_map(function ($log): array {
                 return array(
@@ -982,9 +1021,13 @@ class BSO_Phoenix_Reports_Admin
                     (string) ($log['created_at'] ?? ''),
                 );
             }, $logs)
-        ));
+        ))) {
+            $zip->close();
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+        }
 
-        $zip->addFromString('csv/todos.csv', $this->csv_to_string(
+        if (! $zip->addFromString('csv/todos.csv', $this->csv_to_string(
             array('id', 'title', 'status', 'priority', 'due_date', 'completed_at', 'created_at'),
             array_map(function ($todo): array {
                 return array(
@@ -997,7 +1040,11 @@ class BSO_Phoenix_Reports_Admin
                     (string) ($todo['created_at'] ?? ''),
                 );
             }, $todos)
-        ));
+        ))) {
+            $zip->close();
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+        }
 
         foreach ($trips as $trip) {
             $trip_id = isset($trip['id']) ? (int) $trip['id'] : 0;
@@ -1010,22 +1057,62 @@ class BSO_Phoenix_Reports_Admin
                 continue;
             }
 
-            $zip->addFromString(
+            if (! $zip->addFromString(
                 'gpx/trip-' . $trip_id . '.gpx',
                 $this->build_trip_gpx((array) $trip, $points)
-            );
+            )) {
+                $zip->close();
+                @unlink($zip_path);
+                $this->redirect_export_error('zip_write_failed', $date_from, $date_to);
+            }
         }
 
-        $zip->close();
+        if (! $zip->close()) {
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_close_failed', $date_from, $date_to);
+        }
 
-        $filename = 'phoenix-exportpakket-' . gmdate('Ymd-His') . '.zip';
+        $filesize = filesize($zip_path);
+        if ($filesize === false || $filesize <= 0) {
+            @unlink($zip_path);
+            $this->redirect_export_error('zip_read_failed', $date_from, $date_to);
+        }
+
+        $filename = sanitize_file_name('phoenix-exportpakket-' . gmdate('Ymd-His') . '.zip');
         nocache_headers();
         header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename=' . $filename);
-        header('Content-Length: ' . (string) filesize($zip_path));
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . (string) $filesize);
 
-        readfile($zip_path);
+        $sent = readfile($zip_path);
         @unlink($zip_path);
+        if ($sent === false) {
+            wp_die(esc_html__('Kon ZIP-download niet uitleveren.', 'bso-phoenix'));
+        }
+        exit;
+    }
+
+    private function write_csv_row($output, array $row): void
+    {
+        if (fputcsv($output, $row) === false) {
+            fclose($output);
+            wp_die(esc_html__('Kon CSV-rij niet schrijven.', 'bso-phoenix'));
+        }
+    }
+
+    private function redirect_export_error(string $error_code, string $date_from = '', string $date_to = ''): void
+    {
+        $redirect_url = add_query_arg(
+            array(
+                'page' => 'bso-phoenix-reports',
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'export_error' => sanitize_key($error_code),
+            ),
+            admin_url('admin.php')
+        );
+
+        wp_safe_redirect($redirect_url);
         exit;
     }
 

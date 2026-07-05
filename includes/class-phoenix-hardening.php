@@ -48,6 +48,15 @@ class BSO_Phoenix_Hardening
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
     }
 
+    public static function is_valid_date_range(string $date_from, string $date_to): bool
+    {
+        if ($date_from === '' || $date_to === '') {
+            return true;
+        }
+
+        return strcmp($date_from, $date_to) <= 0;
+    }
+
     public static function is_duplicate_submission(string $scope, array $payload, int $ttl_seconds = 20): bool
     {
         $user_id = get_current_user_id();

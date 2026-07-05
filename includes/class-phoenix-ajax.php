@@ -218,8 +218,23 @@ class BSO_Phoenix_Ajax
             wp_die('Geen trackpoints beschikbaar voor deze trip.', 'Not Found', array('response' => 404));
         }
 
-        $gpx = $this->build_gpx_xml($trip, $points);
-        $filename = 'phoenix-trip-' . $trip_id . '.gpx';
+        $valid_points = array_values(array_filter($points, function (array $point): bool {
+            $lat = isset($point['latitude']) ? (float) $point['latitude'] : null;
+            $lon = isset($point['longitude']) ? (float) $point['longitude'] : null;
+
+            if ($lat === null || $lon === null) {
+                return false;
+            }
+
+            return $this->is_valid_coordinate($lat, $lon);
+        }));
+
+        if (empty($valid_points)) {
+            wp_die('Geen geldige GPS-trackpoints beschikbaar voor deze trip.', 'Unprocessable Entity', array('response' => 422));
+        }
+
+        $gpx = $this->build_gpx_xml($trip, $valid_points);
+        $filename = sanitize_file_name('phoenix-trip-' . $trip_id . '.gpx');
 
         nocache_headers();
         header('Content-Type: application/gpx+xml; charset=UTF-8');
@@ -303,5 +318,10 @@ class BSO_Phoenix_Ajax
         }
 
         return gmdate('Y-m-d H:i:s', $timestamp);
+    }
+
+    private function is_valid_coordinate(float $latitude, float $longitude): bool
+    {
+        return $latitude >= -90.0 && $latitude <= 90.0 && $longitude >= -180.0 && $longitude <= 180.0;
     }
 }

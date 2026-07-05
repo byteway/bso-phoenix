@@ -26,6 +26,7 @@
 14. [Roadmap](#14-roadmap)
 15. [Bulkacties architectuur](#15-bulkacties-architectuur)
 16. [Live route schermvullend toggle architectuur](#16-live-route-schermvullend-toggle-architectuur)
+17. [Import/export validatie en foutrapportage hardening](#17-importexport-validatie-en-foutrapportage-hardening)
 
 ---
 
@@ -890,6 +891,91 @@ flowchart TD
 - Toggle en close zijn event-gedreven zonder page reload.
 - Escape sluit fullscreen voordat andere Escape-interacties (zoals lightbox) worden afgehandeld.
 - Kaart blijft renderen na schakelen door `invalidateSize()` bij enter/exit.
+
+---
+
+## 17. Import/export validatie en foutrapportage hardening
+
+### 17.1 Doel
+
+De exportpaden (CSV, GPX, ZIP) moeten:
+
+- ongeldige input vroegtijdig afwijzen
+- niet stil falen bij stream/write fouten
+- consistente foutcodes en gebruikersmeldingen teruggeven
+- succesvolle exports ongewijzigd blijven ondersteunen
+
+### 17.2 Centrale validatie
+
+Uitbreiding in `BSO_Phoenix_Hardening`:
+
+- `normalize_date(string $value): string`
+- `is_valid_date_range(string $date_from, string $date_to): bool`
+
+Gedrag:
+
+- lege grenzen zijn toegestaan
+- bij twee gevulde datums moet `date_from <= date_to` gelden
+
+### 17.3 Hardened exportpaden
+
+- `BSO_Phoenix_Admin_Page`
+	- trips CSV export: datumrange-validatie + CSV-write checks
+	- trip trackpoints CSV/GPX export: foutafhandeling via redirect (`export_error`)
+- `BSO_Phoenix_Cost_Admin`
+	- kosten CSV export: datumrange-validatie + type-sanitatie + CSV-write checks
+- `BSO_Phoenix_Reports_Admin`
+	- rapportage CSV: datumrange-validatie + centrale `write_csv_row()` checks
+	- rapportage ZIP: expliciete preflight + write/close/read errorhandling
+- `BSO_Phoenix_Ajax`
+	- `download_trip_gpx`: filtert trackpoints op geldige coordinaatrange
+
+### 17.4 Foutcodes en rapportage
+
+Admin exportfouten worden via query-parameter `export_error` teruggeleid naar de pagina met een notice.
+
+Beschikbare foutcodes:
+
+- `invalid_range`
+- `invalid_trip`
+- `invalid_format`
+- `trip_not_found`
+- `empty_trackpoints`
+- `zip_unavailable`
+- `temp_file_failed`
+- `zip_open_failed`
+- `zip_write_failed`
+- `zip_close_failed`
+- `zip_read_failed`
+
+### 17.5 Downloadveiligheid
+
+- Bestandsnamen worden gesaniteerd via `sanitize_file_name()`.
+- `Content-Disposition` gebruikt gequote bestandsnamen.
+- ZIP-download controleert op geldige bestandsgrootte voor uitlevering.
+
+### 17.6 GPX datakwaliteit
+
+Voor GPX-download geldt coordinaatvalidatie:
+
+- latitude in `[-90, 90]`
+- longitude in `[-180, 180]`
+
+Als na filtering geen geldig punt resteert, volgt HTTP `422`.
+
+### 17.7 Teststrategie
+
+Validatie en foutrapportage worden functioneel gedekt in:
+
+- `document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md`
+
+Belangrijkste scenario's:
+
+- ongeldige datumranges
+- ongeldige trip/format combinaties
+- ontbrekende of lege trackpoints
+- ZIP preflight en uitlevering
+- positieve regressiesmoke voor werkende exports
 
 ---
 

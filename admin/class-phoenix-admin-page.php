@@ -40,6 +40,10 @@ class BSO_Phoenix_Admin_Page
         $date_to = $this->normalize_date_input($date_to);
         $status = $this->normalize_status_input($status);
 
+        if (! BSO_Phoenix_Hardening::is_valid_date_range($date_from, $date_to)) {
+            $this->redirect_export_error('invalid_range', $date_from, $date_to, $status);
+        }
+
         $service = new BSO_Phoenix_Trip_Service();
         $settings_service = new BSO_Phoenix_Settings_Service();
         $summary = $service->get_dashboard_summary();
@@ -67,6 +71,19 @@ class BSO_Phoenix_Admin_Page
                 echo '<div class="notice notice-warning is-dismissible"><p>'
                     . esc_html(sprintf(__('Geen tochten verwijderd. Mislukt: %d.', 'bso-phoenix'), $failed_count))
                     . '</p></div>';
+            }
+        }
+        if (isset($_GET['export_error'])) {
+            $messages = array(
+                'invalid_range' => __('Ongeldige periode: de einddatum ligt voor de startdatum.', 'bso-phoenix'),
+                'invalid_trip' => __('Export mislukt: ongeldige trip-id.', 'bso-phoenix'),
+                'invalid_format' => __('Export mislukt: ongeldig exportformaat.', 'bso-phoenix'),
+                'trip_not_found' => __('Export mislukt: trip niet gevonden.', 'bso-phoenix'),
+                'empty_trackpoints' => __('Export mislukt: geen trackpoints beschikbaar voor deze trip.', 'bso-phoenix'),
+            );
+            $error_code = sanitize_key((string) $_GET['export_error']);
+            if (isset($messages[$error_code])) {
+                echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($messages[$error_code]) . '</p></div>';
             }
         }
 
@@ -236,21 +253,24 @@ class BSO_Phoenix_Admin_Page
                 $range_suffix .= '-' . $status;
             }
         }
-        $filename = 'phoenix-trips' . $range_suffix . '-' . gmdate('Ymd-His') . '.csv';
+        $filename = sanitize_file_name('phoenix-trips' . $range_suffix . '-' . gmdate('Ymd-His') . '.csv');
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $output = fopen('php://output', 'w');
         if ($output === false) {
             wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
         }
 
-        fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_' . $distance_unit, 'duration_minutes', 'average_speed_' . $speed_unit));
+        if (fputcsv($output, array('trip_id', 'started_at', 'ended_at', 'status', 'distance_' . $distance_unit, 'duration_minutes', 'average_speed_' . $speed_unit)) === false) {
+            fclose($output);
+            wp_die(esc_html__('Kon CSV-header niet schrijven.', 'bso-phoenix'));
+        }
 
         foreach ($trips as $trip) {
-            fputcsv(
+            $written = fputcsv(
                 $output,
                 array(
                     (string) $trip['id'],
@@ -262,6 +282,11 @@ class BSO_Phoenix_Admin_Page
                     (string) $settings_service->convert_speed_from_kmh((float) $trip['average_speed_kmh']),
                 )
             );
+
+            if ($written === false) {
+                fclose($output);
+                wp_die(esc_html__('Kon CSV-rij niet schrijven.', 'bso-phoenix'));
+            }
         }
 
         fclose($output);
@@ -296,22 +321,25 @@ class BSO_Phoenix_Admin_Page
         $format = isset($_GET['format']) ? sanitize_key((string) $_GET['format']) : 'csv';
 
         if ($trip_id <= 0) {
-            wp_die(esc_html__('Ongeldige trip-id.', 'bso-phoenix'));
+            $this->redirect_export_error('invalid_trip');
         }
 
         check_admin_referer('bso_phoenix_export_trip_' . $trip_id);
 
         if (! in_array($format, array('csv', 'gpx'), true)) {
-            wp_die(esc_html__('Ongeldig exportformaat.', 'bso-phoenix'));
+            $this->redirect_export_error('invalid_format');
         }
 
         $service = new BSO_Phoenix_Trip_Service();
         $trip = $service->get_trip_by_id($trip_id);
         if (! is_array($trip)) {
-            wp_die(esc_html__('Trip niet gevonden.', 'bso-phoenix'));
+            $this->redirect_export_error('trip_not_found');
         }
 
         $points = $service->get_trackpoints_for_trip($trip_id);
+        if (empty($points)) {
+            $this->redirect_export_error('empty_trackpoints');
+        }
 
         if ($format === 'gpx') {
             $this->download_trackpoints_gpx($trip_id, $trip, $points);
@@ -387,21 +415,24 @@ class BSO_Phoenix_Admin_Page
 
     private function download_trackpoints_csv(int $trip_id, array $points): void
     {
-        $filename = 'phoenix-trip-' . $trip_id . '-trackpoints-' . gmdate('Ymd-His') . '.csv';
+        $filename = sanitize_file_name('phoenix-trip-' . $trip_id . '-trackpoints-' . gmdate('Ymd-His') . '.csv');
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $output = fopen('php://output', 'w');
         if ($output === false) {
             wp_die(esc_html__('Kon CSV-output niet openen.', 'bso-phoenix'));
         }
 
-        fputcsv($output, array('trip_id', 'latitude', 'longitude', 'altitude_m', 'speed_kmh', 'accuracy_m', 'recorded_at'));
+        if (fputcsv($output, array('trip_id', 'latitude', 'longitude', 'altitude_m', 'speed_kmh', 'accuracy_m', 'recorded_at')) === false) {
+            fclose($output);
+            wp_die(esc_html__('Kon CSV-header niet schrijven.', 'bso-phoenix'));
+        }
 
         foreach ($points as $point) {
-            fputcsv(
+            $written = fputcsv(
                 $output,
                 array(
                     (string) $point['trip_id'],
@@ -413,6 +444,11 @@ class BSO_Phoenix_Admin_Page
                     (string) $point['recorded_at'],
                 )
             );
+
+            if ($written === false) {
+                fclose($output);
+                wp_die(esc_html__('Kon CSV-rij niet schrijven.', 'bso-phoenix'));
+            }
         }
 
         fclose($output);
@@ -421,11 +457,11 @@ class BSO_Phoenix_Admin_Page
 
     private function download_trackpoints_gpx(int $trip_id, array $trip, array $points): void
     {
-        $filename = 'phoenix-trip-' . $trip_id . '-' . gmdate('Ymd-His') . '.gpx';
+        $filename = sanitize_file_name('phoenix-trip-' . $trip_id . '-' . gmdate('Ymd-His') . '.gpx');
 
         nocache_headers();
         header('Content-Type: application/gpx+xml; charset=utf-8');
-        header('Content-Disposition: attachment; filename=' . $filename);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         echo '<?xml version="1.0" encoding="UTF-8"?>';
         echo '<gpx version="1.1" creator="BSO Phoenix" xmlns="http://www.topografix.com/GPX/1/1">';
@@ -450,6 +486,23 @@ class BSO_Phoenix_Admin_Page
         }
 
         echo '</trkseg></trk></gpx>';
+        exit;
+    }
+
+    private function redirect_export_error(string $error_code, string $date_from = '', string $date_to = '', string $status = ''): void
+    {
+        $redirect_url = add_query_arg(
+            array(
+                'page' => 'bso-phoenix',
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'status' => $status,
+                'export_error' => sanitize_key($error_code),
+            ),
+            admin_url('admin.php')
+        );
+
+        wp_safe_redirect($redirect_url);
         exit;
     }
 }
