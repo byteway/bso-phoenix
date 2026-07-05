@@ -189,8 +189,8 @@ Verwacht:
   - `csv/todos.csv`
 - Optioneel GPX-bestanden onder `gpx/` voor trips met trackpoints.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: ZIP-export start succesvol en bevat de verwachte basisbestanden. Na hardening worden GPX-bestanden met alleen ongeldige coordinaten niet meer opgenomen (trip 8 met foutieve lat/lon ontbreekt correct in `gpx/`).
 
 ## Niet-functionele checks
 - Geen PHP parse errors in aangepaste bestanden.
