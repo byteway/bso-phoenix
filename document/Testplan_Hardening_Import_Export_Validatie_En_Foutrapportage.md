@@ -198,14 +198,14 @@ Notities: ZIP-export start succesvol en bevat de verwachte basisbestanden. Na ha
 - Foutmeldingen blijven in het Nederlands en zijn actiegericht.
 
 ## Testrun samenvatting
-- Datum:
-- Tester:
-- Omgeving:
-- Build/commit:
+- Datum: 2026-07-05
+- Tester: Berend Otten
+- Omgeving: byteway.eu (WordPress admin productie-omgeving)
+- Build/commit: ab7ff56 (testplan), 294cc75 en 273558a (laatste hardeningfixes)
 
 Totaal testgevallen: 10
-PASS:
-FAIL:
-BLOCKED:
+PASS: 10
+FAIL: 0
+BLOCKED: 0
 
-Eindadvies: [ ] GO / [ ] NO-GO
+Eindadvies: [x] GO / [ ] NO-GO
