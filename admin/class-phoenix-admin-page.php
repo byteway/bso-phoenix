@@ -341,17 +341,17 @@ class BSO_Phoenix_Admin_Page
             $this->redirect_export_error('empty_trackpoints');
         }
 
-        if ($format === 'gpx') {
-            $valid_points = $this->filter_valid_trackpoints($points);
-            if (empty($valid_points)) {
-                $this->redirect_export_error('empty_trackpoints');
-            }
+        $valid_points = $this->filter_valid_trackpoints($points);
+        if (empty($valid_points)) {
+            $this->redirect_export_error('empty_trackpoints');
+        }
 
+        if ($format === 'gpx') {
             $this->download_trackpoints_gpx($trip_id, $trip, $valid_points);
             return;
         }
 
-        $this->download_trackpoints_csv($trip_id, $points);
+        $this->download_trackpoints_csv($trip_id, $valid_points);
     }
 
     public function handle_bulk_delete_trips(): void
