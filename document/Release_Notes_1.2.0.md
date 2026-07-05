@@ -54,3 +54,17 @@ Resultaat:
 - Geen datamodelmigratie nodig voor deze release
 - Bestaande data blijft bruikbaar
 - Advies: handmatige testdata (ongeldige trackpoints gebruikt tijdens validatietests) opschonen/herstellen
+
+## Deploy artifact
+
+- Productie-zip opgebouwd op 2026-07-05:
+	- `dist/bso-phoenix-v1.2.0-prod-20260705.zip`
+
+## Post-release update (beheerbaarheid trackpoints)
+
+Toegevoegd na v1.2.0 tag als operationele verbetering:
+
+- Alles selecteren knop in Trackpoints beheer
+- Selectie omkeren knop in Trackpoints beheer
+- Limietopties 25/50/100 voor trackpoints per pagina
+- Paginering voor trackpoints met Vorige/Volgende

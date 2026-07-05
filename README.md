@@ -13,9 +13,10 @@ WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3
 4. [Usage](#usage)
 5. [Project Structure](#project-structure)
 6. [MVP Status en Roadmap](#mvp-status-en-roadmap)
-7. [Documentatie](#documentatie)
-8. [Contributing](#contributing)
-9. [License](#license)
+7. [Deploy Productie](#deploy-productie)
+8. [Documentatie](#documentatie)
+9. [Contributing](#contributing)
+10. [License](#license)
 
 ## Features
 
@@ -93,6 +94,21 @@ Gebruik de aparte formulieren voor onderhoudstaken en kostenregistratie.
 ### Rapportages
 
 Gebruik de rapportagepagina in wp-admin voor een gecombineerd periodeoverzicht van trips, kosten, logboekitems en open taken.
+
+## Deploy Productie
+
+Huidig productie-artifact:
+
+- `dist/bso-phoenix-v1.2.0-prod-20260705.zip`
+
+Standaard deployflow:
+
+1. Maak backup van database en pluginmap.
+2. Upload het zipbestand via WordPress plugin upload.
+3. Activeer/update plugin.
+4. Voer rooktest uit op dashboard, rapportages en trackpoints beheer.
+
+Voor volledige operationele stappen en rollback: zie runbook.
 
 ## Project Structure
 
@@ -178,6 +194,8 @@ Meer details staan in:
 - [Installatie en Acceptatietest Stap 7](document/Installatie_En_Acceptatietest_Stap7.md)
 - [Acceptatietest Run Template Stap 7](document/Acceptatietest_Run_Template_Stap7.md)
 - [Roadmap v1.2.0](document/Roadmap_v1.2.0.md)
+- [Runbook Beheer En Deploy](document/Runbook_Beheer_En_Deploy.md)
+- [Changes](document/CHANGES.md)
 - [Testplan Hardening Import Export Validatie En Foutrapportage](document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md)
 - [User Story Trackpoints Bewerken Repareren](document/User_Story_Trackpoints_Bewerken_Repareren.md)
 - [Testplan Trackpoints Bewerken Repareren](document/Testplan_Trackpoints_Bewerken_Repareren.md)
