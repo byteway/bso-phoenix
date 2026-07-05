@@ -94,6 +94,77 @@ Verwacht:
 Resultaat: [ ] PASS / [ ] FAIL
 Notities:
 
+### TC-TP-007 - Filter op trips (combobox)
+
+Stappen:
+1. Stel `Tochten vanaf`, `Tochten t/m` en `Max tochten` in.
+2. Klik `Filter toepassen`.
+
+Verwacht:
+- De trip-combobox bevat minder items volgens de ingestelde filters.
+- Alleen trips binnen de gekozen datumrange worden getoond.
+- Het aantal opties overschrijdt de ingestelde limiet niet.
+
+Resultaat: [ ] PASS / [ ] FAIL
+Notities:
+
+### TC-TP-008 - Filter op trackpoints en laadlimiet
+
+Stappen:
+1. Selecteer een trip met veel trackpoints.
+2. Stel `Trackpoints vanaf`, `Trackpoints t/m` en `Max trackpoints` in.
+3. Klik `Filter toepassen`.
+
+Verwacht:
+- Alleen trackpoints binnen de ingestelde periode worden geladen.
+- Het aantal geladen rijen volgt de ingestelde limiet.
+- Bij bereiken van de limiet verschijnt een informatieve melding.
+
+Resultaat: [ ] PASS / [ ] FAIL
+Notities:
+
+### TC-TP-009 - Alles selecteren en selectie omkeren
+
+Stappen:
+1. Open een trip met meerdere trackpoints.
+2. Klik `Alles selecteren`.
+3. Klik daarna `Selectie omkeren`.
+
+Verwacht:
+- Na `Alles selecteren` zijn alle zichtbare checkboxen aangevinkt.
+- Na `Selectie omkeren` wordt de selectie van alle zichtbare rijen omgedraaid.
+
+Resultaat: [ ] PASS / [ ] FAIL
+Notities:
+
+### TC-TP-010 - Limietopties 25, 50, 100
+
+Stappen:
+1. Open filter `Max trackpoints`.
+2. Controleer de beschikbare opties.
+3. Kies elke optie één voor één en pas filter toe.
+
+Verwacht:
+- Alleen 25, 50 en 100 zijn beschikbaar.
+- Het aantal zichtbare rijen per pagina volgt de gekozen limiet.
+
+Resultaat: [ ] PASS / [ ] FAIL
+Notities:
+
+### TC-TP-011 - Trackpoints paginering
+
+Stappen:
+1. Kies een trip waarvan het aantal gefilterde trackpoints groter is dan de gekozen limiet.
+2. Navigeer met `Volgende` en `Vorige`.
+
+Verwacht:
+- De pagina-indicator toont de juiste paginanummers.
+- `Volgende` gaat naar de volgende set rijen en `Vorige` terug.
+- Filters en limiet blijven behouden tijdens pagineren.
+
+Resultaat: [ ] PASS / [ ] FAIL
+Notities:
+
 ## Testrun samenvatting
 
 - Datum:

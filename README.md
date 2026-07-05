@@ -31,7 +31,7 @@ WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3
 - Bootprofielbeheer in wp-admin
 - Instellingen voor GPS-interval, brandstofverbruik, valuta en afstandseenheid
 - Gecombineerde rapportagepagina voor trips, kosten, logboek en taken
-- Dedicated admin-UI voor trackpoints bewerken/repareren per trip
+- Dedicated admin-UI voor trackpoints bewerken/repareren per trip, inclusief filters op datumrange en laadlimiet
 - Bulkacties voor selectie/verwijderen van trips (admin), TODO's en kosten (frontend)
 - Schermvullende live routekaart in frontend dashboard
 - Hardening op import/export validatie en foutrapportage (CSV/GPX/ZIP)

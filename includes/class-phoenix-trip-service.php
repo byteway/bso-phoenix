@@ -160,6 +160,66 @@ class BSO_Phoenix_Trip_Service
         return is_array($rows) ? $rows : array();
     }
 
+    public function get_trackpoints_for_trip_filtered(int $trip_id, ?string $recorded_from, ?string $recorded_to, int $limit = 500, int $offset = 0): array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trackpoints';
+        $limit = max(1, min(5000, $limit));
+        $offset = max(0, $offset);
+
+        $sql = "SELECT id, trip_id, latitude, longitude, altitude_m, speed_kmh, accuracy_m, recorded_at
+                FROM {$table}
+                WHERE trip_id = %d";
+        $args = array($trip_id);
+
+        if ($recorded_from !== null && $recorded_from !== '') {
+            $sql .= ' AND recorded_at >= %s';
+            $args[] = $recorded_from;
+        }
+
+        if ($recorded_to !== null && $recorded_to !== '') {
+            $sql .= ' AND recorded_at <= %s';
+            $args[] = $recorded_to;
+        }
+
+        $sql .= ' ORDER BY recorded_at ASC, id ASC LIMIT %d OFFSET %d';
+        $args[] = $limit;
+        $args[] = $offset;
+
+        $prepared = $wpdb->prepare($sql, ...$args);
+        $rows = $wpdb->get_results($prepared, ARRAY_A);
+
+        return is_array($rows) ? $rows : array();
+    }
+
+    public function count_trackpoints_for_trip_filtered(int $trip_id, ?string $recorded_from, ?string $recorded_to): int
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trackpoints';
+
+        $sql = "SELECT COUNT(*)
+                FROM {$table}
+                WHERE trip_id = %d";
+        $args = array($trip_id);
+
+        if ($recorded_from !== null && $recorded_from !== '') {
+            $sql .= ' AND recorded_at >= %s';
+            $args[] = $recorded_from;
+        }
+
+        if ($recorded_to !== null && $recorded_to !== '') {
+            $sql .= ' AND recorded_at <= %s';
+            $args[] = $recorded_to;
+        }
+
+        $prepared = $wpdb->prepare($sql, ...$args);
+        $count = $wpdb->get_var($prepared);
+
+        return max(0, (int) $count);
+    }
+
     public function get_trackpoint_by_id(int $trackpoint_id): ?array
     {
         global $wpdb;

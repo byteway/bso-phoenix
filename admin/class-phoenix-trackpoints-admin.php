@@ -31,14 +31,60 @@ class BSO_Phoenix_Trackpoints_Admin
         }
 
         $trip_service = new BSO_Phoenix_Trip_Service();
-        $trips = $trip_service->get_trips_by_date_range(null, null, '', 200);
+        $trip_date_from = $this->sanitize_date_input(isset($_GET['trip_date_from']) ? sanitize_text_field(wp_unslash((string) $_GET['trip_date_from'])) : '');
+        $trip_date_to = $this->sanitize_date_input(isset($_GET['trip_date_to']) ? sanitize_text_field(wp_unslash((string) $_GET['trip_date_to'])) : '');
+        $trip_limit = $this->sanitize_limit(isset($_GET['trip_limit']) ? $_GET['trip_limit'] : 100, 100, 20, 500);
+
+        $point_from_input = isset($_GET['point_from']) ? sanitize_text_field(wp_unslash((string) $_GET['point_from'])) : '';
+        $point_to_input = isset($_GET['point_to']) ? sanitize_text_field(wp_unslash((string) $_GET['point_to'])) : '';
+        $point_date_from = $this->parse_datetime_local($point_from_input);
+        $point_date_to = $this->parse_datetime_local($point_to_input);
+        $point_limit = $this->sanitize_allowed_limit(isset($_GET['point_limit']) ? $_GET['point_limit'] : 50, 50, array(25, 50, 100));
+        $point_page = max(1, isset($_GET['point_page']) ? (int) $_GET['point_page'] : 1);
+
+        $trips = $trip_service->get_trips_by_date_range(
+            $trip_date_from !== '' ? $trip_date_from : null,
+            $trip_date_to !== '' ? $trip_date_to : null,
+            '',
+            $trip_limit
+        );
         $trip_id = isset($_GET['trip_id']) ? (int) $_GET['trip_id'] : 0;
         if ($trip_id <= 0 && ! empty($trips)) {
             $trip_id = (int) $trips[0]['id'];
         }
 
         $trip = $trip_id > 0 ? $trip_service->get_trip_by_id($trip_id) : null;
-        $points = $trip_id > 0 ? $trip_service->get_trackpoints_for_trip($trip_id) : array();
+        $total_filtered_points = 0;
+        $total_pages = 1;
+        $points = array();
+
+        if ($trip_id > 0) {
+            $total_filtered_points = $trip_service->count_trackpoints_for_trip_filtered(
+                $trip_id,
+                $point_date_from !== '' ? $point_date_from : null,
+                $point_date_to !== '' ? $point_date_to : null
+            );
+            $total_pages = max(1, (int) ceil($total_filtered_points / $point_limit));
+            $point_page = min($point_page, $total_pages);
+
+            $points = $trip_service->get_trackpoints_for_trip_filtered(
+                $trip_id,
+                $point_date_from !== '' ? $point_date_from : null,
+                $point_date_to !== '' ? $point_date_to : null,
+                $point_limit,
+                ($point_page - 1) * $point_limit
+            );
+        }
+
+        $filter_state = array(
+            'trip_date_from' => $trip_date_from,
+            'trip_date_to' => $trip_date_to,
+            'trip_limit' => $trip_limit,
+            'point_from' => $point_date_from !== '' ? $this->format_datetime_local_input($point_date_from) : '',
+            'point_to' => $point_date_to !== '' ? $this->format_datetime_local_input($point_date_to) : '',
+            'point_limit' => $point_limit,
+            'point_page' => $point_page,
+        );
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__('Trackpoints beheren', 'bso-phoenix') . '</h1>';
@@ -48,6 +94,22 @@ class BSO_Phoenix_Trackpoints_Admin
 
         echo '<form method="get" action="" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:0 0 16px;">';
         echo '<input type="hidden" name="page" value="bso-phoenix-trackpoints" />';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Tochten vanaf', 'bso-phoenix') . '</span>';
+        echo '<input type="date" name="trip_date_from" value="' . esc_attr($trip_date_from) . '" />';
+        echo '</label>';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Tochten t/m', 'bso-phoenix') . '</span>';
+        echo '<input type="date" name="trip_date_to" value="' . esc_attr($trip_date_to) . '" />';
+        echo '</label>';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Max tochten', 'bso-phoenix') . '</span>';
+        echo '<select name="trip_limit">';
+        foreach (array(50, 100, 200, 500) as $trip_limit_option) {
+            echo '<option value="' . esc_attr((string) $trip_limit_option) . '"' . selected($trip_limit, $trip_limit_option, false) . '>' . esc_html((string) $trip_limit_option) . '</option>';
+        }
+        echo '</select>';
+        echo '</label>';
         echo '<label>';
         echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Kies tocht', 'bso-phoenix') . '</span>';
         echo '<select name="trip_id">';
@@ -67,7 +129,24 @@ class BSO_Phoenix_Trackpoints_Admin
         }
         echo '</select>';
         echo '</label>';
-        submit_button(__('Laad trackpoints', 'bso-phoenix'), 'secondary', 'submit', false);
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Trackpoints vanaf', 'bso-phoenix') . '</span>';
+        echo '<input type="datetime-local" name="point_from" value="' . esc_attr((string) $filter_state['point_from']) . '" />';
+        echo '</label>';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Trackpoints t/m', 'bso-phoenix') . '</span>';
+        echo '<input type="datetime-local" name="point_to" value="' . esc_attr((string) $filter_state['point_to']) . '" />';
+        echo '</label>';
+        echo '<label>';
+        echo '<span style="display:block;font-size:12px;color:#50575e;">' . esc_html__('Max trackpoints', 'bso-phoenix') . '</span>';
+        echo '<select name="point_limit">';
+        foreach (array(25, 50, 100) as $point_limit_option) {
+            echo '<option value="' . esc_attr((string) $point_limit_option) . '"' . selected($point_limit, $point_limit_option, false) . '>' . esc_html((string) $point_limit_option) . '</option>';
+        }
+        echo '</select>';
+        echo '</label>';
+        echo '<input type="hidden" name="point_page" value="1" />';
+        submit_button(__('Filter toepassen', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
 
         if (! is_array($trip)) {
@@ -86,15 +165,23 @@ class BSO_Phoenix_Trackpoints_Admin
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:0 0 18px;">';
         $this->render_stat_card(__('Trip', 'bso-phoenix'), '#' . (string) $trip['id']);
         $this->render_stat_card(__('Status', 'bso-phoenix'), (string) $trip['status']);
-        $this->render_stat_card(__('Trackpoints', 'bso-phoenix'), (string) count($points));
+        $this->render_stat_card(__('Trackpoints (geladen)', 'bso-phoenix'), (string) count($points));
+        $this->render_stat_card(__('Trackpoints (filter totaal)', 'bso-phoenix'), (string) $total_filtered_points);
         $this->render_stat_card(__('Ongeldige punten', 'bso-phoenix'), (string) $invalid_count);
         echo '</div>';
+
+        if ($total_filtered_points > 0) {
+            echo '<div class="notice notice-info"><p>' . esc_html(sprintf(__('Pagina %1$d van %2$d, met %3$d totaal gefilterde trackpoints.', 'bso-phoenix'), $point_page, $total_pages, $total_filtered_points)) . '</p></div>';
+        }
+
+        $this->render_pagination($trip_id, $filter_state, $point_page, $total_pages);
 
         echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 14px;">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0;">';
         echo '<input type="hidden" name="action" value="bso_phoenix_manage_trackpoints" />';
         echo '<input type="hidden" name="trip_id" value="' . esc_attr((string) $trip_id) . '" />';
         echo '<input type="hidden" name="trackpoint_action" value="cleanup" />';
+        $this->render_filter_hidden_inputs($filter_state);
         wp_nonce_field('bso_phoenix_manage_trackpoints_' . $trip_id, 'bso_phoenix_trackpoints_nonce');
         submit_button(__('Verwijder ongeldige punten', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
@@ -103,6 +190,7 @@ class BSO_Phoenix_Trackpoints_Admin
         echo '<input type="hidden" name="action" value="bso_phoenix_manage_trackpoints" />';
         echo '<input type="hidden" name="trip_id" value="' . esc_attr((string) $trip_id) . '" />';
         echo '<input type="hidden" name="trackpoint_action" value="recalculate" />';
+        $this->render_filter_hidden_inputs($filter_state);
         wp_nonce_field('bso_phoenix_manage_trackpoints_' . $trip_id, 'bso_phoenix_trackpoints_nonce');
         submit_button(__('Herbereken trip', 'bso-phoenix'), 'secondary', 'submit', false);
         echo '</form>';
@@ -112,7 +200,13 @@ class BSO_Phoenix_Trackpoints_Admin
         echo '<input type="hidden" name="action" value="bso_phoenix_manage_trackpoints" />';
         echo '<input type="hidden" name="trip_id" value="' . esc_attr((string) $trip_id) . '" />';
         echo '<input type="hidden" name="trackpoint_action" value="save" />';
+        $this->render_filter_hidden_inputs($filter_state);
         wp_nonce_field('bso_phoenix_manage_trackpoints_' . $trip_id, 'bso_phoenix_trackpoints_nonce');
+
+        echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;">';
+        echo '<button type="button" class="button" id="bso-trackpoints-select-all">' . esc_html__('Alles selecteren', 'bso-phoenix') . '</button>';
+        echo '<button type="button" class="button" id="bso-trackpoints-invert">' . esc_html__('Selectie omkeren', 'bso-phoenix') . '</button>';
+        echo '</div>';
 
         echo '<table class="widefat striped">';
         echo '<thead><tr>';
@@ -141,7 +235,7 @@ class BSO_Phoenix_Trackpoints_Admin
                 $row_invalid = ! BSO_Phoenix_Hardening::is_valid_coordinate((float) $latitude, (float) $longitude);
 
                 echo '<tr' . ($row_invalid ? ' style="background:#fff5f5;"' : '') . '>';
-                echo '<td><label><input type="checkbox" name="delete_ids[]" value="' . esc_attr((string) $point_id) . '" /> ' . esc_html__('Selecteer', 'bso-phoenix') . '</label></td>';
+                echo '<td><label><input type="checkbox" class="bso-trackpoint-select" name="delete_ids[]" value="' . esc_attr((string) $point_id) . '" /> ' . esc_html__('Selecteer', 'bso-phoenix') . '</label></td>';
                 echo '<td>#' . esc_html((string) $point_id) . '</td>';
                 echo '<td><input type="datetime-local" name="trackpoints[' . esc_attr((string) $point_id) . '][recorded_at]" value="' . esc_attr($this->format_datetime_local_input($recorded_at)) . '" /></td>';
                 echo '<td><input type="number" step="0.0000001" name="trackpoints[' . esc_attr((string) $point_id) . '][latitude]" value="' . esc_attr($latitude) . '" /></td>';
@@ -161,6 +255,20 @@ class BSO_Phoenix_Trackpoints_Admin
         echo '<button type="submit" class="button button-secondary" name="trackpoint_action" value="delete" onclick="return confirm(\'' . esc_js(__('Geselecteerde trackpoints verwijderen?', 'bso-phoenix')) . '\')">' . esc_html__('Verwijder geselecteerde punten', 'bso-phoenix') . '</button>';
         echo '</div>';
         echo '</form>';
+
+        if (! empty($points)) {
+            echo '<script>';
+            echo 'document.addEventListener("DOMContentLoaded", function () {';
+            echo 'var selectAllButton = document.getElementById("bso-trackpoints-select-all");';
+            echo 'var invertButton = document.getElementById("bso-trackpoints-invert");';
+            echo 'var checkboxes = document.querySelectorAll(".bso-trackpoint-select");';
+            echo 'if (selectAllButton) { selectAllButton.addEventListener("click", function () { checkboxes.forEach(function (checkbox) { checkbox.checked = true; }); }); }';
+            echo 'if (invertButton) { invertButton.addEventListener("click", function () { checkboxes.forEach(function (checkbox) { checkbox.checked = !checkbox.checked; }); }); }';
+            echo '});';
+            echo '</script>';
+        }
+
+        $this->render_pagination($trip_id, $filter_state, $point_page, $total_pages);
         echo '</div>';
     }
 
@@ -279,7 +387,28 @@ class BSO_Phoenix_Trackpoints_Admin
         $redirect_args = array(
             'page' => 'bso-phoenix-trackpoints',
             'trip_id' => $trip_id,
+            'trip_limit' => $this->sanitize_limit(isset($_POST['trip_limit']) ? $_POST['trip_limit'] : 100, 100, 20, 500),
+            'point_limit' => $this->sanitize_allowed_limit(isset($_POST['point_limit']) ? $_POST['point_limit'] : 50, 50, array(25, 50, 100)),
+            'point_page' => max(1, isset($_POST['point_page']) ? (int) $_POST['point_page'] : 1),
         );
+
+        $trip_date_from = $this->sanitize_date_input(isset($_POST['trip_date_from']) ? sanitize_text_field(wp_unslash((string) $_POST['trip_date_from'])) : '');
+        $trip_date_to = $this->sanitize_date_input(isset($_POST['trip_date_to']) ? sanitize_text_field(wp_unslash((string) $_POST['trip_date_to'])) : '');
+        $point_from = $this->parse_datetime_local(isset($_POST['point_from']) ? sanitize_text_field(wp_unslash((string) $_POST['point_from'])) : '');
+        $point_to = $this->parse_datetime_local(isset($_POST['point_to']) ? sanitize_text_field(wp_unslash((string) $_POST['point_to'])) : '');
+
+        if ($trip_date_from !== '') {
+            $redirect_args['trip_date_from'] = $trip_date_from;
+        }
+        if ($trip_date_to !== '') {
+            $redirect_args['trip_date_to'] = $trip_date_to;
+        }
+        if ($point_from !== '') {
+            $redirect_args['point_from'] = $this->format_datetime_local_input($point_from);
+        }
+        if ($point_to !== '') {
+            $redirect_args['point_to'] = $this->format_datetime_local_input($point_to);
+        }
 
         if ($result['saved'] > 0) {
             $redirect_args['saved'] = $result['saved'];
@@ -339,6 +468,66 @@ class BSO_Phoenix_Trackpoints_Admin
         echo '</div>';
     }
 
+    private function render_filter_hidden_inputs(array $filter_state): void
+    {
+        echo '<input type="hidden" name="trip_date_from" value="' . esc_attr((string) $filter_state['trip_date_from']) . '" />';
+        echo '<input type="hidden" name="trip_date_to" value="' . esc_attr((string) $filter_state['trip_date_to']) . '" />';
+        echo '<input type="hidden" name="trip_limit" value="' . esc_attr((string) $filter_state['trip_limit']) . '" />';
+        echo '<input type="hidden" name="point_from" value="' . esc_attr((string) $filter_state['point_from']) . '" />';
+        echo '<input type="hidden" name="point_to" value="' . esc_attr((string) $filter_state['point_to']) . '" />';
+        echo '<input type="hidden" name="point_limit" value="' . esc_attr((string) $filter_state['point_limit']) . '" />';
+        echo '<input type="hidden" name="point_page" value="' . esc_attr((string) $filter_state['point_page']) . '" />';
+    }
+
+    private function render_pagination(int $trip_id, array $filter_state, int $current_page, int $total_pages): void
+    {
+        if ($trip_id <= 0 || $total_pages <= 1) {
+            return;
+        }
+
+        echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0;">';
+
+        if ($current_page > 1) {
+            $prev_url = $this->build_page_url($trip_id, $filter_state, $current_page - 1);
+            echo '<a class="button" href="' . esc_url($prev_url) . '">' . esc_html__('Vorige', 'bso-phoenix') . '</a>';
+        }
+
+        echo '<span style="font-size:13px;color:#50575e;">' . esc_html(sprintf(__('Pagina %1$d van %2$d', 'bso-phoenix'), $current_page, $total_pages)) . '</span>';
+
+        if ($current_page < $total_pages) {
+            $next_url = $this->build_page_url($trip_id, $filter_state, $current_page + 1);
+            echo '<a class="button" href="' . esc_url($next_url) . '">' . esc_html__('Volgende', 'bso-phoenix') . '</a>';
+        }
+
+        echo '</div>';
+    }
+
+    private function build_page_url(int $trip_id, array $filter_state, int $page): string
+    {
+        $args = array(
+            'page' => 'bso-phoenix-trackpoints',
+            'trip_id' => $trip_id,
+            'trip_limit' => (int) $filter_state['trip_limit'],
+            'point_limit' => (int) $filter_state['point_limit'],
+            'point_page' => max(1, $page),
+        );
+
+        if ((string) $filter_state['trip_date_from'] !== '') {
+            $args['trip_date_from'] = (string) $filter_state['trip_date_from'];
+        }
+        if ((string) $filter_state['trip_date_to'] !== '') {
+            $args['trip_date_to'] = (string) $filter_state['trip_date_to'];
+        }
+        if ((string) $filter_state['point_from'] !== '') {
+            $args['point_from'] = (string) $filter_state['point_from'];
+        }
+        if ((string) $filter_state['point_to'] !== '') {
+            $args['point_to'] = (string) $filter_state['point_to'];
+        }
+
+        return add_query_arg($args, admin_url('admin.php'));
+    }
+
     private function format_datetime(string $value): string
     {
         if ($value === '' || $value === '0000-00-00 00:00:00') {
@@ -381,6 +570,35 @@ class BSO_Phoenix_Trackpoints_Admin
         }
 
         return $datetime instanceof DateTimeImmutable ? $datetime->format('Y-m-d H:i:s') : '';
+    }
+
+    private function sanitize_date_input(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $datetime = DateTimeImmutable::createFromFormat('Y-m-d', $value, wp_timezone());
+
+        return $datetime instanceof DateTimeImmutable ? $datetime->format('Y-m-d') : '';
+    }
+
+    private function sanitize_limit($value, int $default, int $min, int $max): int
+    {
+        $limit = (int) $value;
+        if ($limit <= 0) {
+            return $default;
+        }
+
+        return max($min, min($max, $limit));
+    }
+
+    private function sanitize_allowed_limit($value, int $default, array $allowed): int
+    {
+        $limit = (int) $value;
+
+        return in_array($limit, $allowed, true) ? $limit : $default;
     }
 
     private function parse_float_value($value): ?float
