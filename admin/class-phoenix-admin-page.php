@@ -40,6 +40,10 @@ class BSO_Phoenix_Admin_Page
         $date_to = $this->normalize_date_input($date_to);
         $status = $this->normalize_status_input($status);
 
+        if (! BSO_Phoenix_Hardening::is_valid_date_range($date_from, $date_to)) {
+            $this->redirect_export_error('invalid_range', $date_from, $date_to, $status);
+        }
+
         $service = new BSO_Phoenix_Trip_Service();
         $settings_service = new BSO_Phoenix_Settings_Service();
         $summary = $service->get_dashboard_summary();
