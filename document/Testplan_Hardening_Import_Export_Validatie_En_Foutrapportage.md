@@ -166,8 +166,8 @@ Verwacht:
 - Foutmelding: geen geldige GPS-trackpoints beschikbaar.
 - Geen GPX-bestand output.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Gevalideerd met alleen ongeldige coordinaten (lat/lon buiten bereik): GPX-download wordt geblokkeerd en de gebruiker krijgt een foutmelding met `export_error=empty_trackpoints` (geen bestand geleverd). Dit dekt het doel dat corrupte routegegevens niet als geldige GPX worden uitgeleverd.
 
 ### TC-HARD-010 - Rapportage ZIP positieve smoke test
 Doel: regressiecheck dat succesvolle ZIP-export blijft werken.
