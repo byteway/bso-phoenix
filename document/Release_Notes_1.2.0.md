@@ -1,0 +1,56 @@
+# Release Notes - v1.2.0
+
+**Plugin:** BSO Phoenix  
+**Release datum:** 5 juli 2026  
+**Type:** Minor release
+
+## Samenvatting
+
+Release v1.2.0 levert de geplande uitbreidingen uit de roadmap en rondt een volledige hardening-slag af op import/export validatie en foutrapportage.
+
+Belangrijkste resultaat:
+
+- Stories 1 t/m 7 opgeleverd
+- Exportketen (CSV, GPX, ZIP) gehard
+- Handmatige acceptatietest hardening: 10/10 PASS (GO)
+
+## Highlights
+
+- Offline/sync queue met retry voor log + foto-upload
+- Caption- en sorteerbeheer voor bestaande logfoto's
+- Recente tochtsamenvatting met directe GPX-download
+- Uniforme frontend feedbackcomponent voor acties en fouten
+- Rapportage exportpakket (ZIP met CSV + GPX + metadata)
+- Bulkacties selectie/verwijderen voor trips, TODO en kosten
+- Schermvullende live routekaart toggle in frontend dashboard
+
+## Hardening import/export
+
+Toegevoegd in v1.2.0:
+
+- Datumrange-validatie op exportpaden
+- Consistente `export_error` foutterugkoppeling in admin
+- CSV write-checks op exports
+- ZIP preflight/checks (open/write/close/read)
+- Coordinaatvalidatie voor GPX-export
+- Ongeldige GPX-data niet meer opgenomen in rapportage ZIP
+
+## Acceptatie
+
+Referentie testdocument:
+
+- `document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md`
+
+Resultaat:
+
+- Totaal: 10
+- PASS: 10
+- FAIL: 0
+- BLOCKED: 0
+- Eindadvies: GO
+
+## Upgrade notes
+
+- Geen datamodelmigratie nodig voor deze release
+- Bestaande data blijft bruikbaar
+- Advies: handmatige testdata (ongeldige trackpoints gebruikt tijdens validatietests) opschonen/herstellen
