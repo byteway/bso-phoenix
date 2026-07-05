@@ -111,8 +111,8 @@ Verwacht:
 - Redirect naar `Phoenix` met `export_error=invalid_trip`.
 - Error notice zichtbaar.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Trackpoint export met ongeldige trip-id resulteert in redirect naar Phoenix met `export_error=invalid_trip` en zichtbare notice `Export mislukt: ongeldige trip-id.`.
 
 ### TC-HARD-006 - Trip trackpoint export met ongeldig formaat
 Doel: alleen `csv` en `gpx` toestaan.
