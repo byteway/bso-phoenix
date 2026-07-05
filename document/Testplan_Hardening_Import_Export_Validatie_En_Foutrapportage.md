@@ -49,8 +49,8 @@ Verwacht:
 - Redirect naar admin pagina met `export_error=invalid_range`.
 - Error notice zichtbaar: einddatum ligt voor startdatum.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Export met ongeldige range (`2026-07-10` t/m `2026-07-01`) toont geen download en geeft correcte foutmelding `Ongeldige periode: de einddatum ligt voor de startdatum.` op de Phoenix-pagina met `export_error=invalid_range`.
 
 ### TC-HARD-002 - Kosten CSV export met ongeldige datumrange
 Doel: controleren dat kostenexport dezelfde rangevalidatie afdwingt.
