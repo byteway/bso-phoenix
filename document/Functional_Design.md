@@ -24,6 +24,7 @@
 12. [Overzichten en rapportages](#12-overzichten-en-rapportages)
 13. [Gebruikersrollen en toegang](#13-gebruikersrollen-en-toegang)
 14. [Functionele grenzen en aannames](#14-functionele-grenzen-en-aannames)
+15. [Trackpoints beheren en repareren](#15-trackpoints-beheren-en-repareren)
 
 ---
 
@@ -504,4 +505,30 @@ De foutmelding wordt op de betreffende beheerpagina getoond zodat de gebruiker d
 ## Slot
 
 De Phoenix Logboek App combineert routevastlegging, logboek, onderhoud, kostenbeheer en een app-achtige dashboardervaring in één WordPress-plugin. De oplossing is gericht op één boot, zodat de ervaring eenvoudig, overzichtelijk en praktisch blijft.
+
+---
+
+## 15. Trackpoints beheren en repareren
+
+De beheerder krijgt een aparte wp-admin omgeving om bestaande GPS-trackpoints per tocht te onderhouden.
+
+### Functies
+
+- trip selecteren uit een lijst met bestaande tochten
+- trackpoints van die trip bewerken in één overzicht
+- geselecteerde punten verwijderen
+- ongeldige GPS-punten opschonen
+- tripwaarden opnieuw laten berekenen na wijzigingen
+
+### Functioneel gedrag
+
+- coordinaten buiten het geldige bereik worden visueel gemarkeerd
+- het opschonen van ongeldige punten verwijdert alleen foutieve trackpoints van de gekozen trip
+- na bewerken of verwijderen worden afstand, duur, snelheid en brandstofinschatting opnieuw bepaald wanneer de tocht is afgerond
+- toegang tot deze beheerfunctie is beperkt tot gebruikers met beheerrechten
+
+### Gebruikerswaarde
+
+- foutieve GPS-data kan direct worden hersteld zonder databasewerk buiten de plugin
+- exports worden betrouwbaarder doordat de brondata in de beheeromgeving gecontroleerd kan worden
 

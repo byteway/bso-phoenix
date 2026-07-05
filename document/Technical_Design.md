@@ -24,6 +24,7 @@
 12. [Beveiliging, privacy en operationele aspecten](#12-beveiliging-privacy-en-operationele-aspecten)
 13. [Known Implementation Caveats](#13-known-implementation-caveats)
 14. [Roadmap](#14-roadmap)
+15. [Trackpoints beheer en reparatie](#15-trackpoints-beheer-en-reparatie)
 
 ---
 
@@ -766,6 +767,71 @@ Impact:
 2. extra validatie van GPS en media
 3. privacy- en toegangsregels aanscherpen
 4. testautomatisering toevoegen
+
+---
+
+## 15. Trackpoints beheer en reparatie
+
+### 15.1 Doel
+
+De plugin biedt een dedicated admin-scherm om bestaande trackpoints per tocht te onderhouden. Dit is bedoeld voor herstel van foutieve GPS-data, het opschonen van ongeldige coordinaten en het opnieuw berekenen van tripmetrics.
+
+### 15.2 Admin componenten
+
+- `BSO_Phoenix_Trackpoints_Admin`
+	- submenu onder `Phoenix`
+	- tripselectie op basis van bestaande tochten
+	- inline bewerken van trackpointvelden
+	- bulk verwijderen van geselecteerde punten
+	- cleanup-actie voor ongeldige punten
+	- herbereken-actie voor tripmetrics
+
+### 15.3 Service laag
+
+Uitbreiding in `BSO_Phoenix_Trip_Service`:
+
+- `get_trackpoint_by_id(int $trackpoint_id)`
+- `update_trackpoint(int $trackpoint_id, array $data)`
+- `delete_trackpoint(int $trackpoint_id)`
+- `delete_invalid_trackpoints_for_trip(int $trip_id)`
+- `recalculate_trip_metrics(int $trip_id)`
+
+### 15.4 Validatieregels
+
+- latitude moet binnen $[-90, 90]$ liggen
+- longitude moet binnen $[-180, 180]$ liggen
+- recorded_at moet te parsen zijn naar een geldige datum/tijd
+- trackpointmutaties zijn beperkt tot de gekozen trip
+
+### 15.5 Herberekening
+
+Na wijziging of verwijdering van trackpoints wordt, indien de tocht is afgerond, de trip opnieuw berekend op basis van de resterende trackpoints. Daarbij worden opnieuw vastgesteld:
+
+- afstand
+- duur
+- gemiddelde snelheid
+- geschat brandstofverbruik
+
+### 15.6 Rechtenmodel
+
+- alleen gebruikers met `bso_phoenix_manage` krijgen toegang tot het trackpoints-scherm
+- alle mutaties lopen via `admin-post.php` met nonce-verificatie
+- wijzigingen worden alleen toegepast op de geselecteerde trip
+
+### 15.7 Teststrategie
+
+Functionele controle wordt vastgelegd in:
+
+- `document/Testplan_Trackpoints_Bewerken_Repareren.md`
+
+Belangrijke scenario's:
+
+- scherm openen en trip kiezen
+- inline bewerken en opslaan
+- geselecteerde punten verwijderen
+- ongeldige punten opschonen
+- trip herberekenen
+- rechtencontrole op read-only gebruikers
 
 ---
 

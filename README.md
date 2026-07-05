@@ -31,6 +31,7 @@ WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3
 - Bootprofielbeheer in wp-admin
 - Instellingen voor GPS-interval, brandstofverbruik, valuta en afstandseenheid
 - Gecombineerde rapportagepagina voor trips, kosten, logboek en taken
+- Dedicated admin-UI voor trackpoints bewerken/repareren per trip
 - Bulkacties voor selectie/verwijderen van trips (admin), TODO's en kosten (frontend)
 - Schermvullende live routekaart in frontend dashboard
 - Hardening op import/export validatie en foutrapportage (CSV/GPX/ZIP)
@@ -103,6 +104,7 @@ bso-phoenix/
 │   ├── class-phoenix-cost-admin.php
 │   ├── class-phoenix-log-admin.php
 │   ├── class-phoenix-reports-admin.php
+│   ├── class-phoenix-trackpoints-admin.php
 │   ├── class-phoenix-settings-admin.php
 │   └── class-phoenix-todo-admin.php
 ├── assets/
@@ -115,6 +117,8 @@ bso-phoenix/
 │   ├── Release_Notes_1.0.0.md
 │   ├── Release_Notes_1.1.0.md
 │   ├── Release_Notes_1.1.1.md
+│   ├── Testplan_Trackpoints_Bewerken_Repareren.md
+│   ├── User_Story_Trackpoints_Bewerken_Repareren.md
 │   └── Technical_Design.md
 ├── includes/
 │   ├── class-phoenix-ajax.php
@@ -158,11 +162,11 @@ bso-phoenix/
 - [x] Story 6: bulkacties selectie/verwijderen voor trips, TODO's en kosten
 - [x] Story 7: schermvullende live routekaart toggle
 - [x] Hardening: export-validatie en foutafhandeling (10/10 acceptatietests PASS)
+- [x] Dedicated admin-UI voor trackpoints bewerken/repareren
 
 ### Verdere doorontwikkeling
 
-- [ ] Dedicated admin-UI voor trackpoints bewerken/repareren
-- [ ] Formele v1.2.0 release notes / tag
+- [x] Formele v1.2.0 release notes / tag
 - [ ] Aanvullende regressietests rond exports en validatie
 
 ## Documentatie
@@ -175,6 +179,8 @@ Meer details staan in:
 - [Acceptatietest Run Template Stap 7](document/Acceptatietest_Run_Template_Stap7.md)
 - [Roadmap v1.2.0](document/Roadmap_v1.2.0.md)
 - [Testplan Hardening Import Export Validatie En Foutrapportage](document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md)
+- [User Story Trackpoints Bewerken Repareren](document/User_Story_Trackpoints_Bewerken_Repareren.md)
+- [Testplan Trackpoints Bewerken Repareren](document/Testplan_Trackpoints_Bewerken_Repareren.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
 - [Release Notes v1.1.0](document/Release_Notes_1.1.0.md)
 - [Release Notes v1.1.1](document/Release_Notes_1.1.1.md)

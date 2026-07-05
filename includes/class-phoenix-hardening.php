@@ -48,6 +48,11 @@ class BSO_Phoenix_Hardening
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
     }
 
+    public static function is_valid_coordinate(float $latitude, float $longitude): bool
+    {
+        return $latitude >= -90.0 && $latitude <= 90.0 && $longitude >= -180.0 && $longitude <= 180.0;
+    }
+
     public static function is_duplicate_submission(string $scope, array $payload, int $ttl_seconds = 20): bool
     {
         $user_id = get_current_user_id();

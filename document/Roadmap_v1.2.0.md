@@ -88,6 +88,24 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 - Exportpakket wordt zonder fouten opgebouwd.
 - Inhoud van ZIP correspondeert met gekozen periodefilters.
 
+## 6) Trackpoints bewerken en repareren in admin
+
+**Gebruikerswaarde**
+- Beheerder kan foutieve GPS-trackpoints per trip direct herstellen zonder database-werk buiten WordPress.
+
+**v1.2.0 oplevering**
+- Dedicated wp-admin scherm voor trip-selectie en trackpointbeheer.
+- Inline bewerken van bestaande trackpoints.
+- Bulkverwijderen van geselecteerde trackpoints.
+- Eén klik voor het opschonen van ongeldige coordinaten.
+- Tripmetrics worden herberekend na wijziging of opschoning.
+
+**Acceptatiecriteria**
+- Trackpoints zijn per trip zichtbaar en bewerkbaar.
+- Ongeldige coordinaten worden visueel gemarkeerd.
+- Verwijdering en repair leveren directe feedback op.
+- Triptotalen blijven consistent na herstel.
+
 ## Niet in scope voor v1.2.0
 
 - Multi-boat ondersteuning.
@@ -101,6 +119,7 @@ Focus: betrouwbaarheid op mobiel, sneller werken in het logboek en duidelijkere 
 3. Logfoto Captions en Sortering
 4. Route Samenvatting per Tocht
 5. Rapportage exportpakket
+6. Trackpoints bewerken en repareren in admin
 
 ## Definitie van gereed (DoR/DoD)
 

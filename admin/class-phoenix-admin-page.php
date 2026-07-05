@@ -107,6 +107,7 @@ class BSO_Phoenix_Admin_Page
         echo '<th>' . esc_html(sprintf(__('Afstand (%s)', 'bso-phoenix'), $distance_unit)) . '</th>';
         echo '<th>' . esc_html__('Duur (min)', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html(sprintf(__('Gem. snelheid (%s)', 'bso-phoenix'), $speed_unit)) . '</th>';
+        echo '<th>' . esc_html__('Trackpoints', 'bso-phoenix') . '</th>';
         echo '<th>' . esc_html__('Export', 'bso-phoenix') . '</th>';
         echo '</tr></thead><tbody>';
 
@@ -119,6 +120,7 @@ class BSO_Phoenix_Admin_Page
             echo '<td>' . esc_html($settings_service->format_distance((float) $trip['distance_km'], 2)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n((float) $trip['duration_minutes'], 1)) . '</td>';
             echo '<td>' . esc_html($settings_service->format_speed((float) $trip['average_speed_kmh'], 2)) . '</td>';
+            echo '<td>' . (current_user_can(BSO_PHOENIX_CAP_MANAGE) ? $this->render_trip_trackpoints_link((int) $trip['id']) : esc_html__('Geen toegang', 'bso-phoenix')) . '</td>';
             echo '<td>' . $this->render_trip_export_links((int) $trip['id']) . '</td>';
             echo '</tr>';
         }
@@ -276,6 +278,13 @@ class BSO_Phoenix_Admin_Page
 
         return '<a class="button button-small" href="' . esc_url($csv_url) . '">CSV</a> '
             . '<a class="button button-small" href="' . esc_url($gpx_url) . '">GPX</a>';
+    }
+
+    private function render_trip_trackpoints_link(int $trip_id): string
+    {
+        $url = admin_url('admin.php?page=bso-phoenix-trackpoints&trip_id=' . $trip_id);
+
+        return '<a class="button button-small" href="' . esc_url($url) . '">' . esc_html__('Beheer', 'bso-phoenix') . '</a>';
     }
 
     private function download_trackpoints_csv(int $trip_id, array $points): void

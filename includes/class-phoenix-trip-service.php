@@ -160,6 +160,119 @@ class BSO_Phoenix_Trip_Service
         return is_array($rows) ? $rows : array();
     }
 
+    public function get_trackpoint_by_id(int $trackpoint_id): ?array
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trackpoints';
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, trip_id, latitude, longitude, altitude_m, speed_kmh, accuracy_m, recorded_at
+                FROM {$table}
+                WHERE id = %d",
+                $trackpoint_id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function update_trackpoint(int $trackpoint_id, array $data): bool
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trackpoints';
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'latitude' => $data['latitude'],
+                'longitude' => $data['longitude'],
+                'altitude_m' => $data['altitude_m'],
+                'speed_kmh' => $data['speed_kmh'],
+                'accuracy_m' => $data['accuracy_m'],
+                'recorded_at' => $data['recorded_at'],
+            ),
+            array('id' => $trackpoint_id),
+            array('%f', '%f', '%f', '%f', '%f', '%s'),
+            array('%d')
+        );
+
+        return $updated !== false;
+    }
+
+    public function delete_trackpoint(int $trackpoint_id): bool
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trackpoints';
+        $deleted = $wpdb->delete($table, array('id' => $trackpoint_id), array('%d'));
+
+        return $deleted !== false && $deleted > 0;
+    }
+
+    public function delete_invalid_trackpoints_for_trip(int $trip_id): int
+    {
+        $deleted_count = 0;
+        foreach ($this->get_trackpoints_for_trip($trip_id) as $point) {
+            $latitude = isset($point['latitude']) ? (float) $point['latitude'] : 0.0;
+            $longitude = isset($point['longitude']) ? (float) $point['longitude'] : 0.0;
+
+            if (! BSO_Phoenix_Hardening::is_valid_coordinate($latitude, $longitude)) {
+                if ($this->delete_trackpoint((int) $point['id'])) {
+                    $deleted_count++;
+                }
+            }
+        }
+
+        return $deleted_count;
+    }
+
+    public function recalculate_trip_metrics(int $trip_id): bool
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'phoenix_trips';
+        $trip = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, started_at, ended_at, average_fuel_use_lph, status
+                FROM {$table}
+                WHERE id = %d",
+                $trip_id
+            ),
+            ARRAY_A
+        );
+
+        if (! is_array($trip) || empty($trip['ended_at']) || ($trip['status'] ?? '') !== 'completed') {
+            return false;
+        }
+
+        $metrics = $this->calculate_trip_metrics($trip_id, (string) $trip['started_at'], (string) $trip['ended_at']);
+        $duration_hours = $metrics['duration_minutes'] / 60;
+
+        $fuel_per_hour = isset($trip['average_fuel_use_lph']) ? (float) $trip['average_fuel_use_lph'] : 0.0;
+        if ($fuel_per_hour <= 0) {
+            $fuel_per_hour = $this->get_default_fuel_use_lph();
+        }
+
+        $estimated_fuel = $fuel_per_hour > 0 ? $duration_hours * $fuel_per_hour : null;
+
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'duration_minutes' => $metrics['duration_minutes'],
+                'distance_km' => $metrics['distance_km'],
+                'average_speed_kmh' => $metrics['average_speed_kmh'],
+                'estimated_fuel_used_l' => $estimated_fuel,
+            ),
+            array('id' => $trip_id),
+            array('%f', '%f', '%f', '%f'),
+            array('%d')
+        );
+
+        return $updated !== false;
+    }
+
     public function start_trip(int $boat_id): int
     {
         global $wpdb;

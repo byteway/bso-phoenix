@@ -44,6 +44,9 @@ class BSO_Phoenix_Plugin
 
             $reports_admin = new BSO_Phoenix_Reports_Admin();
             $reports_admin->init();
+
+            $trackpoints_admin = new BSO_Phoenix_Trackpoints_Admin();
+            $trackpoints_admin->init();
         }
 
         $frontend = new BSO_Phoenix_Frontend();
