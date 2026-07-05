@@ -342,7 +342,12 @@ class BSO_Phoenix_Admin_Page
         }
 
         if ($format === 'gpx') {
-            $this->download_trackpoints_gpx($trip_id, $trip, $points);
+            $valid_points = $this->filter_valid_trackpoints($points);
+            if (empty($valid_points)) {
+                $this->redirect_export_error('empty_trackpoints');
+            }
+
+            $this->download_trackpoints_gpx($trip_id, $trip, $valid_points);
             return;
         }
 
@@ -487,6 +492,25 @@ class BSO_Phoenix_Admin_Page
 
         echo '</trkseg></trk></gpx>';
         exit;
+    }
+
+    private function filter_valid_trackpoints(array $points): array
+    {
+        return array_values(array_filter($points, function (array $point): bool {
+            $latitude = isset($point['latitude']) ? (float) $point['latitude'] : null;
+            $longitude = isset($point['longitude']) ? (float) $point['longitude'] : null;
+
+            if ($latitude === null || $longitude === null) {
+                return false;
+            }
+
+            return $this->is_valid_coordinate($latitude, $longitude);
+        }));
+    }
+
+    private function is_valid_coordinate(float $latitude, float $longitude): bool
+    {
+        return $latitude >= -90.0 && $latitude <= 90.0 && $longitude >= -180.0 && $longitude <= 180.0;
     }
 
     private function redirect_export_error(string $error_code, string $date_from = '', string $date_to = '', string $status = ''): void
