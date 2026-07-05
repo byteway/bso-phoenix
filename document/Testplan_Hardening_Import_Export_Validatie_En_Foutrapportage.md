@@ -124,8 +124,8 @@ Verwacht:
 - Redirect met `export_error=invalid_format`.
 - Error notice zichtbaar.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Export met ongeldig formaat (`format=xml`) resulteert in redirect naar Phoenix met `export_error=invalid_format` en zichtbare notice `Export mislukt: ongeldig exportformaat.`.
 
 ### TC-HARD-007 - Trip trackpoint export voor niet-bestaande trip
 Doel: nette afhandeling van ontbrekende trip.
