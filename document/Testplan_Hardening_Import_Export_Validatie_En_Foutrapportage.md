@@ -81,8 +81,8 @@ Verwacht:
 - Redirect met `export_error=invalid_range`.
 - Error notice zichtbaar op rapportagepagina.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Rapportage CSV export met ongeldige periode geeft geen download en toont correcte foutmelding `Ongeldige periode: de einddatum ligt voor de startdatum.` op de rapportagepagina via `export_error=invalid_range`.
 
 ### TC-HARD-004 - Rapportage ZIP export met ongeldige datumrange
 Doel: controleren dat ZIP-export rangevalidatie afdwingt voor preflight.
