@@ -1057,9 +1057,14 @@ class BSO_Phoenix_Reports_Admin
                 continue;
             }
 
+            $valid_points = $this->filter_valid_trackpoints($points);
+            if (empty($valid_points)) {
+                continue;
+            }
+
             if (! $zip->addFromString(
                 'gpx/trip-' . $trip_id . '.gpx',
-                $this->build_trip_gpx((array) $trip, $points)
+                $this->build_trip_gpx((array) $trip, $valid_points)
             )) {
                 $zip->close();
                 @unlink($zip_path);
@@ -1168,6 +1173,25 @@ class BSO_Phoenix_Reports_Admin
         );
 
         return implode("\n", $lines);
+    }
+
+    private function filter_valid_trackpoints(array $points): array
+    {
+        return array_values(array_filter($points, function (array $point): bool {
+            $latitude = isset($point['latitude']) ? (float) $point['latitude'] : null;
+            $longitude = isset($point['longitude']) ? (float) $point['longitude'] : null;
+
+            if ($latitude === null || $longitude === null) {
+                return false;
+            }
+
+            return $this->is_valid_coordinate($latitude, $longitude);
+        }));
+    }
+
+    private function is_valid_coordinate(float $latitude, float $longitude): bool
+    {
+        return $latitude >= -90.0 && $latitude <= 90.0 && $longitude >= -180.0 && $longitude <= 180.0;
     }
 
     private function build_trip_gpx(array $trip, array $points): string
