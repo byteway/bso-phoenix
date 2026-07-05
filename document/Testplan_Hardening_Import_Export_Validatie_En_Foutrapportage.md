@@ -137,8 +137,8 @@ Verwacht:
 - Redirect met `export_error=trip_not_found`.
 - Error notice zichtbaar.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Export met niet-bestaande/onbruikbare trip-id geeft redirect naar Phoenix met `export_error=invalid_trip` en de notice `Export mislukt: ongeldige trip-id.`.
 
 ### TC-HARD-008 - Trip trackpoint export zonder trackpoints
 Doel: nette afhandeling als trip bestaat maar geen punten heeft.
