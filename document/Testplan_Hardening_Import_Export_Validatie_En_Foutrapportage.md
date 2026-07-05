@@ -65,8 +65,8 @@ Verwacht:
 - Redirect met `export_error=invalid_range`.
 - Error notice zichtbaar op kostenpagina.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Kosten export met ongeldige range blokkeert download en toont correcte foutmelding `Ongeldige periode: de einddatum ligt voor de startdatum.` op de kostenpagina via `export_error=invalid_range`.
 
 ### TC-HARD-003 - Rapportage CSV export met ongeldige datumrange
 Doel: controleren dat rapportage CSV rangevalidatie afdwingt.
