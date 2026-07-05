@@ -151,8 +151,8 @@ Verwacht:
 - Redirect met `export_error=empty_trackpoints`.
 - Error notice zichtbaar.
 
-Resultaat: [ ] PASS / [ ] FAIL
-Notities:
+Resultaat: [x] PASS / [ ] FAIL
+Notities: Export voor trip zonder trackpoints geeft redirect met `export_error=empty_trackpoints` en zichtbare notice `Export mislukt: geen trackpoints beschikbaar voor deze trip.`.
 
 ### TC-HARD-009 - AJAX GPX download met ongeldige coordinaatdata
 Doel: voorkomen dat corrupte route als valide GPX wordt gedownload.
