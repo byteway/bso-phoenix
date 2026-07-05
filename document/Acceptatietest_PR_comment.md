@@ -1,52 +1,50 @@
-# Handmatige acceptatiecheck Story 3 (tochtsamenvatting + directe GPX-download)
+# Handmatige acceptatiecheck Hardening Import/Export Validatie en Foutrapportage
 
 ## Scope
 
-- Recente tochten worden zichtbaar als samenvattingslijst
-- Per tocht is directe GPX-download beschikbaar
-- Gedownloade GPX is valide en bruikbaar in gpx.studio
-- Na stoppen van een tocht wordt de lijst direct ververst
+- Validatie van ongeldige datumranges in trips, kosten en rapportage exports
+- Validatie van exportformaten en trip-identificatie bij trackpoint-export
+- Blokkeren van GPX-export bij ontbrekende of ongeldige trackpoints
+- Correct gedrag van rapportage ZIP-export met filtering van ongeldige GPX-data
 
 ## Testomgeving
 
+- Productieomgeving: byteway.eu wp-admin
 - Desktop browser (Chrome/Edge)
-- Tablet (Samsung Tab S5 of vergelijkbaar)
-- gpx.studio voor GPX-validatie
+- Handmatige data-manipulatie via phpMyAdmin voor negatieve tests
 
-## Checklist
+## Resultaten
 
-1. Recente tochten zichtbaar
-- Actie: open frontend dashboard.
-- Expected: sectie `Recente tochten` toont lijst met afgeronde trips.
-- Status: PASS
-
-2. Directe GPX-download per tocht
-- Actie: klik op `Download GPX` bij een trip.
-- Expected: GPX-bestand wordt direct gedownload.
-- Status: PASS
-
-3. GPX-validatie extern
-- Actie: open gedownload bestand in gpx.studio.
-- Expected: route wordt correct geladen en is valide.
-- Status: PASS
-
-4. Live update na stop trip
-- Actie: start en stop een nieuwe trip.
-- Expected: `Recente tochten` wordt bijgewerkt met de nieuwe samenvatting.
-- Status: PASS
+- TC-HARD-001: PASS
+- TC-HARD-002: PASS
+- TC-HARD-003: PASS
+- TC-HARD-004: PASS
+- TC-HARD-005: PASS
+- TC-HARD-006: PASS
+- TC-HARD-007: PASS
+- TC-HARD-008: PASS
+- TC-HARD-009: PASS
+- TC-HARD-010: PASS
 
 ## PR Testevidence (plakbaar)
 
-Story 3 handmatige acceptatiecheck uitgevoerd volgens `document/Acceptatietest_PR_comment.md`.
+Hardening import/export validatie en foutrapportage handmatig geaccepteerd.
 
-Resultaten:
+Samenvatting:
 
-- Recente tochten zichtbaar: PASS
-- Download GPX: PASS
-- GPX valide in gpx.studio: PASS
-- Stop trip ververst lijst: PASS
+- Totaal testcases: 10
+- PASS: 10
+- FAIL: 0
+- BLOCKED: 0
+- Eindadvies: GO
 
-Definitieve conclusie:
+Belangrijk gevalideerd gedrag:
 
-Story 3 is volledig gevalideerd en heeft een definitieve GO-status.
-Alle checklist-items zijn PASS en de GPX-export is inhoudelijk gevalideerd in gpx.studio.
+- Ongeldige datumranges geven consistente `invalid_range` foutafhandeling zonder lege pagina.
+- Ongeldige trackpoint-exportparameters geven duidelijke `invalid_trip`/`invalid_format` notices.
+- Trips zonder geldige trackpoints leveren geen GPX meer op (losse export en ZIP).
+- Rapportage ZIP blijft functioneel en bevat alleen geldige GPX-bestanden.
+
+Referentie:
+
+- document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md

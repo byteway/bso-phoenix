@@ -42,6 +42,19 @@ De boot is een zelfgemaakt motorjacht en de plugin is bedoeld als centrale plek 
 
 De plugin is bewust ontworpen voor **één boot**. Ondersteuning voor meerdere boten is expliciet buiten scope om de oplossing overzichtelijk en beheersbaar te houden.
 
+### Update juli 2026 - hardening import/export
+
+Aan de functionele scope is aanvullende hardening toegevoegd voor exportflows.
+
+Functioneel betekent dit:
+
+- ongeldige datumranges bij exports worden afgewezen met duidelijke melding
+- ongeldige exportparameters (zoals formaat of trip-id) geven voorspelbare foutfeedback
+- GPX-export wordt geblokkeerd als geen geldige trackpoints beschikbaar zijn
+- rapportage ZIP voegt geen GPX-bestanden meer toe voor trips met uitsluitend ongeldige coordinaten
+
+Deze hardening is handmatig gevalideerd met 10 van 10 PASS testcases.
+
 ### Problemen die de app oplost
 
 Met deze app worden de volgende praktische problemen tijdens en na het varen opgelost:
@@ -436,6 +449,19 @@ De app moet verschillende samenvattingen kunnen genereren.
 - grafisch overzicht
 - kaartweergave
 - export of deeloptie
+
+### Functionele foutafhandeling bij exports
+
+Voor exportacties geldt expliciet dat de gebruiker een duidelijke foutmelding krijgt in plaats van een lege of onduidelijke export.
+
+Ondersteunde functionele foutsituaties:
+
+- ongeldige datumrange (einddatum voor startdatum)
+- ongeldige trip-id
+- ongeldig exportformaat
+- geen (geldige) trackpoints beschikbaar
+
+De foutmelding wordt op de betreffende beheerpagina getoond zodat de gebruiker de invoer direct kan corrigeren.
 
 ---
 
