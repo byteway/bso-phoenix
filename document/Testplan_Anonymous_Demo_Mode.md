@@ -21,6 +21,7 @@ Stappen:
 
 Verwacht resultaat:
 - Dashboard titel zichtbaar.
+- Live statistieken zichtbaar: Duur, Afstand, Snelheid, Brandstof, Laatste update.
 - Start/Stop knoppen zichtbaar.
 - Live route kaart zichtbaar inclusief fullscreen knop.
 - Overige onderdelen (wachtrij, samenvattingen, log, todo, kosten) zijn verborgen.

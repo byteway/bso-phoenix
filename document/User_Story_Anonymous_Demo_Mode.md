@@ -12,6 +12,7 @@ zodat ik de plugin kan ervaren en gemotiveerd word om me aan te melden voor voll
 - Dashboard titel
 - Start knop
 - Stop knop
+- Live statistieken bovenaan dashboard: Duur, Afstand, Snelheid, Brandstof, Laatste update
 - Live route scherm
 - Volledig scherm knop op live route
 - Route wordt live getekend op de kaart tijdens de sessie
@@ -31,7 +32,7 @@ zodat ik de plugin kan ervaren en gemotiveerd word om me aan te melden voor voll
 - Bestaande opslag-, wachtrij- en synchronisatielogica blijft actief voor ingelogde gebruikers.
 
 ## Acceptatiecriteria
-1. Als anonieme gebruiker zie ik alleen dashboardtitel, start/stop en live routekaart met fullscreen.
+1. Als anonieme gebruiker zie ik dashboardtitel, live statistieken, start/stop en live routekaart met fullscreen.
 2. Als anonieme gebruiker start ik een route en zie ik live track op de kaart.
 3. Tijdens anonieme demo wordt niets naar database of server opgeslagen.
 4. Bij verversen krijg ik een waarschuwing dat data niet bewaard is.
