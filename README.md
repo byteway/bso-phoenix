@@ -4,6 +4,7 @@ WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3
 
 > **Status / v1.2.0 (juli 2026)**
 > Deze plugin is ingericht als app-achtige WordPress-oplossing voor een boot: de Phoenix, inclusief route logging, logboek, taken, kosten, bootprofiel, instellingen, rapportages en export-hardening.
+> Post-release update: anonieme dashboard demo-modus (Story 8) toegevoegd zonder database-opslag.
 
 ## Inhoudsopgave
 
@@ -35,6 +36,7 @@ WordPress-plugin voor de Phoenix, een zelfgemaakt motorjacht van 7 meter lang, 3
 - Dedicated admin-UI voor trackpoints bewerken/repareren per trip, inclusief filters op datumrange en laadlimiet
 - Bulkacties voor selectie/verwijderen van trips (admin), TODO's en kosten (frontend)
 - Schermvullende live routekaart in frontend dashboard
+- Anonieme demo-modus met tijdelijke live route zonder database-opslag
 - Hardening op import/export validatie en foutrapportage (CSV/GPX/ZIP)
 
 ## Requirements
@@ -177,6 +179,7 @@ bso-phoenix/
 - [x] Story 5: rapportage exportpakket (ZIP met CSV + GPX + metadata)
 - [x] Story 6: bulkacties selectie/verwijderen voor trips, TODO's en kosten
 - [x] Story 7: schermvullende live routekaart toggle
+- [x] Story 8: anonieme dashboard demo-modus zonder opslag
 - [x] Hardening: export-validatie en foutafhandeling (10/10 acceptatietests PASS)
 - [x] Dedicated admin-UI voor trackpoints bewerken/repareren
 
@@ -199,9 +202,13 @@ Meer details staan in:
 - [Testplan Hardening Import Export Validatie En Foutrapportage](document/Testplan_Hardening_Import_Export_Validatie_En_Foutrapportage.md)
 - [User Story Trackpoints Bewerken Repareren](document/User_Story_Trackpoints_Bewerken_Repareren.md)
 - [Testplan Trackpoints Bewerken Repareren](document/Testplan_Trackpoints_Bewerken_Repareren.md)
+- [User Story Anonymous Demo Mode](document/User_Story_Anonymous_Demo_Mode.md)
+- [Testplan Anonymous Demo Mode](document/Testplan_Anonymous_Demo_Mode.md)
 - [Release Notes v1.0.0](document/Release_Notes_1.0.0.md)
 - [Release Notes v1.1.0](document/Release_Notes_1.1.0.md)
 - [Release Notes v1.1.1](document/Release_Notes_1.1.1.md)
+- [Release Notes v1.2.0](document/Release_Notes_1.2.0.md)
+- [Release Notes v1.2.1](document/Release_Notes_1.2.1.md)
 
 ## Contributing
 

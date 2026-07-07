@@ -82,15 +82,25 @@ if (! defined('ABSPATH')) {
     </section>
 
     <div class="phoenix-dashboard__grid">
-        <article class="phoenix-card">
-            <h3>Live route</h3>
-            <div class="phoenix-map" data-phoenix-map aria-label="Routekaart"></div>
+        <article class="phoenix-card" data-phoenix-map-card>
+            <div class="phoenix-map__header">
+                <h3>Live route</h3>
+                <button type="button" class="phoenix-btn phoenix-btn--ghost phoenix-btn--small" data-phoenix-map-fullscreen-toggle aria-pressed="false" aria-label="<?php esc_attr_e('Schakel kaart naar volledig scherm', 'bso-phoenix'); ?>"><?php esc_html_e('Volledig scherm', 'bso-phoenix'); ?></button>
+            </div>
+            <div data-phoenix-map-home>
+                <div class="phoenix-map" data-phoenix-map aria-label="Routekaart"></div>
+            </div>
             <div class="phoenix-map__meta">
                 <p><strong><?php esc_html_e('Trip', 'bso-phoenix'); ?>:</strong> <span data-phoenix-map-trip><?php esc_html_e('Nog geen route geladen', 'bso-phoenix'); ?></span></p>
                 <p><strong><?php esc_html_e('Trackpoints', 'bso-phoenix'); ?>:</strong> <span data-phoenix-map-points>0</span></p>
                 <p><strong><?php esc_html_e('Afstand', 'bso-phoenix'); ?>:</strong> <span data-phoenix-map-distance>0</span></p>
             </div>
         </article>
+
+        <div class="phoenix-fullscreen" data-phoenix-map-fullscreen hidden>
+            <button type="button" class="phoenix-fullscreen__close" data-phoenix-map-fullscreen-close aria-label="<?php esc_attr_e('Sluit volledig scherm', 'bso-phoenix'); ?>"><?php esc_html_e('Sluiten', 'bso-phoenix'); ?></button>
+            <div class="phoenix-fullscreen__map" data-phoenix-map-fullscreen-content></div>
+        </div>
 
         <article class="phoenix-card">
             <h3><?php esc_html_e("Captain's log", 'bso-phoenix'); ?></h3>

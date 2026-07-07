@@ -68,3 +68,16 @@ Toegevoegd na v1.2.0 tag als operationele verbetering:
 - Selectie omkeren knop in Trackpoints beheer
 - Limietopties 25/50/100 voor trackpoints per pagina
 - Paginering voor trackpoints met Vorige/Volgende
+
+## Post-release update 2 (anonieme demo-modus)
+
+Toegevoegd na v1.2.0 tag als conversiegerichte frontend verbetering:
+
+- Nieuwe Story 8: anonieme dashboard demo-modus zonder database-opslag
+- Anonieme gebruiker ziet alleen dashboardtitel, Start/Stop en live routekaart met fullscreen
+- Route wordt alleen tijdelijk in de browser bijgehouden (geen trip- of trackpoint-opslag op server)
+- Bij pagina verversen wordt actieve demo-route gesloten en verschijnt melding dat niets is opgeslagen
+- Ingelogde gebruikers blijven het volledige dashboard met bestaande opslag- en synchronisatielogica gebruiken
+- Referentie documentatie:
+	- `document/User_Story_Anonymous_Demo_Mode.md`
+	- `document/Testplan_Anonymous_Demo_Mode.md`

@@ -5,6 +5,8 @@
         activeTripId: null,
         activeTripStartedAt: null,
         watchId: null,
+        anonymousWatchId: null,
+        anonymousDemoActive: false,
         map: null,
         routeLine: null,
         routePoints: [],
@@ -23,6 +25,7 @@
     var FEEDBACK_MAX_VISIBLE = 3;
     var FEEDBACK_TOAST_TIMEOUT_MS = 4500;
     var QUEUE_MAX_ATTEMPTS = 5;
+    var ANONYMOUS_ROUTE_SESSION_KEY = 'phoenixAnonymousRouteWasActive';
 
     function statNode(selector) {
         return document.querySelector(selector);
@@ -57,6 +60,46 @@
         
         node.textContent = 'Online';
         node.classList.remove('is-offline');
+    }
+
+    function isAnonymousUser() {
+        return !document.body.classList.contains('logged-in');
+    }
+
+    function applyAnonymousDashboardView() {
+        var root = document.querySelector('.phoenix-dashboard');
+        if (!root) {
+            return;
+        }
+
+        root.classList.add('phoenix-dashboard--anonymous');
+    }
+
+    function updateAnonymousRouteSessionFlag() {
+        if (!isAnonymousUser()) {
+            return;
+        }
+
+        if (state.anonymousDemoActive) {
+            sessionStorage.setItem(ANONYMOUS_ROUTE_SESSION_KEY, '1');
+            return;
+        }
+
+        sessionStorage.removeItem(ANONYMOUS_ROUTE_SESSION_KEY);
+    }
+
+    function showAnonymousReloadNoticeIfNeeded() {
+        if (!isAnonymousUser()) {
+            return;
+        }
+
+        if (sessionStorage.getItem(ANONYMOUS_ROUTE_SESSION_KEY) === '1') {
+            setFeedback('Demo-route was actief maar is bij verversen gesloten. Er is niets opgeslagen.', 'warning', { toast: false });
+            sessionStorage.removeItem(ANONYMOUS_ROUTE_SESSION_KEY);
+            return;
+        }
+
+        setFeedback('Demo-modus actief: je route blijft alleen tijdens deze sessie zichtbaar en wordt niet opgeslagen.', 'info', { toast: false });
     }
 
     function formatDuration(totalSeconds) {
@@ -1434,6 +1477,128 @@
         }).addTo(state.map);
     }
 
+    function isMapFullscreenOpen() {
+        var fullscreenNode = document.querySelector('[data-phoenix-map-fullscreen]');
+        return !!(fullscreenNode && !fullscreenNode.hasAttribute('hidden'));
+    }
+
+    function setMapFullscreenButtonState(isFullscreen) {
+        var toggleButton = document.querySelector('[data-phoenix-map-fullscreen-toggle]');
+        if (!toggleButton) {
+            return;
+        }
+
+        toggleButton.setAttribute('aria-pressed', isFullscreen ? 'true' : 'false');
+        toggleButton.textContent = isFullscreen ? 'Standaard weergave' : 'Volledig scherm';
+    }
+
+    function toggleMapFullscreen() {
+        var fullscreenNode = document.querySelector('[data-phoenix-map-fullscreen]');
+        var mapNode = document.querySelector('[data-phoenix-map]');
+        var contentNode = document.querySelector('[data-phoenix-map-fullscreen-content]');
+        var homeNode = document.querySelector('[data-phoenix-map-home]');
+
+        if (!fullscreenNode || !mapNode || !contentNode || !homeNode) {
+            return;
+        }
+
+        var isFullscreen = isMapFullscreenOpen();
+
+        if (isFullscreen) {
+            homeNode.appendChild(mapNode);
+            fullscreenNode.setAttribute('hidden', '');
+            document.body.classList.remove('phoenix-has-fullscreen');
+            setMapFullscreenButtonState(false);
+        } else {
+            fullscreenNode.removeAttribute('hidden');
+            contentNode.appendChild(mapNode);
+            document.body.classList.add('phoenix-has-fullscreen');
+            setMapFullscreenButtonState(true);
+        }
+
+        if (state.map) {
+            setTimeout(function () {
+                state.map.invalidateSize();
+            }, 120);
+        }
+    }
+
+    function closeMapFullscreen() {
+        if (isMapFullscreenOpen()) {
+            toggleMapFullscreen();
+        }
+    }
+
+    function startAnonymousGeolocation() {
+        if (!navigator.geolocation) {
+            setFeedback('Geolocatie niet beschikbaar in deze browser.', 'error');
+            return;
+        }
+
+        if (state.anonymousWatchId !== null) {
+            navigator.geolocation.clearWatch(state.anonymousWatchId);
+            state.anonymousWatchId = null;
+        }
+
+        state.anonymousWatchId = navigator.geolocation.watchPosition(function (position) {
+            appendRoutePoint(position.coords.latitude, position.coords.longitude);
+
+            if (typeof position.coords.speed === 'number' && !Number.isNaN(position.coords.speed) && position.coords.speed >= 0) {
+                updateLiveStats(position.coords.speed * 3.6);
+            }
+        }, function () {
+            setFeedback('Locatie-updates niet beschikbaar. Controleer je GPS-toestemming.', 'warning');
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 2000,
+            timeout: 12000,
+        });
+    }
+
+    function stopAnonymousGeolocation() {
+        if (state.anonymousWatchId !== null && navigator.geolocation) {
+            navigator.geolocation.clearWatch(state.anonymousWatchId);
+            state.anonymousWatchId = null;
+        }
+    }
+
+    function startAnonymousRoute() {
+        ensureMap();
+
+        state.anonymousDemoActive = true;
+        state.activeTripId = 'demo';
+        state.activeTripStartedAt = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        state.routePoints = [];
+
+        if (state.routeLine) {
+            state.routeLine.setLatLngs([]);
+        }
+
+        setMapTrip('Demo-route (niet opgeslagen)');
+        setMapPointCount(0);
+        setMapDistance(0);
+        setStatus('Actief (demo)');
+        ensureLiveStatsTimer();
+        resetLiveStats();
+        startAnonymousGeolocation();
+        updateAnonymousRouteSessionFlag();
+        setFeedback('Demo-route gestart. Let op: er wordt niets opgeslagen in de database.', 'info');
+    }
+
+    function stopAnonymousRoute(messageType) {
+        stopAnonymousGeolocation();
+        state.anonymousDemoActive = false;
+        state.activeTripId = null;
+        state.activeTripStartedAt = null;
+        setStatus('Inactief');
+        resetLiveStats();
+        updateAnonymousRouteSessionFlag();
+
+        if (messageType) {
+            setFeedback(messageType, 'info');
+        }
+    }
+
     function renderRoute(points) {
         ensureMap();
         if (!state.map || !state.routeLine) {
@@ -2107,16 +2272,41 @@
             return;
         }
 
+        if (target.closest('[data-phoenix-map-fullscreen-toggle]')) {
+            toggleMapFullscreen();
+            return;
+        }
+
+        if (target.closest('[data-phoenix-map-fullscreen-close]')) {
+            closeMapFullscreen();
+            return;
+        }
+
         if (target.matches('[data-phoenix-lightbox]')) {
             closeLightbox();
             return;
         }
 
         if (target.closest('[data-phoenix-start]')) {
+            if (isAnonymousUser()) {
+                startAnonymousRoute();
+                return;
+            }
+
             handleStart();
         }
 
         if (target.closest('[data-phoenix-stop]')) {
+            if (isAnonymousUser()) {
+                if (!state.anonymousDemoActive) {
+                    setFeedback('Er is geen actieve demo-route om te stoppen.', 'info');
+                    return;
+                }
+
+                stopAnonymousRoute('Demo-route gestopt. Let op: er is niets opgeslagen.');
+                return;
+            }
+
             handleStop();
         }
     });
@@ -2136,12 +2326,19 @@
     });
 
     document.addEventListener('keydown', function (event) {
-        if (state.lightboxIndex < 0) {
-            return;
+        if (event.key === 'Escape') {
+            if (isMapFullscreenOpen()) {
+                closeMapFullscreen();
+                return;
+            }
+
+            if (state.lightboxIndex >= 0) {
+                closeLightbox();
+                return;
+            }
         }
 
-        if (event.key === 'Escape') {
-            closeLightbox();
+        if (state.lightboxIndex < 0) {
             return;
         }
 
@@ -2156,10 +2353,15 @@
     });
 
     ensureMap();
-    initLogPhotoInput();
-    loadLogGallery();
+    if (isAnonymousUser()) {
+        applyAnonymousDashboardView();
+        showAnonymousReloadNoticeIfNeeded();
+    } else {
+        initLogPhotoInput();
+        loadLogGallery();
+    }
 
-    if (!window.bsoPhoenix || !window.bsoPhoenix.canWrite) {
+    if (!isAnonymousUser() && (!window.bsoPhoenix || !window.bsoPhoenix.canWrite)) {
         Array.prototype.slice.call(document.querySelectorAll('[data-phoenix-start], [data-phoenix-stop], [data-phoenix-log-form] button[type="submit"], [data-phoenix-todo-form] button[type="submit"], [data-phoenix-cost-form] button[type="submit"]')).forEach(function (node) {
             node.setAttribute('disabled', 'disabled');
         });
@@ -2170,9 +2372,12 @@
     updateQueuedCount();
     resetLiveStats();
     setConnectionStatus();
-    renderLatestCompletedTrip();
-    loadTripSummaries();
-    if (window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
+    if (!isAnonymousUser()) {
+        renderLatestCompletedTrip();
+        loadTripSummaries();
+    }
+
+    if (!isAnonymousUser() && window.bsoPhoenix && window.bsoPhoenix.activeTripId) {
         state.activeTripId = normalizeTripId(window.bsoPhoenix.activeTripId);
         state.activeTripStartedAt = window.bsoPhoenix.activeTripStartedAt || null;
         if (state.activeTripId > 0) {
@@ -2183,22 +2388,39 @@
             updateLiveStats();
             startGeolocation();
         }
-    } else if (window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
+    } else if (!isAnonymousUser() && window.bsoPhoenix && window.bsoPhoenix.latestTripId) {
         loadTripRoute(window.bsoPhoenix.latestTripId);
     }
 
+    window.addEventListener('beforeunload', function () {
+        if (!isAnonymousUser()) {
+            return;
+        }
+
+        updateAnonymousRouteSessionFlag();
+        stopAnonymousGeolocation();
+    });
+
     window.addEventListener('online', function () {
         setConnectionStatus();
+        if (isAnonymousUser()) {
+            return;
+        }
+
         setSyncFeedback('Verbinding hersteld. Synchronisatie gestart...', 'info', { toast: true });
         flushQueuedRequests();
     });
 
     window.addEventListener('offline', function () {
         setConnectionStatus();
+        if (isAnonymousUser()) {
+            return;
+        }
+
         setSyncFeedback('Offline. Nieuwe acties worden lokaal in de wachtrij geplaatst.', 'warning', { toast: true });
     });
 
-    if (navigator.onLine !== false) {
+    if (!isAnonymousUser() && navigator.onLine !== false) {
         flushQueuedRequests();
     }
 })();
